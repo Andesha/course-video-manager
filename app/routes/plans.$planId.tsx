@@ -133,35 +133,55 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: "Plan - CVM" }];
 };
 
-// Generate markdown from plan
-function planToMarkdown(plan: Plan): string {
+// Generate markdown from plan (respects active filters)
+interface PlanToMarkdownOptions {
+  priorityFilter: LessonPriority[];
+  iconFilter: LessonIcon[];
+  pinnedLessonIds: string[];
+}
+
+function planToMarkdown(plan: Plan, options: PlanToMarkdownOptions): string {
+  const { priorityFilter, iconFilter, pinnedLessonIds } = options;
+
+  // Filter function matching the display logic
+  const passesFilters = (lesson: Lesson) => {
+    // Check priority filter (empty = show all, pinned lessons bypass filter)
+    const passesPriorityFilter =
+      priorityFilter.length === 0 ||
+      priorityFilter.includes(lesson.priority ?? 2) ||
+      pinnedLessonIds.includes(lesson.id);
+
+    // Check icon filter (empty = show all)
+    const passesIconFilter =
+      iconFilter.length === 0 || iconFilter.includes(lesson.icon ?? "watch");
+
+    return passesPriorityFilter && passesIconFilter;
+  };
+
   const lines: string[] = [];
   lines.push(`# ${plan.title}`);
   lines.push("");
 
   const sortedSections = [...plan.sections].sort((a, b) => a.order - b.order);
 
-  for (
-    let sectionIndex = 0;
-    sectionIndex < sortedSections.length;
-    sectionIndex++
-  ) {
-    const section = sortedSections[sectionIndex]!;
-    const sectionNumber = sectionIndex + 1;
-    lines.push(`## ${sectionNumber}. ${section.title}`);
-    lines.push("");
-
+  let sectionNumber = 0;
+  for (const section of sortedSections) {
     const sortedLessons = [...section.lessons].sort(
       (a, b) => a.order - b.order
     );
+    const filteredLessons = sortedLessons.filter(passesFilters);
 
-    for (
-      let lessonIndex = 0;
-      lessonIndex < sortedLessons.length;
-      lessonIndex++
-    ) {
-      const lesson = sortedLessons[lessonIndex]!;
-      const lessonNumber = `${sectionNumber}.${lessonIndex + 1}`;
+    // Skip sections with no visible lessons
+    if (filteredLessons.length === 0) continue;
+
+    sectionNumber++;
+    lines.push(`## ${sectionNumber}. ${section.title}`);
+    lines.push("");
+
+    let lessonIndex = 0;
+    for (const lesson of filteredLessons) {
+      lessonIndex++;
+      const lessonNumber = `${sectionNumber}.${lessonIndex}`;
 
       // Determine lesson type label
       let typeLabel: string;
@@ -1178,7 +1198,11 @@ function PlanDetailPageContent({ loaderData }: Route.ComponentProps) {
                     <DropdownMenuContent align="start">
                       <DropdownMenuItem
                         onSelect={async () => {
-                          const markdown = planToMarkdown(plan);
+                          const markdown = planToMarkdown(plan, {
+                            priorityFilter,
+                            iconFilter,
+                            pinnedLessonIds,
+                          });
                           await navigator.clipboard.writeText(markdown);
                         }}
                       >

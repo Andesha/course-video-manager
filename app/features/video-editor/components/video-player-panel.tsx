@@ -171,6 +171,7 @@ export const VideoPlayerPanel = () => {
     (ctx) => ctx.setIsRenameVideoModalOpen
   );
   const items = useContextSelector(VideoEditorContext, (ctx) => ctx.items);
+  const files = useContextSelector(VideoEditorContext, (ctx) => ctx.files);
   const selectedClipsSet = useContextSelector(
     VideoEditorContext,
     (ctx) => ctx.selectedClipsSet
@@ -403,6 +404,7 @@ export const VideoPlayerPanel = () => {
                   lastTranscribedClipId={lastTranscribedClipId}
                   clips={clips}
                   insertionPoint={insertionPoint}
+                  files={files}
                 />
               )}
 

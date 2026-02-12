@@ -26,6 +26,18 @@ import { INSERTION_POINT_ID } from "@/features/video-editor/constants";
 import { data } from "react-router";
 import { getStandaloneVideoFilePath } from "@/services/standalone-video-files";
 import { Array as EffectArray } from "effect";
+import path from "node:path";
+import {
+  ALWAYS_EXCLUDED_DIRECTORIES,
+  DEFAULT_CHECKED_EXTENSIONS,
+  DEFAULT_UNCHECKED_PATHS,
+} from "@/services/text-writing-agent";
+
+export type FileMetadata = {
+  path: string;
+  size: number;
+  defaultEnabled: boolean;
+};
 
 // Core data model - flat array of clips
 
@@ -101,6 +113,78 @@ export const loader = async (args: Route.LoaderArgs) => {
       }).pipe(Effect.map(EffectArray.filter((f) => f !== null)));
     }
 
+    // Get code files for suggestions context
+    let files: FileMetadata[] = [];
+
+    if (lesson) {
+      // For lesson-attached videos, get files from the lesson directory
+      const repo = lesson.section.repoVersion.repo;
+      const section = lesson.section;
+      const lessonPath = path.join(repo.filePath, section.path, lesson.path);
+
+      const allFilesInDirectory = yield* fs
+        .readDirectory(lessonPath, { recursive: true })
+        .pipe(
+          Effect.map((filesResult) =>
+            filesResult.map((file) => path.join(lessonPath, file))
+          )
+        );
+
+      const filteredFiles = allFilesInDirectory.filter((filePath) => {
+        return !ALWAYS_EXCLUDED_DIRECTORIES.some((excludedDir) =>
+          filePath.includes(excludedDir)
+        );
+      });
+
+      files = yield* Effect.forEach(filteredFiles, (filePath) => {
+        return Effect.gen(function* () {
+          const stat = yield* fs.stat(filePath);
+
+          if (stat.type !== "File") {
+            return null;
+          }
+
+          const relativePath = path.relative(lessonPath, filePath);
+          const extension = path.extname(filePath).slice(1);
+
+          const defaultEnabled =
+            DEFAULT_CHECKED_EXTENSIONS.includes(extension) &&
+            !DEFAULT_UNCHECKED_PATHS.some((uncheckedPath) =>
+              relativePath.toLowerCase().includes(uncheckedPath.toLowerCase())
+            );
+
+          return {
+            path: relativePath,
+            size: Number(stat.size),
+            defaultEnabled,
+          };
+        });
+      }).pipe(Effect.map(EffectArray.filter((f) => f !== null)));
+    } else if (dirExists) {
+      // For standalone videos, use the standalone files directory with full metadata
+      const filesInDirectory = yield* fs.readDirectory(standaloneVideoDir);
+
+      files = yield* Effect.forEach(filesInDirectory, (filename) => {
+        return Effect.gen(function* () {
+          const filePath = getStandaloneVideoFilePath(videoId, filename);
+          const stat = yield* fs.stat(filePath);
+
+          if (stat.type !== "File") {
+            return null;
+          }
+
+          const extension = path.extname(filename).slice(1);
+          const defaultEnabled = DEFAULT_CHECKED_EXTENSIONS.includes(extension);
+
+          return {
+            path: filename,
+            size: Number(stat.size),
+            defaultEnabled,
+          };
+        });
+      }).pipe(Effect.map(EffectArray.filter((f) => f !== null)));
+    }
+
     return {
       video,
       items: sortedItems,
@@ -108,6 +192,7 @@ export const loader = async (args: Route.LoaderArgs) => {
       hasExplainerFolder,
       videoCount: lesson?.videos.length ?? 1,
       standaloneFiles,
+      files,
     };
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
@@ -536,6 +621,7 @@ export const ComponentInner = (props: Route.ComponentProps) => {
       videoCount={props.loaderData.videoCount}
       error={clipState.error}
       standaloneFiles={props.loaderData.standaloneFiles}
+      files={props.loaderData.files}
     />
   );
 };

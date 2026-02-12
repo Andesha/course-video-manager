@@ -12,6 +12,12 @@ import type { FrontendSpeechDetectorState } from "./use-speech-detector";
 import type { ClipComputedProps } from "./types";
 import type { FetcherWithComponents } from "react-router";
 
+export type FileMetadata = {
+  path: string;
+  size: number;
+  defaultEnabled: boolean;
+};
+
 export type VideoEditorContextType = {
   // From videoStateReducer
   runningState: "playing" | "paused";
@@ -51,6 +57,7 @@ export type VideoEditorContextType = {
   liveMediaStream: MediaStream | null;
   speechDetectorState: FrontendSpeechDetectorState;
   clipIdsBeingTranscribed: Set<FrontendId>;
+  files: FileMetadata[];
 
   // Callbacks
   onSetInsertionPoint: (mode: "after" | "before", clipId: FrontendId) => void;

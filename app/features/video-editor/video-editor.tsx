@@ -115,6 +115,7 @@ export const VideoEditor = (props: {
   ) => void;
   error: EditorError | null;
   standaloneFiles: Array<{ path: string }>;
+  files: Array<{ path: string; size: number; defaultEnabled: boolean }>;
 }) => {
   // Filter items to get only clips (excluding clip sections)
   // Clip sections will be rendered separately in a future update
@@ -352,6 +353,7 @@ export const VideoEditor = (props: {
       liveMediaStream: props.liveMediaStream,
       speechDetectorState: props.speechDetectorState,
       clipIdsBeingTranscribed: props.clipIdsBeingTranscribed,
+      files: props.files,
 
       // Callbacks
       onSetInsertionPoint: props.onSetInsertionPoint,
@@ -438,6 +440,7 @@ export const VideoEditor = (props: {
       props.liveMediaStream,
       props.speechDetectorState,
       props.clipIdsBeingTranscribed,
+      props.files,
       props.onSetInsertionPoint,
       props.onMoveClip,
       props.onToggleBeatForClip,

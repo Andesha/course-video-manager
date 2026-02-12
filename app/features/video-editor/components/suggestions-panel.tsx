@@ -107,7 +107,7 @@ export function SuggestionsPanel(props: SuggestionsPanelProps) {
     );
   });
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, stop } = useChat({
     transport: new DefaultChatTransport({
       api: `/videos/${props.videoId}/suggest-next-clip`,
     }),
@@ -121,6 +121,10 @@ export function SuggestionsPanel(props: SuggestionsPanelProps) {
   const isStreaming = status === "streaming";
 
   const triggerSuggestion = useCallback(() => {
+    // Cancel any in-flight suggestion before starting a new one
+    if (status === "streaming") {
+      stop();
+    }
     setMessages([]);
     // Get the clip ID to truncate after based on the current insertion point
     const truncateAfterClipId = getClipIdToTruncateAfter(
@@ -142,12 +146,15 @@ export function SuggestionsPanel(props: SuggestionsPanelProps) {
     props.clips,
     props.insertionPoint,
     enabledFiles,
+    status,
+    stop,
   ]);
 
   // Track the previous lastTranscribedClipId to detect new transcriptions
   const lastTranscribedClipIdRef = useRef<string | null>(null);
 
   // Trigger suggestion when a new clip is transcribed and suggestions are enabled
+  // The triggerSuggestion function handles cancellation of any in-flight request
   useEffect(() => {
     if (
       enabled &&

@@ -2081,6 +2081,39 @@ export class DBService extends Effect.Service<DBService>()("DBService", {
         yield* makeDbCall(() => db.delete(links).where(eq(links.id, linkId)));
         return { success: true };
       }),
+      /**
+       * Get the 3 most recent videos (by createdAt) that have 10+ unarchived clips.
+       * Used for generating dynamic few-shot examples for next-clip suggestions.
+       * Excludes the current video being edited.
+       */
+      getVideosForFewShotExamples: Effect.fn("getVideosForFewShotExamples")(
+        function* (excludeVideoId?: string) {
+          // Get all non-archived videos with their non-archived clips
+          const allVideos = yield* makeDbCall(() =>
+            db.query.videos.findMany({
+              where: eq(videos.archived, false),
+              orderBy: desc(videos.createdAt),
+              with: {
+                clips: {
+                  orderBy: asc(clips.order),
+                  where: eq(clips.archived, false),
+                },
+              },
+            })
+          );
+
+          // Filter to videos with 10+ clips, excluding the current video
+          const eligibleVideos = allVideos
+            .filter(
+              (video) =>
+                video.clips.length >= 10 &&
+                (excludeVideoId === undefined || video.id !== excludeVideoId)
+            )
+            .slice(0, 3);
+
+          return eligibleVideos;
+        }
+      ),
     };
   }),
 }) {}

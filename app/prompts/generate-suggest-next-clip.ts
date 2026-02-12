@@ -1,9 +1,36 @@
+export type FewShotExample = {
+  clipTranscripts: string[];
+};
+
+const formatFewShotExample = (example: FewShotExample): string => {
+  if (example.clipTranscripts.length < 2) {
+    return "";
+  }
+
+  const contextClips = example.clipTranscripts.slice(0, -1);
+  const nextClip = example.clipTranscripts[example.clipTranscripts.length - 1];
+
+  const transcriptLines = contextClips
+    .map((text, i) => `Clip ${i + 1}: ${text}`)
+    .join("\n");
+
+  return `<example>
+<transcript>
+${transcriptLines}
+</transcript>
+<next-clip>
+${nextClip}
+</next-clip>
+</example>`;
+};
+
 export const generateSuggestNextClipPrompt = (opts: {
   code: {
     path: string;
     content: string;
   }[];
   transcript: string;
+  fewShotExamples?: FewShotExample[];
 }) => {
   const transcriptSection = opts.transcript
     ? `Here is the full transcript of the video so far, broken into clips:
@@ -26,6 +53,15 @@ ${opts.code
 </code>
 
 `
+      : "";
+
+  const fewShotSection =
+    opts.fewShotExamples && opts.fewShotExamples.length > 0
+      ? `<few-shot-examples>
+Here are examples from real recordings showing the clip-by-clip flow and what came next:
+
+${opts.fewShotExamples.map(formatFewShotExample).filter(Boolean).join("\n\n")}
+</few-shot-examples>`
       : "";
 
   return `
@@ -56,23 +92,6 @@ Output ONLY the spoken words. No quotes, no "you should say...", no stage direct
 Just the raw script text as if reading from a teleprompter.
 </output-format>
 
-<few-shot-examples>
-<!--
-  TODO: Add real examples from actual transcripts here.
-  Format should show the transcript context and what was said next.
-
-  Example structure:
-
-  <example>
-  <transcript>
-  Clip 1: So let's look at how TypeScript handles generic constraints.
-  Clip 2: When you have a generic type parameter, you can constrain it using the extends keyword.
-  </transcript>
-  <next-clip>
-  Let me show you a concrete example. Say we have a function that needs to work with objects that have an id property.
-  </next-clip>
-  </example>
--->
-</few-shot-examples>
+${fewShotSection}
 `.trim();
 };

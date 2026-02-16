@@ -430,6 +430,38 @@ const MODE_STORAGE_KEY = "article-writer-mode";
 const MODEL_STORAGE_KEY = "article-writer-model";
 const COURSE_STRUCTURE_STORAGE_KEY = "article-writer-include-course-structure";
 
+const getMessagesStorageKey = (videoId: string, mode: Mode) =>
+  `article-writer-messages-${videoId}-${mode}`;
+
+const loadMessagesFromStorage = (videoId: string, mode: Mode): UIMessage[] => {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const saved = localStorage.getItem(getMessagesStorageKey(videoId, mode));
+    if (saved) {
+      return JSON.parse(saved) as UIMessage[];
+    }
+  } catch (e) {
+    console.error("Failed to load messages from localStorage:", e);
+  }
+  return [];
+};
+
+const saveMessagesToStorage = (
+  videoId: string,
+  mode: Mode,
+  messages: UIMessage[]
+) => {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(
+      getMessagesStorageKey(videoId, mode),
+      JSON.stringify(messages)
+    );
+  } catch (e) {
+    console.error("Failed to save messages to localStorage:", e);
+  }
+};
+
 export function InnerComponent(props: Route.ComponentProps) {
   const { videoId } = props.params;
   const {
@@ -496,11 +528,42 @@ export function InnerComponent(props: Route.ComponentProps) {
     (f) => f.path.startsWith("explainer/") || f.path.startsWith("problem/")
   );
 
+  // Load initial messages from localStorage based on current mode
+  const [initialMessages] = useState(() =>
+    loadMessagesFromStorage(videoId, mode)
+  );
+
+  const { messages, setMessages, sendMessage, status, error } = useChat({
+    transport: new DefaultChatTransport({
+      api: `/videos/${videoId}/completions`,
+    }),
+    messages: initialMessages,
+  });
+
+  // Track previous status to detect when streaming finishes
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    // Save messages when streaming finishes (status changes from "streaming" to "ready")
+    if (prevStatusRef.current === "streaming" && status === "ready") {
+      saveMessagesToStorage(videoId, mode, messages);
+    }
+    prevStatusRef.current = status;
+  }, [status, videoId, mode, messages]);
+
   const handleModeChange = (newMode: Mode) => {
+    // Save current messages before switching modes
+    if (messages.length > 0) {
+      saveMessagesToStorage(videoId, mode, messages);
+    }
+
     setMode(newMode);
     if (typeof localStorage !== "undefined") {
       localStorage.setItem(MODE_STORAGE_KEY, newMode);
     }
+
+    // Load messages for the new mode
+    const savedMessages = loadMessagesFromStorage(videoId, newMode);
+    setMessages(savedMessages);
 
     // If switching to style-guide mode, only enable README.md files
     if (newMode === "style-guide-skill-building") {
@@ -532,11 +595,10 @@ export function InnerComponent(props: Route.ComponentProps) {
     }
   };
 
-  const { messages, setMessages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({
-      api: `/videos/${videoId}/completions`,
-    }),
-  });
+  const handleClearChat = () => {
+    setMessages([]);
+    saveMessagesToStorage(videoId, mode, []);
+  };
 
   const writeToReadmeFetcher = useFetcher();
   const deleteLinkFetcher = useFetcher();
@@ -1601,7 +1663,7 @@ export function InnerComponent(props: Route.ComponentProps) {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => setMessages([])}
+                          onClick={handleClearChat}
                           disabled={status === "streaming"}
                         >
                           <Trash2Icon className="h-4 w-4" />

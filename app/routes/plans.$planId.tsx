@@ -193,7 +193,10 @@ function planToMarkdown(plan: Plan, options: PlanToMarkdownOptions): string {
         typeLabel = "Explainer";
       }
 
-      lines.push(`### ${lessonNumber} ${lesson.title} (${typeLabel})`);
+      const priority = lesson.priority ?? 2;
+      lines.push(
+        `### ${lessonNumber} ${lesson.title} (${typeLabel}, P${priority})`
+      );
 
       if (lesson.description) {
         lines.push("");

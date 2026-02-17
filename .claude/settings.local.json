@@ -33,7 +33,19 @@
       "Skill(write-a-prd)",
       "Bash(npx tsc:*)",
       "Bash(npm view:*)",
-      "Bash(wslpath:*)"
+      "Bash(wslpath:*)",
+      "Bash(echo:*)",
+      "Bash(git status:*)",
+      "WebFetch(domain:orm.drizzle.team)",
+      "Bash(npx vitest run:*)",
+      "Bash(git -C /home/mattpocock/repos/matt/course-video-manager log --oneline -20)",
+      "Bash(npm ls:*)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm ci:*)",
+      "Bash(npx vitest:*)"
     ],
     "deny": [],
     "ask": []

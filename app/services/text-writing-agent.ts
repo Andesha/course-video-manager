@@ -23,7 +23,7 @@ import {
   type UIMessage,
 } from "ai";
 import { Array, Effect } from "effect";
-import { DBService } from "./db-service";
+import { DBFunctionsService } from "./db-service";
 import path from "node:path";
 import { FileSystem } from "@effect/platform";
 import { formatSecondsToTimeCode } from "./utils";
@@ -246,7 +246,7 @@ export const acquireTextWritingContext = Effect.fn("acquireVideoContext")(
     includeTranscript?: boolean;
     enabledSections?: string[];
   }) {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
     const video = yield* db.getVideoWithClipsById(props.videoId);

@@ -2,7 +2,7 @@ import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.links";
 import { layerLive } from "@/services/layer";
 import { data } from "react-router";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 
 const CreateLinkSchema = Schema.Struct({
   title: Schema.String,
@@ -12,7 +12,7 @@ const CreateLinkSchema = Schema.Struct({
 
 export const loader = async (_args: Route.LoaderArgs) => {
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const links = yield* db.getLinks();
 
     return { links };
@@ -46,7 +46,7 @@ export const action = async (args: Route.ActionArgs) => {
       return yield* Effect.die(data("Invalid URL format", { status: 400 }));
     }
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     const link = yield* db.createLink({
       title: parsed.title,

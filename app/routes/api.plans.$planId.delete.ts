@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
 import type { Route } from "./+types/api.plans.$planId.delete";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { data, redirect } from "react-router";
 
@@ -11,7 +11,7 @@ export const action = async (args: Route.ActionArgs) => {
   const shouldRedirectHome = url.pathname.startsWith(`/plans/${planId}`);
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     yield* db.deletePlan(planId);
 
     if (shouldRedirectHome) {

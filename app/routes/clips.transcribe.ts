@@ -1,4 +1,4 @@
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { TotalTypeScriptCLIService } from "@/services/tt-cli-service";
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/clips.transcribe";
@@ -14,7 +14,7 @@ export const action = async (args: Route.ActionArgs) => {
   const json = await args.request.json();
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const ttCliService = yield* TotalTypeScriptCLIService;
 
     const { clipIds } = yield* Schema.decodeUnknown(transcribeClipsSchema)(

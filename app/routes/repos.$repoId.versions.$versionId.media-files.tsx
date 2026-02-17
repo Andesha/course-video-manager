@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { Console, Effect } from "effect";
 import { ArrowLeft, Check, Copy } from "lucide-react";
@@ -12,7 +12,7 @@ export const loader = async (args: Route.LoaderArgs) => {
   const { repoId, versionId } = args.params;
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     const version = yield* db.getRepoVersionById(versionId);
     const repoWithSections = yield* db.getRepoWithSectionsByVersion({

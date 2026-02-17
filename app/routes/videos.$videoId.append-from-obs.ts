@@ -1,4 +1,4 @@
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { withDatabaseDump } from "@/services/dump-service";
 import { layerLive } from "@/services/layer";
 import { TotalTypeScriptCLIService } from "@/services/tt-cli-service";
@@ -51,7 +51,7 @@ export const action = async (args: Route.ActionArgs) => {
       ? windowsToWSL(result.filePath)
       : undefined;
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     const ttCliService = yield* TotalTypeScriptCLIService;
 

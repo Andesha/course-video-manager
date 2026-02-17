@@ -1,6 +1,6 @@
 "use client";
 
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import type {
   SectionWithWordCount,
@@ -117,7 +117,7 @@ const partsToText = (parts: UIMessage["parts"]) => {
 export const loader = async (args: Route.LoaderArgs) => {
   const { videoId } = args.params;
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
     const video = yield* db.getVideoWithClipsById(videoId);
     const globalLinks = yield* db.getLinks();

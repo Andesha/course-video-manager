@@ -11,7 +11,7 @@ import {
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
 import { getVideoPath } from "@/lib/get-video";
 import { formatSecondsToTimeCode } from "@/services/utils";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { FileSystem } from "@effect/platform";
 import { Console, Effect } from "effect";
@@ -36,7 +36,7 @@ export const meta: Route.MetaFunction = () => {
 
 export const loader = async () => {
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
     const videos = yield* db.getStandaloneVideos();

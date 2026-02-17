@@ -1,7 +1,7 @@
 import { Console, Effect, Schema } from "effect";
 import { FileSystem } from "@effect/platform";
 import type { Route } from "./+types/api.standalone-files.read";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { getStandaloneVideoFilePath } from "@/services/standalone-video-files";
 import { data } from "react-router";
@@ -61,7 +61,7 @@ export const loader = async (args: Route.LoaderArgs) => {
       filename,
     });
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
     // Validate video exists and is a standalone video

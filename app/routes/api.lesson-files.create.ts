@@ -1,7 +1,7 @@
 import { Console, Effect } from "effect";
 import { FileSystem } from "@effect/platform";
 import type { Route } from "./+types/api.lesson-files.create";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
@@ -29,7 +29,7 @@ export const action = async (args: Route.ActionArgs) => {
       );
     }
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
     // Validate video exists and is a lesson-connected video

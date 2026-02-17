@@ -1,6 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { Console, Effect } from "effect";
 import { ArchiveRestore } from "lucide-react";
@@ -18,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 
 export const loader = async (_args: Route.LoaderArgs) => {
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const archivedRepos = yield* db.getArchivedRepos();
     const repos = yield* db.getRepos();
     const standaloneVideos = yield* db.getStandaloneVideos();

@@ -1,5 +1,5 @@
 import { Config, Effect } from "effect";
-import { DBService } from "./db-service";
+import { DBFunctionsService } from "./db-service";
 import { FileSystem } from "@effect/platform";
 import { NodeFileSystem } from "@effect/platform-node";
 
@@ -7,7 +7,7 @@ export class DatabaseDumpService extends Effect.Service<DatabaseDumpService>()(
   "DatabaseDumpService",
   {
     effect: Effect.gen(function* () {
-      const db = yield* DBService;
+      const db = yield* DBFunctionsService;
       const fs = yield* FileSystem.FileSystem;
       const DUMP_FILE_LOCATION = yield* Config.string("DUMP_FILE_LOCATION");
 
@@ -28,7 +28,7 @@ export class DatabaseDumpService extends Effect.Service<DatabaseDumpService>()(
         dump,
       };
     }),
-    dependencies: [NodeFileSystem.layer, DBService.Default],
+    dependencies: [NodeFileSystem.layer, DBFunctionsService.Default],
   }
 ) {}
 

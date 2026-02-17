@@ -2,7 +2,7 @@ import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.plans";
 import { layerLive } from "@/services/layer";
 import { data, redirect } from "react-router";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 
 const CreatePlanSchema = Schema.Struct({
   title: Schema.String,
@@ -10,7 +10,7 @@ const CreatePlanSchema = Schema.Struct({
 
 export const loader = async (_args: Route.LoaderArgs) => {
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const plans = yield* db.getPlans();
 
     return { plans };
@@ -33,7 +33,7 @@ export const action = async (args: Route.ActionArgs) => {
       title,
     });
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const now = new Date().toISOString();
     const planId = crypto.randomUUID();
 

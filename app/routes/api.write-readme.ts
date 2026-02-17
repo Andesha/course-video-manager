@@ -1,4 +1,4 @@
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { FileSystem } from "@effect/platform";
 import { Console, Effect, Schema } from "effect";
@@ -16,7 +16,7 @@ export const action = async (args: Route.ActionArgs) => {
   const body = await args.request.json();
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
     const parsed = yield* Schema.decodeUnknown(writeReadmeSchema)(body);

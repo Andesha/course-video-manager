@@ -1,7 +1,7 @@
 import { Console, Effect, Schema } from "effect";
 import { FileSystem } from "@effect/platform";
 import type { Route } from "./+types/api.lesson-files.read";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { data } from "react-router";
 import path from "path";
@@ -61,7 +61,7 @@ export const loader = async (args: Route.LoaderArgs) => {
       filePath: filePathParam,
     });
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
     // Validate video exists and is a lesson-connected video

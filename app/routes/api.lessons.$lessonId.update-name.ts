@@ -1,6 +1,6 @@
 import { Console, Data, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.lessons.$lessonId.update-name";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
@@ -32,7 +32,7 @@ export const action = async (args: Route.ActionArgs) => {
       formDataObject
     );
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     const order = Number(path.split("-")[0]);
 

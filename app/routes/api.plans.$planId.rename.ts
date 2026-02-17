@@ -1,6 +1,6 @@
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.plans.$planId.rename";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { data } from "react-router";
 
@@ -15,7 +15,7 @@ export const action = async (args: Route.ActionArgs) => {
 
   return Effect.gen(function* () {
     const parsed = yield* Schema.decodeUnknown(RenamePlanSchema)({ title });
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     yield* db.renamePlan(planId, parsed.title);
 
     return { success: true };

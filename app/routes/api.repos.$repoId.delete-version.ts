@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import type { Route } from "./+types/api.repos.$repoId.delete-version";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { withDatabaseDump } from "@/services/dump-service";
 
@@ -16,7 +16,7 @@ export const action = async (args: Route.ActionArgs) => {
     const { versionId } =
       yield* Schema.decodeUnknown(deleteVersionSchema)(formDataObject);
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     const newLatestVersion = yield* db.deleteRepoVersion(versionId);
 

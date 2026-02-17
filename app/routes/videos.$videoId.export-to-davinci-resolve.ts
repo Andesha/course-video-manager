@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
 import type { Route } from "./+types/videos.$videoId.export-to-davinci-resolve";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { TotalTypeScriptCLIService } from "@/services/tt-cli-service";
 import { layerLive } from "@/services/layer";
 import { withDatabaseDump } from "@/services/dump-service";
@@ -8,7 +8,7 @@ import { data } from "react-router";
 
 export const action = async (args: Route.ActionArgs) => {
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const ttCli = yield* TotalTypeScriptCLIService;
     const { videoId } = args.params;
 

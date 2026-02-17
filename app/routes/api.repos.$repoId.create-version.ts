@@ -1,4 +1,4 @@
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { withDatabaseDump } from "@/services/dump-service";
 import { layerLive } from "@/services/layer";
 import { Config, Console, Effect, Schema } from "effect";
@@ -19,7 +19,7 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
   return await Effect.gen(function* () {
     const result =
       yield* Schema.decodeUnknown(createVersionSchema)(formDataObject);
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
     const FINISHED_VIDEOS_DIRECTORY = yield* Config.string(
       "FINISHED_VIDEOS_DIRECTORY"

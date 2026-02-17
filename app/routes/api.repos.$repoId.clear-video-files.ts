@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import type { Route } from "./+types/api.repos.$repoId.clear-video-files";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { FileSystem } from "@effect/platform";
 import { getVideoPath } from "@/lib/get-video";
@@ -18,7 +18,7 @@ export const action = async (args: Route.ActionArgs) => {
       formDataObject
     );
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
     const videoIds = yield* db.getVideoIdsForVersion(versionId);

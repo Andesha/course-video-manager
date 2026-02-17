@@ -1,6 +1,6 @@
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.lessons.delete";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
@@ -17,7 +17,7 @@ export const action = async (args: Route.ActionArgs) => {
     const { lessonId } =
       yield* Schema.decodeUnknown(deleteLessonSchema)(formDataObject);
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     yield* db.deleteLesson(lessonId);
 

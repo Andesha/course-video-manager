@@ -2,13 +2,13 @@ import { Console, Effect } from "effect";
 import type { Route } from "./+types/api.links.$linkId.delete";
 import { layerLive } from "@/services/layer";
 import { data } from "react-router";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 
 export const action = async (args: Route.ActionArgs) => {
   const { linkId } = args.params;
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     yield* db.deleteLink(linkId);
 
     return { success: true };

@@ -1,6 +1,6 @@
 import { Config, Console, Effect } from "effect";
 import { FileSystem } from "@effect/platform";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import type { Route } from "./+types/api.repoVersions.$versionId.export-unexported";
 import {
@@ -19,7 +19,7 @@ export const action = async (args: Route.ActionArgs) => {
   const { versionId } = args.params;
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const ttCliService = yield* TotalTypeScriptCLIService;
     const fs = yield* FileSystem.FileSystem;
     const FINISHED_VIDEOS_DIRECTORY = yield* Config.string(

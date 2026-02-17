@@ -11,7 +11,7 @@ import {
   Schema,
 } from "effect";
 import { layerLive } from "@/services/layer";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { Command, FileSystem } from "@effect/platform";
 import path from "node:path";
 import { makeSemaphore } from "effect/Effect";
@@ -87,7 +87,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
     );
 
     const repoParserService = yield* RepoParserService;
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     // Get the latest version - only publish sections from the latest version
     const latestVersion = yield* db.getLatestRepoVersion(result.repoId);

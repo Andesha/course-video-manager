@@ -47,7 +47,7 @@ import type {
 import type { planStateReducer } from "@/features/course-planner/plan-state-reducer";
 import type { Route } from "./+types/plans.$planId";
 import { Console, Effect } from "effect";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import {
   DndContext,
@@ -74,7 +74,7 @@ import { NotFoundError } from "@/services/db-service-errors";
 
 export const loader = async ({ params }: Route.LoaderArgs) => {
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const [repos, standaloneVideos, plans] = yield* Effect.all([
       db.getRepos(),
       db.getStandaloneVideos(),

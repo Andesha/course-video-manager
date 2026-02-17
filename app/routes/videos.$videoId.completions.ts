@@ -1,4 +1,4 @@
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import {
   acquireTextWritingContext,
@@ -79,7 +79,7 @@ export const action = async (args: Route.ActionArgs) => {
     });
 
     // Fetch global links for injection into prompts
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const links = yield* db.getLinks();
 
     // Format course structure as indented text tree

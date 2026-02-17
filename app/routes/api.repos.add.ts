@@ -2,7 +2,7 @@ import { RepoParserService } from "@/services/repo-parser";
 import type { Route } from "./+types/api.repos.add";
 import { Console, Effect, Schema } from "effect";
 import { layerLive } from "@/services/layer";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
 
@@ -20,7 +20,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
     const repoParserService = yield* RepoParserService;
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     const parsedSections = yield* repoParserService.parseRepo(result.repoPath);
     console.log(parsedSections);

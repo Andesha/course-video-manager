@@ -1,5 +1,5 @@
 import { Console, Effect, Schema } from "effect";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import type { Route } from "./+types/clips.archive";
 import { withDatabaseDump } from "@/services/dump-service";
@@ -13,7 +13,7 @@ export const action = async (args: Route.ActionArgs) => {
   const json = await args.request.json();
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const { clipIds } = yield* Schema.decodeUnknown(archiveClipsSchema)(json);
 
     const resolvedClipIds = typeof clipIds === "string" ? [clipIds] : clipIds;

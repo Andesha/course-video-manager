@@ -2,19 +2,15 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "@/db/schema";
 import { describe, it, expect } from "@effect/vitest";
-import { vi, beforeEach } from "vitest";
-import { Effect } from "effect";
+import { beforeEach } from "vitest";
+import { Effect, Layer } from "effect";
 import { pushSchema } from "drizzle-kit/api";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
+import { DrizzleService } from "@/services/drizzle-service";
 
 let pglite: PGlite;
 let testDb: ReturnType<typeof drizzle<typeof schema>>;
-
-vi.mock("@/db/db", () => ({
-  get db() {
-    return testDb;
-  },
-}));
+let testLayer: Layer.Layer<DBFunctionsService>;
 
 type InsertionPoint =
   | { type: "start" }
@@ -26,7 +22,7 @@ describe("appendClips", () => {
 
   const appendClips = (insertionPoint: InsertionPoint, clipCount = 1) =>
     Effect.gen(function* () {
-      const db = yield* DBService;
+      const db = yield* DBFunctionsService;
       return yield* db.appendClips({
         videoId,
         insertionPoint,
@@ -40,7 +36,7 @@ describe("appendClips", () => {
 
   const createSection = (name: string, insertionPoint: InsertionPoint) =>
     Effect.gen(function* () {
-      const db = yield* DBService;
+      const db = yield* DBFunctionsService;
       return yield* db.createClipSectionAtInsertionPoint(
         videoId,
         name,
@@ -50,7 +46,7 @@ describe("appendClips", () => {
 
   const getAllItemsSorted = () =>
     Effect.gen(function* () {
-      const db = yield* DBService;
+      const db = yield* DBFunctionsService;
       const video = yield* db.getVideoWithClipsById(videoId);
       return [
         ...video.clips.map((c: any) => ({
@@ -74,10 +70,14 @@ describe("appendClips", () => {
     const { apply } = await pushSchema(schema, testDb as any);
     await apply();
 
+    testLayer = DBFunctionsService.Default.pipe(
+      Layer.provide(Layer.succeed(DrizzleService, testDb as any))
+    );
+
     const video = await Effect.gen(function* () {
-      const db = yield* DBService;
+      const db = yield* DBFunctionsService;
       return yield* db.createStandaloneVideo({ path: "test-video.mp4" });
-    }).pipe(Effect.provide(DBService.Default), Effect.runPromise);
+    }).pipe(Effect.provide(testLayer), Effect.runPromise);
     videoId = video.id;
   });
 
@@ -106,7 +106,7 @@ describe("appendClips", () => {
         { type: "clip", id: expect.any(String) }, // New clip
         { type: "clip", id: clipB.id },
       ]);
-    }).pipe(Effect.provide(DBService.Default))
+    }).pipe(Effect.provide(testLayer))
   );
 
   it.effect("inserts after a clip (with section following)", () =>
@@ -134,7 +134,7 @@ describe("appendClips", () => {
         { type: "clip-section", id: section.id },
         { type: "clip", id: clipB.id },
       ]);
-    }).pipe(Effect.provide(DBService.Default))
+    }).pipe(Effect.provide(testLayer))
   );
 
   it.effect("inserts at start", () =>
@@ -154,7 +154,7 @@ describe("appendClips", () => {
         { type: "clip-section", id: section.id },
         { type: "clip", id: clipA.id },
       ]);
-    }).pipe(Effect.provide(DBService.Default))
+    }).pipe(Effect.provide(testLayer))
   );
 
   it.effect("inserts after a clip section at end of timeline", () =>
@@ -177,7 +177,7 @@ describe("appendClips", () => {
         { type: "clip-section", id: section.id },
         { type: "clip", id: expect.any(String) }, // New clip
       ]);
-    }).pipe(Effect.provide(DBService.Default))
+    }).pipe(Effect.provide(testLayer))
   );
 
   it.effect("inserts multiple clips after a section", () =>
@@ -202,6 +202,6 @@ describe("appendClips", () => {
       expect(items[2]!.type).toBe("clip");
       expect(items[3]!.type).toBe("clip");
       expect(items[4]!.type).toBe("clip");
-    }).pipe(Effect.provide(DBService.Default))
+    }).pipe(Effect.provide(testLayer))
   );
 });

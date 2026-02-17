@@ -1,6 +1,6 @@
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.repos.$repoId.rename-version";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
@@ -20,7 +20,7 @@ export const action = async (args: Route.ActionArgs) => {
     const { versionId, name } =
       yield* Schema.decodeUnknown(renameVersionSchema)(formDataObject);
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     yield* db.updateRepoVersionName({ versionId, name: name.trim() });
 

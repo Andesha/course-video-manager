@@ -1,4 +1,4 @@
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.videos.edit-latest-obs-video";
@@ -19,7 +19,7 @@ export const action = async (args: Route.ActionArgs) => {
       editLatestObsVideoSchema
     )(formDataObject);
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     const lesson = yield* db.getLessonById(lessonId);
 

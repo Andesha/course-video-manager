@@ -35,7 +35,7 @@ import { VideoModal } from "@/components/video-player";
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
 import { getVideoPath } from "@/lib/get-video";
 import { cn } from "@/lib/utils";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { formatSecondsToTimeCode } from "@/services/utils";
 import { FileSystem } from "@effect/platform";
@@ -95,7 +95,7 @@ export const loader = async (args: Route.LoaderArgs) => {
   const selectedVersionId = url.searchParams.get("versionId");
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
     // First get repos and versions for the selected repo

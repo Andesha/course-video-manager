@@ -1,6 +1,6 @@
 import { withDatabaseDump } from "@/services/dump-service";
 import { Console, Effect, Schema } from "effect";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import type { Route } from "./+types/clip-sections.reorder";
 import { data } from "react-router";
@@ -14,7 +14,7 @@ export const action = async (args: Route.ActionArgs) => {
   const json = await args.request.json();
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const { clipSectionId, direction } = yield* Schema.decodeUnknown(
       reorderClipSectionSchema
     )(json);

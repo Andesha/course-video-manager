@@ -1,6 +1,6 @@
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.videos.$videoId.rename";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
@@ -20,7 +20,7 @@ export const action = async (args: Route.ActionArgs) => {
     const { name } =
       yield* Schema.decodeUnknown(renameVideoSchema)(formDataObject);
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     yield* db.updateVideoPath({ videoId, path: name.trim() });
 

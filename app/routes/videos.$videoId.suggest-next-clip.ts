@@ -4,7 +4,7 @@ import {
   generateSuggestNextClipPrompt,
   type FewShotExample,
 } from "@/prompts/generate-suggest-next-clip";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { Experimental_Agent as Agent } from "ai";
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/videos.$videoId.suggest-next-clip";
@@ -60,7 +60,7 @@ export const action = async (args: Route.ActionArgs) => {
   const videoId = args.params.videoId;
 
   return Effect.gen(function* () {
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
     const parsed = yield* Schema.decodeUnknown(requestSchema)(body);
     const enabledFiles: string[] = [...parsed.enabledFiles];
     const truncateAfterClipId = parsed.truncateAfterClipId;

@@ -2,7 +2,7 @@ import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.plans.sync";
 import { layerLive } from "@/services/layer";
 import { data } from "react-router";
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 
 const PlanLessonSchema = Schema.Struct({
   id: Schema.String,
@@ -43,7 +43,7 @@ export const action = async (args: Route.ActionArgs) => {
     const parsed = yield* Schema.decodeUnknown(SyncRequestSchema)(body, {
       onExcessProperty: "error",
     });
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     yield* db.syncPlan(parsed.plan);
 

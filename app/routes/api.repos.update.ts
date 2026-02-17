@@ -1,4 +1,4 @@
-import { DBService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service";
 import { layerLive } from "@/services/layer";
 import { ConfigProvider, Console, Data, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.repos.update";
@@ -74,7 +74,7 @@ export const action = async (args: Route.ActionArgs) => {
     const deletedLessons = [...decoded.deletedLessons];
     const modifiedLessons = { ...decoded.modifiedLessons };
 
-    const db = yield* DBService;
+    const db = yield* DBFunctionsService;
 
     // Fetch the current repo
     const baseRepo = yield* db.getRepoByFilePath(decoded.filePath);

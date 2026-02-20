@@ -1,4 +1,5 @@
 import { RepoParserService } from "@/services/repo-parser";
+import { resolveSectionsWithVideos } from "@/services/publish-to-dropbox";
 import type { Route } from "./+types/api.repos.add";
 import {
   Array,
@@ -32,32 +33,6 @@ class FailedToDeleteEmptyDirectoriesError extends Data.TaggedError(
   "FailedToDeleteEmptyDirectoriesError"
 )<{
   exitCode: number;
-}> {}
-
-type Section = {
-  id: string;
-  path: string;
-  lessons: Lesson[];
-};
-
-type Lesson = {
-  id: string;
-  path: string;
-  videos: Video[];
-};
-
-type Video = {
-  id: string;
-  absolutePath: string;
-  name: string;
-};
-
-class VideoDoesNotExistLocallyError extends Data.TaggedError(
-  "VideoDoesNotExistLocallyError"
-)<{
-  type: "video";
-  path: string;
-  message: string;
 }> {}
 
 const ALLOWED_FILE_EXTENSIONS_FROM_REPO = [
@@ -109,8 +84,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       repoWithSections.filePath
     );
 
-    const sections: Section[] = [];
-
+    // Validate that all filesystem sections/lessons exist in the DB
     for (const sectionOnFileSystem of sectionsOnFileSystem) {
       const sectionInDb = repoWithSections.sections.find(
         (s) => s.path === sectionOnFileSystem.sectionPathWithNumber
@@ -124,8 +98,6 @@ export const action = async ({ request }: Route.ActionArgs) => {
         });
       }
 
-      const lessons: Lesson[] = [];
-
       for (const lesson of sectionOnFileSystem.lessons) {
         const lessonInDb = sectionInDb.lessons.find(
           (l) => l.path === lesson.lessonPathWithNumber
@@ -138,43 +110,15 @@ export const action = async ({ request }: Route.ActionArgs) => {
             message: `Lesson ${lesson.lessonPathWithNumber} does not exist on the database`,
           });
         }
-
-        const videos: Video[] = [];
-
-        for (const video of lessonInDb.videos) {
-          const absolutePath = path.join(
-            FINISHED_VIDEOS_DIRECTORY,
-            video.id + ".mp4"
-          );
-
-          if (!(yield* fs.exists(absolutePath))) {
-            return yield* new VideoDoesNotExistLocallyError({
-              type: "video",
-              path: video.id,
-              message: `Video ${lesson.lessonPathWithNumber}/${video.path} does not exist locally`,
-            });
-          }
-
-          videos.push({
-            id: video.id,
-            absolutePath,
-            name: video.path,
-          });
-        }
-
-        lessons.push({
-          id: lessonInDb.id,
-          path: lessonInDb.path,
-          videos,
-        });
       }
-
-      sections.push({
-        id: sectionInDb.id,
-        path: sectionInDb.path,
-        lessons,
-      });
     }
+
+    // Resolve videos - skip missing ones instead of failing
+    const { sections, missingVideos } = yield* resolveSectionsWithVideos({
+      sectionsOnFileSystem,
+      sectionsInDb: repoWithSections.sections,
+      finishedVideosDirectory: FINISHED_VIDEOS_DIRECTORY,
+    });
 
     yield* Effect.logDebug("Validation complete");
 
@@ -325,7 +269,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       });
     }
 
-    return {};
+    return { missingVideos };
   }).pipe(
     Effect.tapErrorCause((e) => {
       return Console.log(e);
@@ -334,8 +278,6 @@ export const action = async ({ request }: Route.ActionArgs) => {
       ParseError: (_e) => Effect.die(data("Invalid request", { status: 400 })),
       RepoDoesNotExistError: () =>
         Effect.die(data("Repo path does not exist locally", { status: 404 })),
-      VideoDoesNotExistLocallyError: (e) =>
-        Effect.die(data(e.message, { status: 404 })),
       DoesNotExistOnDbError: (e) =>
         Effect.die(
           data(

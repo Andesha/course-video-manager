@@ -390,6 +390,22 @@ export default function Component(props: Route.ComponentProps) {
                                 action: "/api/repos/publish-to-dropbox",
                               }
                             )
+                            .then((data) => {
+                              const result = data as
+                                | {
+                                    missingVideos: { videoId: string }[];
+                                  }
+                                | undefined;
+                              const missingCount =
+                                result?.missingVideos?.length ?? 0;
+                              if (missingCount > 0) {
+                                toast.warning(
+                                  `Published to Dropbox, but ${missingCount} video${missingCount === 1 ? " was" : "s were"} not exported`
+                                );
+                              } else {
+                                toast.success("Published to Dropbox");
+                              }
+                            })
                             .catch((e) => {
                               console.error("Publish failed", e);
                               toast.error("Publish failed");

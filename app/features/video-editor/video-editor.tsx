@@ -1,6 +1,7 @@
 import { formatSecondsToTimeCode } from "@/services/utils";
 import type { ClipSectionNamingModal, ClipComputedProps } from "./types";
 import { ClipSectionNamingModal as ClipSectionNamingModalComponent } from "./components/clip-section-naming-modal";
+import { CreateVideoFromSelectionModal } from "./components/create-video-from-selection-modal";
 import { VideoPlayerPanel } from "./components/video-player-panel";
 import { ClipTimeline } from "./components/clip-timeline";
 import { ErrorOverlay } from "./components/error-overlay";
@@ -43,6 +44,12 @@ const useVideoEditor = (props: {
   onMoveClip: (clipId: FrontendId, direction: "up" | "down") => void;
   onAddClipSection: (name: string) => void;
   onUpdateClipSection: (clipSectionId: FrontendId, name: string) => void;
+  onCreateVideoFromSelection: (
+    clipIds: FrontendId[],
+    clipSectionIds: FrontendId[],
+    title: string,
+    mode: "copy" | "move"
+  ) => void;
 }) => {
   const [state, dispatch] = useEffectReducer<
     videoStateReducer.State,
@@ -79,9 +86,13 @@ const useVideoEditor = (props: {
       "move-clip": (_state, effect, _dispatch) => {
         props.onMoveClip(effect.clipId, effect.direction);
       },
-      "create-video-from-selection": (_state, _effect, _dispatch) => {
-        // Effect handler will be wired up in Issue #200 (UI integration)
-        // The effect payload contains: clipIds, clipSectionIds, title, mode
+      "create-video-from-selection": (_state, effect, _dispatch) => {
+        props.onCreateVideoFromSelection(
+          effect.clipIds,
+          effect.clipSectionIds,
+          effect.title,
+          effect.mode
+        );
       },
     }
   );
@@ -124,6 +135,12 @@ export const VideoEditor = (props: {
   error: EditorError | null;
   standaloneFiles: Array<{ path: string }>;
   files: Array<{ path: string; size: number; defaultEnabled: boolean }>;
+  onCreateVideoFromSelection: (
+    clipIds: FrontendId[],
+    clipSectionIds: FrontendId[],
+    title: string,
+    mode: "copy" | "move"
+  ) => void;
 }) => {
   // Filter items to get only clips (excluding clip sections)
   // Clip sections will be rendered separately in a future update
@@ -149,6 +166,7 @@ export const VideoEditor = (props: {
     onMoveClip: props.onMoveClip,
     onAddClipSection: props.onAddClipSection,
     onUpdateClipSection: props.onUpdateClipSection,
+    onCreateVideoFromSelection: props.onCreateVideoFromSelection,
   });
 
   const currentClipIndex = clips.findIndex(
@@ -173,6 +191,7 @@ export const VideoEditor = (props: {
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
   const [isRenameVideoModalOpen, setIsRenameVideoModalOpen] = useState(false);
+  const [isCreateVideoModalOpen, setIsCreateVideoModalOpen] = useState(false);
   const revalidator = useRevalidator();
 
   // Suggestion state for sharing between SuggestionsPanel and ClipTimeline
@@ -329,6 +348,17 @@ export const VideoEditor = (props: {
     // Revalidation happens in handlePasteModalClose
   };
 
+  const handleCreateVideoFromSelection = useCallback(
+    (title: string, mode: "copy" | "move") => {
+      dispatch({
+        type: "create-video-from-selection-confirmed",
+        title,
+        mode,
+      });
+    },
+    [dispatch]
+  );
+
   // Build context value with all state and callbacks
   const contextValue = useMemo(
     () => ({
@@ -429,6 +459,8 @@ export const VideoEditor = (props: {
       onAddNoteFromClipboard: () => setIsPasteModalOpen(true),
       isRenameVideoModalOpen,
       setIsRenameVideoModalOpen,
+      isCreateVideoModalOpen,
+      setIsCreateVideoModalOpen,
 
       // Suggestion state for inline display
       suggestionState,
@@ -481,6 +513,8 @@ export const VideoEditor = (props: {
       setIsAddVideoModalOpen,
       isRenameVideoModalOpen,
       setIsRenameVideoModalOpen,
+      isCreateVideoModalOpen,
+      setIsCreateVideoModalOpen,
       suggestionState,
       setSuggestionState,
       onAddIntroSection,
@@ -536,6 +570,13 @@ export const VideoEditor = (props: {
           currentName={props.videoPath}
           open={isRenameVideoModalOpen}
           onOpenChange={setIsRenameVideoModalOpen}
+        />
+
+        {/* Create Video from Selection Modal */}
+        <CreateVideoFromSelectionModal
+          open={isCreateVideoModalOpen}
+          onOpenChange={setIsCreateVideoModalOpen}
+          onSubmit={handleCreateVideoFromSelection}
         />
 
         {/* Clips Section - Shows second on mobile, first on desktop */}

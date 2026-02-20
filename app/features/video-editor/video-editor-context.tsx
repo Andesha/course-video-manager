@@ -104,6 +104,8 @@ export type VideoEditorContextType = {
   onAddNoteFromClipboard: () => void;
   isRenameVideoModalOpen: boolean;
   setIsRenameVideoModalOpen: (value: boolean) => void;
+  isCreateVideoModalOpen: boolean;
+  setIsCreateVideoModalOpen: (value: boolean) => void;
 
   // Suggestion state for inline display
   suggestionState: SuggestionState;

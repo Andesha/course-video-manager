@@ -10,6 +10,7 @@ import {
   ArrowUpIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  FilmIcon,
   PencilIcon,
   PlusIcon,
   Trash2Icon,
@@ -58,6 +59,10 @@ export const ClipSectionItem = (props: {
   const onMoveClip = useContextSelector(
     VideoEditorContext,
     (ctx) => ctx.onMoveClip
+  );
+  const setIsCreateVideoModalOpen = useContextSelector(
+    VideoEditorContext,
+    (ctx) => ctx.setIsCreateVideoModalOpen
   );
   return (
     <div>
@@ -140,6 +145,19 @@ export const ClipSectionItem = (props: {
             <ArrowDownIcon />
             Move Down
           </ContextMenuItem>
+          {selectedClipsSet.size > 0 && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onSelect={() => {
+                  setIsCreateVideoModalOpen(true);
+                }}
+              >
+                <FilmIcon />
+                Create New Video from Selection
+              </ContextMenuItem>
+            </>
+          )}
           <ContextMenuSeparator />
           <ContextMenuItem
             variant="destructive"

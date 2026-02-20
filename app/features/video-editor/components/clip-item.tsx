@@ -12,6 +12,7 @@ import {
   ArrowUpIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  FilmIcon,
   Loader2,
   PauseIcon,
   PlusIcon,
@@ -82,6 +83,14 @@ export const ClipItem = (props: ClipItemProps) => {
   const onToggleBeatForClip = useContextSelector(
     VideoEditorContext,
     (ctx) => ctx.onToggleBeatForClip
+  );
+  const selectedClipsSet = useContextSelector(
+    VideoEditorContext,
+    (ctx) => ctx.selectedClipsSet
+  );
+  const setIsCreateVideoModalOpen = useContextSelector(
+    VideoEditorContext,
+    (ctx) => ctx.setIsCreateVideoModalOpen
   );
 
   const duration =
@@ -259,6 +268,19 @@ export const ClipItem = (props: ClipItemProps) => {
           <RefreshCwIcon />
           Re-transcribe
         </ContextMenuItem>
+        {selectedClipsSet.size > 0 && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={() => {
+                setIsCreateVideoModalOpen(true);
+              }}
+            >
+              <FilmIcon />
+              Create New Video from Selection
+            </ContextMenuItem>
+          </>
+        )}
         <ContextMenuSeparator />
         <ContextMenuItem
           variant="destructive"

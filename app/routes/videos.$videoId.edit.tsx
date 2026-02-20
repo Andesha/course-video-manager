@@ -20,7 +20,7 @@ import { Console, Effect } from "effect";
 import { useEffectReducer } from "use-effect-reducer";
 import type { Route } from "./+types/videos.$videoId.edit";
 import { INSERTION_POINT_ID } from "@/features/video-editor/constants";
-import { data } from "react-router";
+import { data, useNavigate } from "react-router";
 import { getStandaloneVideoFilePath } from "@/services/standalone-video-files";
 import { Array as EffectArray } from "effect";
 import { sortByOrder } from "@/lib/sort-by-order";
@@ -207,6 +207,8 @@ export default function Component(props: Route.ComponentProps) {
 }
 
 export const ComponentInner = (props: Route.ComponentProps) => {
+  const navigate = useNavigate();
+
   const [clipState, dispatch] = useEffectReducer(
     clipStateReducer,
     {
@@ -550,6 +552,53 @@ export const ComponentInner = (props: Route.ComponentProps) => {
       error={clipState.error}
       standaloneFiles={props.loaderData.standaloneFiles}
       files={props.loaderData.files}
+      onCreateVideoFromSelection={(
+        frontendClipIds,
+        frontendClipSectionIds,
+        title,
+        mode
+      ) => {
+        // Map frontend IDs to database IDs (cast to string for ClipService)
+        const clipIds: string[] = [];
+        for (const frontendId of frontendClipIds) {
+          const clip = clipState.items.find((c) => c.frontendId === frontendId);
+          if (clip?.type === "on-database") {
+            clipIds.push(clip.databaseId as string);
+          }
+        }
+
+        const clipSectionIds: string[] = [];
+        for (const frontendId of frontendClipSectionIds) {
+          const section = clipState.items.find(
+            (c) => c.frontendId === frontendId
+          );
+          if (section?.type === "clip-section-on-database") {
+            clipSectionIds.push(section.databaseId as string);
+          }
+        }
+
+        clipService
+          .createVideoFromSelection({
+            sourceVideoId: props.loaderData.video.id,
+            clipIds,
+            clipSectionIds,
+            title,
+            mode,
+          })
+          .then((newVideo) => {
+            navigate(`/videos/${newVideo.id}/edit`);
+          })
+          .catch((error) => {
+            dispatch({
+              type: "effect-failed",
+              effectType: "create-video-from-selection",
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to create video from selection",
+            });
+          });
+      }}
     />
   );
 };

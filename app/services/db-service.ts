@@ -11,6 +11,7 @@ import {
   repoVersions,
   sections,
   videos,
+  youtubeAuth,
 } from "@/db/schema";
 import {
   AmbiguousRepoUpdateError,
@@ -2245,6 +2246,95 @@ export class DBFunctionsService extends Effect.Service<DBFunctionsService>()(
             return eligibleVideos;
           }
         ),
+        // YouTube OAuth token methods
+        /**
+         * Get the current YouTube auth tokens (single-user design).
+         * Returns null if not authenticated.
+         */
+        getYoutubeAuth: Effect.fn("getYoutubeAuth")(function* () {
+          const auth = yield* makeDbCall(() =>
+            db.query.youtubeAuth.findFirst()
+          );
+          return auth ?? null;
+        }),
+        /**
+         * Upsert YouTube auth tokens. Deletes any existing tokens and inserts new ones.
+         * Single-user design: only one set of tokens is stored at a time.
+         */
+        upsertYoutubeAuth: Effect.fn("upsertYoutubeAuth")(function* (tokens: {
+          accessToken: string;
+          refreshToken: string;
+          expiresAt: Date;
+        }) {
+          // Delete any existing tokens
+          yield* makeDbCall(() => db.delete(youtubeAuth));
+
+          // Insert new tokens
+          const [newAuth] = yield* makeDbCall(() =>
+            db
+              .insert(youtubeAuth)
+              .values({
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                expiresAt: tokens.expiresAt,
+              })
+              .returning()
+          );
+
+          if (!newAuth) {
+            return yield* new UnknownDBServiceError({
+              cause: "No YouTube auth was returned from the database",
+            });
+          }
+
+          return newAuth;
+        }),
+        /**
+         * Update the access token and expiry (after refresh).
+         */
+        updateYoutubeAccessToken: Effect.fn("updateYoutubeAccessToken")(
+          function* (tokens: { accessToken: string; expiresAt: Date }) {
+            const existing = yield* makeDbCall(() =>
+              db.query.youtubeAuth.findFirst()
+            );
+
+            if (!existing) {
+              return yield* new NotFoundError({
+                type: "updateYoutubeAccessToken",
+                params: {},
+                message: "No YouTube auth found to update",
+              });
+            }
+
+            const [updated] = yield* makeDbCall(() =>
+              db
+                .update(youtubeAuth)
+                .set({
+                  accessToken: tokens.accessToken,
+                  expiresAt: tokens.expiresAt,
+                  updatedAt: new Date(),
+                })
+                .where(eq(youtubeAuth.id, existing.id))
+                .returning()
+            );
+
+            if (!updated) {
+              return yield* new NotFoundError({
+                type: "updateYoutubeAccessToken",
+                params: {},
+              });
+            }
+
+            return updated;
+          }
+        ),
+        /**
+         * Delete YouTube auth tokens (disconnect account).
+         */
+        deleteYoutubeAuth: Effect.fn("deleteYoutubeAuth")(function* () {
+          yield* makeDbCall(() => db.delete(youtubeAuth));
+          return { success: true };
+        }),
       };
     }),
   }

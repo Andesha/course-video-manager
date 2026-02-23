@@ -81,6 +81,36 @@ function drawCropToCover(
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasWidth, canvasHeight);
 }
 
+function YouTubePreview({
+  src,
+  width,
+  height,
+  label,
+}: {
+  src: string;
+  width: number;
+  height: number;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs text-gray-500">{label}</span>
+      <div className="relative" style={{ width, height }}>
+        <img
+          src={src}
+          alt={`${label} preview`}
+          className="rounded-lg object-cover"
+          style={{ width, height }}
+        />
+        {/* Mock YouTube timestamp badge */}
+        <div className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-xs font-medium leading-none text-white">
+          12:34
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
   const { videoId, thumbnails } = loaderData;
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -99,6 +129,7 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
     null
   );
   const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
+  const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const revalidator = useRevalidator();
 
@@ -133,14 +164,24 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
   // Draw all layers onto the canvas compositor
   const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !capturedPhoto) return;
+    if (!canvas || !capturedPhoto) {
+      setPreviewDataUrl(null);
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const updatePreview = () => {
+      setPreviewDataUrl(canvas.toDataURL("image/png"));
+    };
+
     // Helper to draw Layer 3 (cutout) after earlier layers finish
     const drawCutout = () => {
-      if (!cutoutImage) return;
+      if (!cutoutImage) {
+        updatePreview();
+        return;
+      }
       const cutImg = new Image();
       cutImg.onload = () => {
         const scale = CANVAS_HEIGHT / cutImg.naturalHeight;
@@ -148,6 +189,7 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
         const maxOffset = CANVAS_WIDTH - scaledWidth;
         const x = maxOffset * (cutoutPosition / 100);
         ctx.drawImage(cutImg, x, 0, scaledWidth, CANVAS_HEIGHT);
+        updatePreview();
       };
       cutImg.src = cutoutImage;
     };
@@ -515,6 +557,35 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
               </div>
             )}
           </div>
+
+          {/* YouTube size previews */}
+          {previewDataUrl && (
+            <div className="mt-4">
+              <h3 className="mb-2 text-sm font-medium text-gray-400">
+                YouTube Previews
+              </h3>
+              <div className="flex items-end gap-4">
+                <YouTubePreview
+                  src={previewDataUrl}
+                  width={360}
+                  height={202}
+                  label="Home Feed"
+                />
+                <YouTubePreview
+                  src={previewDataUrl}
+                  width={246}
+                  height={138}
+                  label="Search Results"
+                />
+                <YouTubePreview
+                  src={previewDataUrl}
+                  width={168}
+                  height={94}
+                  label="Sidebar"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="mt-3 flex gap-2">
             <Button onClick={handleSave} disabled={saving}>

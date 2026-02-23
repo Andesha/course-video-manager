@@ -7,11 +7,24 @@ import { withDatabaseDump } from "@/services/dump-service";
 import { getStandaloneVideoFilePath } from "@/services/standalone-video-files";
 import { data } from "react-router";
 
+function decodeDataUrl(dataUrl: string): Uint8Array {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match || !match[2]) {
+    throw new Error("Invalid base64 data URL format");
+  }
+  const binaryString = atob(match[2]);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 export const action = async (args: Route.ActionArgs) => {
   const body = await args.request.json();
 
   return Effect.gen(function* () {
-    const { videoId, imageDataUrl } = body;
+    const { videoId, imageDataUrl, diagramDataUrl, diagramPosition } = body;
 
     if (typeof videoId !== "string" || !videoId) {
       return yield* Effect.die(data("videoId is required", { status: 400 }));
@@ -25,20 +38,7 @@ export const action = async (args: Route.ActionArgs) => {
     const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
 
-    // Decode base64 data URL to binary
-    const match = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (!match || !match[2]) {
-      return yield* Effect.die(
-        data("Invalid base64 data URL format", { status: 400 })
-      );
-    }
-
-    const base64Data = match[2];
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    const compositeBytes = decodeDataUrl(imageDataUrl);
 
     // Generate thumbnail ID for file naming
     const thumbnailId = crypto.randomUUID();
@@ -52,13 +52,31 @@ export const action = async (args: Route.ActionArgs) => {
       yield* fs.makeDirectory(videoDir, { recursive: true });
     }
 
-    // Write PNG to disk
-    yield* fs.writeFile(filePath, bytes);
+    // Write composite PNG to disk
+    yield* fs.writeFile(filePath, compositeBytes);
 
     // Also save the background photo source image
     const bgFilename = `thumbnail-${thumbnailId}-bg.png`;
     const bgFilePath = getStandaloneVideoFilePath(videoId, bgFilename);
-    yield* fs.writeFile(bgFilePath, bytes);
+    yield* fs.writeFile(bgFilePath, compositeBytes);
+
+    // Save diagram image if provided
+    let diagramLayer = null;
+    if (
+      typeof diagramDataUrl === "string" &&
+      diagramDataUrl.startsWith("data:")
+    ) {
+      const diagBytes = decodeDataUrl(diagramDataUrl);
+      const diagFilename = `thumbnail-${thumbnailId}-diagram.png`;
+      const diagFilePath = getStandaloneVideoFilePath(videoId, diagFilename);
+      yield* fs.writeFile(diagFilePath, diagBytes);
+
+      diagramLayer = {
+        filePath: diagFilePath,
+        horizontalPosition:
+          typeof diagramPosition === "number" ? diagramPosition : 50,
+      };
+    }
 
     // Create DB record with layers JSON
     const layers = {
@@ -66,7 +84,7 @@ export const action = async (args: Route.ActionArgs) => {
         filePath: bgFilePath,
         horizontalPosition: 0,
       },
-      diagram: null,
+      diagram: diagramLayer,
       cutout: null,
     };
 

@@ -88,12 +88,12 @@ The description should have the following structure:
    - Add a blank line before this section
    - If no specific links are mentioned, skip this section
 
-4. **Standard Promotional Footer** (Fourth section, if relevant)
-   - If this is an AI-related video about working with AI SDKs, LLMs, or AI development, include this promotional section:
+4. **Standard Promotional Footer** (Fourth section, always include)
+   - Always include this promotional section at the end of the description:
 
-   Become an AI Hero with my AI SDK v5 Crash Course:
+   Sign up for the AI Hero newsletter:
 
-   https://www.aihero.dev/workshops/ai-sdk-v5-crash-course
+   https://aihero.dev
 
    Follow Matt on Twitter
 
@@ -104,8 +104,6 @@ The description should have the following structure:
    https://aihero.dev/discord
 
    - Add a blank line before this section
-   - Only include this if the video is clearly about AI development, AI SDKs, or working with LLMs
-   - If the video is about general TypeScript, React, or other non-AI topics, skip this section
 
 ${getLinkInstructions(opts.links)}
 </the-ask>

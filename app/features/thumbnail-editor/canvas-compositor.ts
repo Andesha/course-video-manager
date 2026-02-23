@@ -18,38 +18,6 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/**
- * Draws an image onto a canvas context using crop-to-cover
- * (fills entire canvas, cropping excess).
- */
-function drawCropToCover(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  canvasWidth: number,
-  canvasHeight: number
-) {
-  const imgAspect = img.naturalWidth / img.naturalHeight;
-  const canvasAspect = canvasWidth / canvasHeight;
-
-  let sx: number, sy: number, sw: number, sh: number;
-
-  if (imgAspect > canvasAspect) {
-    // Image is wider — crop sides
-    sh = img.naturalHeight;
-    sw = sh * canvasAspect;
-    sx = (img.naturalWidth - sw) / 2;
-    sy = 0;
-  } else {
-    // Image is taller — crop top/bottom
-    sw = img.naturalWidth;
-    sh = sw / canvasAspect;
-    sx = 0;
-    sy = (img.naturalHeight - sh) / 2;
-  }
-
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvasWidth, canvasHeight);
-}
-
 function drawScaledLayer(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -93,9 +61,13 @@ export async function composeThumbnailLayers(
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  // Layer 1: Background photo (crop-to-cover)
+  // Clear canvas to black (covers gaps when image is offset)
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // Layer 1: Background photo (positioned to match cutout for hand-through-frame illusion)
   const bgImg = await loadImage(layers.capturedPhoto);
-  drawCropToCover(ctx, bgImg, CANVAS_WIDTH, CANVAS_HEIGHT);
+  drawScaledLayer(ctx, bgImg, layers.cutoutPosition);
 
   // Layer 2: Diagram (scaled to full height, positioned horizontally)
   if (layers.diagramImage) {

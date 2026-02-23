@@ -5,12 +5,14 @@ import { DatabaseDumpService } from "./dump-service";
 import { RepoParserService } from "./repo-parser";
 import { NodeContext } from "@effect/platform-node";
 import { TotalTypeScriptCLIService } from "./tt-cli-service";
+import { BackgroundRemovalService } from "./background-removal-service";
 
 export const layerLive = Layer.mergeAll(
   RepoParserService.Default,
   DatabaseDumpService.Default,
   TotalTypeScriptCLIService.Default,
   DBFunctionsService.Default,
+  BackgroundRemovalService.Default,
   NodeContext.layer
 ).pipe(Layer.provideMerge(DrizzleService.Default));
 

@@ -10,6 +10,7 @@ import {
   Loader2Icon,
   ClipboardIcon,
   XIcon,
+  Trash2Icon,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
   const [diagramImage, setDiagramImage] = useState<string | null>(null);
   const [diagramPosition, setDiagramPosition] = useState(50);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const revalidator = useRevalidator();
 
@@ -144,6 +146,24 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
   }, [handlePaste]);
+
+  const handleDelete = async (thumbnailId: string) => {
+    if (!confirm("Delete this thumbnail?")) return;
+    setDeleting(thumbnailId);
+    try {
+      const response = await fetch(`/api/thumbnails/${thumbnailId}/delete`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete thumbnail");
+      }
+      revalidator.revalidate();
+    } catch (error) {
+      console.error("Failed to delete thumbnail:", error);
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const handleSave = async () => {
     const canvas = canvasRef.current;
@@ -282,7 +302,7 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
               {thumbnails.map((thumbnail) => (
                 <div
                   key={thumbnail.id}
-                  className="border rounded-lg overflow-hidden"
+                  className="group relative border rounded-lg overflow-hidden"
                 >
                   {thumbnail.filePath ? (
                     <img
@@ -295,6 +315,17 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
                       Not rendered
                     </div>
                   )}
+                  <button
+                    onClick={() => handleDelete(thumbnail.id)}
+                    disabled={deleting === thumbnail.id}
+                    className="absolute top-2 right-2 rounded-md bg-black/60 p-1.5 text-gray-300 opacity-0 transition-opacity hover:bg-red-600 hover:text-white group-hover:opacity-100 disabled:opacity-50"
+                  >
+                    {deleting === thumbnail.id ? (
+                      <Loader2Icon className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2Icon className="size-4" />
+                    )}
+                  </button>
                 </div>
               ))}
             </div>

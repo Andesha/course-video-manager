@@ -2384,6 +2384,25 @@ export class DBFunctionsService extends Effect.Service<DBFunctionsService>()(
 
           return thumbnail;
         }),
+        deleteThumbnail: Effect.fn("deleteThumbnail")(function* (
+          thumbnailId: string
+        ) {
+          const [deleted] = yield* makeDbCall(() =>
+            db
+              .delete(thumbnails)
+              .where(eq(thumbnails.id, thumbnailId))
+              .returning()
+          );
+
+          if (!deleted) {
+            return yield* new NotFoundError({
+              type: "deleteThumbnail",
+              params: { thumbnailId },
+            });
+          }
+
+          return deleted;
+        }),
       };
     }),
   }

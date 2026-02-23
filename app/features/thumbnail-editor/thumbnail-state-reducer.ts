@@ -83,6 +83,7 @@ const INITIAL_EDITOR_STATE = {
   cutoutPosition: 50,
   editingThumbnailId: null,
   backgroundRemovalError: null,
+  previewDataUrl: null,
 } as const;
 
 export const createInitialThumbnailState = (): thumbnailStateReducer.State => ({
@@ -92,7 +93,6 @@ export const createInitialThumbnailState = (): thumbnailStateReducer.State => ({
   saving: false,
   deleting: null,
   loadingEdit: null,
-  previewDataUrl: null,
 });
 
 export const thumbnailStateReducer: EffectReducer<

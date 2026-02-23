@@ -195,17 +195,22 @@ describe("thumbnailStateReducer", () => {
   });
 
   describe("Diagram", () => {
-    it("diagram-pasted: should set diagramImage", () => {
+    it("diagram-pasted: should set diagramImage and diagramPosition", () => {
       const tester = new ReducerTester(
         thumbnailStateReducer,
         createState({ capturedPhoto: "photo" })
       );
 
       const state = tester
-        .send({ type: "diagram-pasted", dataUrl: "diagram-data-url" })
+        .send({
+          type: "diagram-pasted",
+          dataUrl: "diagram-data-url",
+          position: 42,
+        })
         .getState();
 
       expect(state.diagramImage).toBe("diagram-data-url");
+      expect(state.diagramPosition).toBe(42);
     });
 
     it("diagram-pasted: does nothing if no capturedPhoto", () => {
@@ -215,7 +220,11 @@ describe("thumbnailStateReducer", () => {
       );
 
       const state = tester
-        .send({ type: "diagram-pasted", dataUrl: "diagram-data-url" })
+        .send({
+          type: "diagram-pasted",
+          dataUrl: "diagram-data-url",
+          position: 42,
+        })
         .getState();
 
       expect(state.diagramImage).toBeNull();

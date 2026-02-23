@@ -27,7 +27,7 @@ export namespace thumbnailStateReducer {
     | { type: "background-removal-failed"; error: string }
     | { type: "retry-background-removal" }
     // Diagram
-    | { type: "diagram-pasted"; dataUrl: string }
+    | { type: "diagram-pasted"; dataUrl: string; position: number }
     | { type: "diagram-removed" }
     | { type: "diagram-position-changed"; value: number }
     // Cutout
@@ -141,7 +141,11 @@ export const thumbnailStateReducer: EffectReducer<
     // Diagram
     case "diagram-pasted":
       if (!state.capturedPhoto) return state;
-      return { ...state, diagramImage: action.dataUrl };
+      return {
+        ...state,
+        diagramImage: action.dataUrl,
+        diagramPosition: action.position,
+      };
     case "diagram-removed":
       return { ...state, diagramImage: null };
     case "diagram-position-changed":

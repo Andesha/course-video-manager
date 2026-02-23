@@ -25,6 +25,7 @@ import {
   composeThumbnailLayers,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
+  getLeftAlignedPosition,
 } from "@/features/thumbnail-editor/canvas-compositor";
 
 export const loader = async (args: Route.LoaderArgs) => {
@@ -120,10 +121,19 @@ export default function ThumbnailsPage({ loaderData }: Route.ComponentProps) {
           e.preventDefault();
           const reader = new FileReader();
           reader.onload = () => {
-            dispatch({
-              type: "diagram-pasted",
-              dataUrl: reader.result as string,
-            });
+            const dataUrl = reader.result as string;
+            const img = new Image();
+            img.onload = () => {
+              dispatch({
+                type: "diagram-pasted",
+                dataUrl,
+                position: getLeftAlignedPosition(
+                  img.naturalWidth,
+                  img.naturalHeight
+                ),
+              });
+            };
+            img.src = dataUrl;
           };
           reader.readAsDataURL(blob);
           return;

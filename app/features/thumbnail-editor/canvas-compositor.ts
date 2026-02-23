@@ -65,6 +65,24 @@ function drawScaledLayer(
 }
 
 /**
+ * Computes the horizontal position (0-100 slider value) that places
+ * a layer's left edge at x=0 on the canvas (left-aligned, fully visible).
+ */
+export function getLeftAlignedPosition(
+  naturalWidth: number,
+  naturalHeight: number
+): number {
+  const scale = CANVAS_HEIGHT / naturalHeight;
+  const scaledWidth = naturalWidth * scale;
+  const minX = -0.8 * scaledWidth;
+  const maxX = CANVAS_WIDTH - 0.2 * scaledWidth;
+  const range = maxX - minX;
+  if (range === 0) return 50;
+  // Solve: 0 = minX + range * (pos / 100)  →  pos = -minX / range * 100
+  return (-minX / range) * 100;
+}
+
+/**
  * Composites all thumbnail layers onto the canvas and returns a data URL.
  * Returns null if the canvas context is unavailable.
  */

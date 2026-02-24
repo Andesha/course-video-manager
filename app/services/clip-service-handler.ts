@@ -319,13 +319,17 @@ export const handleClipServiceEvent = Effect.fn("handleClipServiceEvent")(
         );
 
         // Filter out clips that already exist (deduplicate by videoFilename + startTime + endTime)
+        // Uses a tolerance of 0.15s to account for floating-point rounding from OBS detection
+        const DEDUP_TOLERANCE_SECONDS = 0.15;
         const clipsToAdd = latestOBSVideoClips.clips.filter(
           (clip) =>
             !allClipsForDedup.some(
               (existingClip) =>
                 existingClip.videoFilename === clip.inputVideo &&
-                existingClip.sourceStartTime === clip.startTime &&
-                existingClip.sourceEndTime === clip.endTime
+                Math.abs(existingClip.sourceStartTime - clip.startTime) <
+                  DEDUP_TOLERANCE_SECONDS &&
+                Math.abs(existingClip.sourceEndTime - clip.endTime) <
+                  DEDUP_TOLERANCE_SECONDS
             )
         );
 

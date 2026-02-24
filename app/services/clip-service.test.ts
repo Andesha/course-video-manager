@@ -904,6 +904,47 @@ describe("ClipService", () => {
       expect(timeline).toHaveLength(2);
     });
 
+    it("deduplicates clips with nearly identical start/end times (rounding tolerance)", async () => {
+      const video = await clipService.createVideo("test-video.mp4");
+
+      // First, add a clip directly
+      await clipService.appendClips({
+        videoId: video.id,
+        insertionPoint: start,
+        items: [],
+        clips: [
+          {
+            inputVideo: "/mnt/c/obs/video.mkv",
+            startTime: 441.88,
+            endTime: 445.06,
+          },
+        ],
+      });
+
+      // CLI returns the "same" clip but with slightly different times (float rounding)
+      mockTtCli.getLatestOBSVideoClips = vi.fn().mockResolvedValue({
+        clips: [
+          {
+            inputVideo: "/mnt/c/obs/video.mkv",
+            startTime: 441.87,
+            endTime: 445.07,
+          },
+        ],
+      });
+
+      const result = await clipService.appendFromObs({
+        videoId: video.id,
+        insertionPoint: start,
+        items: await getItems(video.id),
+      });
+
+      // Should be skipped as a duplicate — times differ by only 0.01s
+      expect(result).toHaveLength(0);
+
+      const timeline = await clipService.getTimeline(video.id);
+      expect(timeline).toHaveLength(1);
+    });
+
     it("calculates start time from last clip with same input video", async () => {
       const video = await clipService.createVideo("test-video.mp4");
 

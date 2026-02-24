@@ -9,6 +9,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { data, Link, useFetcher, useRevalidator } from "react-router";
 import { toast } from "sonner";
 import { UploadContext } from "@/features/upload-manager/upload-context";
+import type { uploadReducer } from "@/features/upload-manager/upload-reducer";
 import type { Route } from "./+types/videos.$videoId.post";
 import path from "path";
 import { FileSystem } from "@effect/platform";
@@ -472,14 +473,18 @@ export default function PostPage(props: Route.ComponentProps) {
 
   // Save youtubeVideoId to localStorage when upload succeeds in global context
   useEffect(() => {
-    if (activeUpload?.status === "success" && activeUpload.youtubeVideoId) {
+    if (
+      activeUpload?.status === "success" &&
+      activeUpload.uploadType === "youtube" &&
+      activeUpload.youtubeVideoId
+    ) {
       localStorage.setItem(
         YOUTUBE_VIDEO_ID_STORAGE_KEY(videoId),
         activeUpload.youtubeVideoId
       );
       setStoredYoutubeVideoId(activeUpload.youtubeVideoId);
     }
-  }, [activeUpload?.status, activeUpload?.youtubeVideoId, videoId]);
+  }, [activeUpload, videoId]);
 
   // Derive upload display state
   const uploadStatus: "idle" | "uploading" | "success" | "error" = activeUpload
@@ -491,7 +496,10 @@ export default function PostPage(props: Route.ComponentProps) {
       : "idle";
   const uploadProgress = activeUpload?.progress ?? 0;
   const uploadError = activeUpload?.errorMessage ?? "";
-  const youtubeVideoId = activeUpload?.youtubeVideoId ?? storedYoutubeVideoId;
+  const youtubeVideoId =
+    activeUpload?.uploadType === "youtube"
+      ? (activeUpload.youtubeVideoId ?? storedYoutubeVideoId)
+      : storedYoutubeVideoId;
 
   // Thumbnail selection
   const [selectingThumbnailId, setSelectingThumbnailId] = useState<
@@ -611,7 +619,8 @@ export default function PostPage(props: Route.ComponentProps) {
 
   // Find active social upload for this video
   const activeSocialUpload = Object.values(uploads).find(
-    (u) => u.videoId === videoId && u.uploadType === "buffer"
+    (u): u is uploadReducer.BufferUploadEntry =>
+      u.videoId === videoId && u.uploadType === "buffer"
   );
 
   // Save buffer posted status to localStorage on success

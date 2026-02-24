@@ -1,20 +1,37 @@
 export namespace uploadReducer {
   export type UploadStatus = "uploading" | "retrying" | "success" | "error";
-  export type UploadType = "youtube" | "buffer";
+  export type UploadType = "youtube" | "buffer" | "ai-hero";
   export type BufferStage = "copying" | "syncing" | "sending-webhook";
 
-  export interface UploadEntry {
+  interface BaseUploadEntry {
     uploadId: string;
     videoId: string;
     title: string;
     progress: number;
     status: UploadStatus;
-    uploadType: UploadType;
-    youtubeVideoId: string | null;
-    bufferStage: BufferStage | null;
     errorMessage: string | null;
     retryCount: number;
   }
+
+  export interface YouTubeUploadEntry extends BaseUploadEntry {
+    uploadType: "youtube";
+    youtubeVideoId: string | null;
+  }
+
+  export interface BufferUploadEntry extends BaseUploadEntry {
+    uploadType: "buffer";
+    bufferStage: BufferStage | null;
+  }
+
+  export interface AiHeroUploadEntry extends BaseUploadEntry {
+    uploadType: "ai-hero";
+    aiHeroSlug: string | null;
+  }
+
+  export type UploadEntry =
+    | YouTubeUploadEntry
+    | BufferUploadEntry
+    | AiHeroUploadEntry;
 
   export interface State {
     uploads: Record<string, UploadEntry>;
@@ -38,6 +55,7 @@ export namespace uploadReducer {
         type: "UPLOAD_SUCCESS";
         uploadId: string;
         youtubeVideoId?: string;
+        aiHeroSlug?: string;
       }
     | { type: "UPLOAD_ERROR"; uploadId: string; errorMessage: string }
     | { type: "RETRY"; uploadId: string }
@@ -54,22 +72,35 @@ export const uploadReducer = (
 ): uploadReducer.State => {
   switch (action.type) {
     case "START_UPLOAD": {
+      const uploadType = action.uploadType ?? "youtube";
+      const base = {
+        uploadId: action.uploadId,
+        videoId: action.videoId,
+        title: action.title,
+        progress: 0,
+        status: "uploading" as const,
+        errorMessage: null,
+        retryCount: 0,
+      };
+
+      let entry: uploadReducer.UploadEntry;
+      switch (uploadType) {
+        case "buffer":
+          entry = { ...base, uploadType: "buffer", bufferStage: "copying" };
+          break;
+        case "ai-hero":
+          entry = { ...base, uploadType: "ai-hero", aiHeroSlug: null };
+          break;
+        default:
+          entry = { ...base, uploadType: "youtube", youtubeVideoId: null };
+          break;
+      }
+
       return {
         ...state,
         uploads: {
           ...state.uploads,
-          [action.uploadId]: {
-            uploadId: action.uploadId,
-            videoId: action.videoId,
-            title: action.title,
-            progress: 0,
-            status: "uploading",
-            uploadType: action.uploadType ?? "youtube",
-            youtubeVideoId: null,
-            bufferStage: action.uploadType === "buffer" ? "copying" : null,
-            errorMessage: null,
-            retryCount: 0,
-          },
+          [action.uploadId]: entry,
         },
       };
     }
@@ -92,7 +123,7 @@ export const uploadReducer = (
 
     case "UPDATE_BUFFER_STAGE": {
       const upload = state.uploads[action.uploadId];
-      if (!upload) return state;
+      if (!upload || upload.uploadType !== "buffer") return state;
 
       return {
         ...state,
@@ -110,18 +141,39 @@ export const uploadReducer = (
       const upload = state.uploads[action.uploadId];
       if (!upload) return state;
 
+      const base = {
+        ...upload,
+        status: "success" as const,
+        progress: 100,
+        errorMessage: null,
+      };
+
+      let entry: uploadReducer.UploadEntry;
+      switch (upload.uploadType) {
+        case "youtube":
+          entry = {
+            ...base,
+            uploadType: "youtube",
+            youtubeVideoId: action.youtubeVideoId ?? null,
+          };
+          break;
+        case "buffer":
+          entry = { ...base, uploadType: "buffer", bufferStage: null };
+          break;
+        case "ai-hero":
+          entry = {
+            ...base,
+            uploadType: "ai-hero",
+            aiHeroSlug: action.aiHeroSlug ?? null,
+          };
+          break;
+      }
+
       return {
         ...state,
         uploads: {
           ...state.uploads,
-          [action.uploadId]: {
-            ...upload,
-            status: "success",
-            progress: 100,
-            youtubeVideoId: action.youtubeVideoId ?? null,
-            bufferStage: null,
-            errorMessage: null,
-          },
+          [action.uploadId]: entry,
         },
       };
     }
@@ -165,16 +217,38 @@ export const uploadReducer = (
       const upload = state.uploads[action.uploadId];
       if (!upload) return state;
 
+      const base = {
+        uploadId: upload.uploadId,
+        videoId: upload.videoId,
+        title: upload.title,
+        progress: 0,
+        status: "uploading" as const,
+        errorMessage: upload.errorMessage,
+        retryCount: upload.retryCount,
+      };
+
+      let entry: uploadReducer.UploadEntry;
+      switch (upload.uploadType) {
+        case "buffer":
+          entry = { ...base, uploadType: "buffer", bufferStage: "copying" };
+          break;
+        case "ai-hero":
+          entry = { ...base, uploadType: "ai-hero", aiHeroSlug: null };
+          break;
+        default:
+          entry = {
+            ...base,
+            uploadType: "youtube",
+            youtubeVideoId: upload.youtubeVideoId,
+          };
+          break;
+      }
+
       return {
         ...state,
         uploads: {
           ...state.uploads,
-          [action.uploadId]: {
-            ...upload,
-            status: "uploading",
-            progress: 0,
-            bufferStage: upload.uploadType === "buffer" ? "copying" : null,
-          },
+          [action.uploadId]: entry,
         },
       };
     }

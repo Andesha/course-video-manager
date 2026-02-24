@@ -229,7 +229,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
               },
             },
           });
-        } else {
+        } else if (upload.uploadType === "youtube") {
           const youtubeStudioUrl = `https://studio.youtube.com/video/${upload.youtubeVideoId}/edit`;
           const postUrl = `/videos/${upload.videoId}/post`;
 
@@ -247,6 +247,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
             },
           });
         }
+        // ai-hero success toast handled in #259
       }
 
       if (upload.status === "error") {
@@ -275,7 +276,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
               params.caption
             );
           }
-        } else {
+        } else if (upload.uploadType === "youtube") {
           const params = uploadParamsRef.current.get(uploadId);
           if (params) {
             initiateSSEConnection(
@@ -287,6 +288,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
             );
           }
         }
+        // ai-hero retry handled in #259
       }
     }
 

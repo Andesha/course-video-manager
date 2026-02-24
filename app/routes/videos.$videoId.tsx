@@ -9,6 +9,7 @@ import {
   VideoIcon,
   PenIcon,
   SendIcon,
+  NewspaperIcon,
 } from "lucide-react";
 import { data, Link, Outlet, useLocation } from "react-router";
 import type { Route } from "./+types/videos.$videoId";
@@ -63,7 +64,7 @@ export const loader = async (args: Route.LoaderArgs) => {
   );
 };
 
-type Tab = "edit" | "write" | "post";
+type Tab = "edit" | "write" | "post" | "ai-hero";
 
 const tabs: {
   id: Tab;
@@ -74,6 +75,7 @@ const tabs: {
   { id: "edit", label: "Video", path: "edit", icon: VideoIcon },
   { id: "write", label: "Write", path: "write", icon: PenIcon },
   { id: "post", label: "Post", path: "post", icon: SendIcon },
+  { id: "ai-hero", label: "AI Hero", path: "ai-hero", icon: NewspaperIcon },
 ];
 
 export default function VideoLayout({ loaderData }: Route.ComponentProps) {
@@ -96,7 +98,9 @@ export default function VideoLayout({ loaderData }: Route.ComponentProps) {
     ? "write"
     : location.pathname.endsWith("/post")
       ? "post"
-      : "edit";
+      : location.pathname.endsWith("/ai-hero")
+        ? "ai-hero"
+        : "edit";
 
   // Build back button URL
   const backButtonUrl =

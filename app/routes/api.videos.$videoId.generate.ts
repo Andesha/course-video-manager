@@ -5,6 +5,7 @@ import { generateYoutubeTitlePrompt } from "@/prompts/generate-youtube-title";
 import { generateSingleYoutubeTitlePrompt } from "@/prompts/generate-single-youtube-title";
 import { generateYoutubeDescriptionPrompt } from "@/prompts/generate-youtube-description";
 import { generateSocialCaptionPrompt } from "@/prompts/generate-social-caption";
+import { generateSeoDescriptionPrompt } from "@/prompts/generate-seo-description";
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.videos.$videoId.generate";
 import { anthropic } from "@ai-sdk/anthropic";
@@ -15,7 +16,8 @@ const generateModeSchema = Schema.Union(
   Schema.Literal("youtube-title"),
   Schema.Literal("youtube-title-single"),
   Schema.Literal("youtube-description"),
-  Schema.Literal("social-caption")
+  Schema.Literal("social-caption"),
+  Schema.Literal("seo-description")
 );
 
 const courseStructureSchema = Schema.Struct({
@@ -101,10 +103,12 @@ export const action = async (args: Route.ActionArgs) => {
           ? generateSingleYoutubeTitlePrompt(commonOpts)
           : mode === "social-caption"
             ? generateSocialCaptionPrompt(commonOpts)
-            : generateYoutubeDescriptionPrompt({
-                ...commonOpts,
-                youtubeChapters: videoContext.youtubeChapters,
-              });
+            : mode === "seo-description"
+              ? generateSeoDescriptionPrompt(commonOpts)
+              : generateYoutubeDescriptionPrompt({
+                  ...commonOpts,
+                  youtubeChapters: videoContext.youtubeChapters,
+                });
 
     // Use Claude Haiku for fast generation
     const result = yield* Effect.tryPromise(() =>

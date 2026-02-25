@@ -7,6 +7,7 @@ import { NodeContext } from "@effect/platform-node";
 import { TotalTypeScriptCLIService } from "./tt-cli-service";
 import { BackgroundRemovalService } from "./background-removal-service";
 import { VideoEditorLoggerService } from "./video-editor-logger-service";
+import { FeatureFlagService } from "./feature-flag-service";
 
 export const layerLive = Layer.mergeAll(
   RepoParserService.Default,
@@ -15,6 +16,7 @@ export const layerLive = Layer.mergeAll(
   DBFunctionsService.Default,
   BackgroundRemovalService.Default,
   VideoEditorLoggerService.Default,
+  FeatureFlagService.Default,
   NodeContext.layer
 ).pipe(Layer.provideMerge(DrizzleService.Default));
 

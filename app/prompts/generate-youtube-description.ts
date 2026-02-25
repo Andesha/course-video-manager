@@ -93,7 +93,7 @@ The description should have the following structure:
 
    Sign up for the AI Hero newsletter:
 
-   https://aihero.dev
+   https://aihero.dev/newsletter
 
    Follow Matt on Twitter
 

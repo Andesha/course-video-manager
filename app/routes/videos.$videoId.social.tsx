@@ -5,7 +5,7 @@ import { sortByOrder } from "@/lib/sort-by-order";
 import { runtimeLive } from "@/services/layer";
 import type { SectionWithWordCount } from "@/features/article-writer/types";
 import { Array as EffectArray, Console, Effect } from "effect";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { data, useFetcher } from "react-router";
 import { toast } from "sonner";
 import {
@@ -35,23 +35,13 @@ import { StandaloneFileManagementModal } from "@/components/standalone-file-mana
 import { StandaloneFilePasteModal } from "@/components/standalone-file-paste-modal";
 import { DeleteStandaloneFileModal } from "@/components/delete-standalone-file-modal";
 import { LessonFilePasteModal } from "@/components/lesson-file-paste-modal";
-import {
-  CheckCircle2Icon,
-  Loader2Icon,
-  SendIcon,
-  SparklesIcon,
-  XCircleIcon,
-} from "lucide-react";
-import { UploadContext } from "@/features/upload-manager/upload-context";
-import type { uploadReducer } from "@/features/upload-manager/upload-reducer";
+import { Loader2Icon, SparklesIcon, CopyIcon } from "lucide-react";
 import type { Route } from "./+types/videos.$videoId.social";
 import path from "path";
 import { FileSystem } from "@effect/platform";
 
 const SOCIAL_CAPTION_STORAGE_KEY = (videoId: string) =>
   `social-caption-${videoId}`;
-const BUFFER_POSTED_STORAGE_KEY = (videoId: string) =>
-  `buffer-posted-${videoId}`;
 
 export const loader = async (args: Route.LoaderArgs) => {
   const { videoId } = args.params;
@@ -344,50 +334,6 @@ export default function SocialPage(props: Route.ComponentProps) {
   const [confirmOverwriteCaption, setConfirmOverwriteCaption] = useState(false);
   const [pendingGeneratedCaption, setPendingGeneratedCaption] = useState("");
 
-  // Buffer posted status from localStorage (hydration-safe: read in useEffect)
-  const [bufferPostedInfo, setBufferPostedInfo] = useState<{
-    timestamp: string;
-    caption: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (typeof localStorage !== "undefined") {
-      const stored = localStorage.getItem(BUFFER_POSTED_STORAGE_KEY(videoId));
-      if (stored) {
-        try {
-          setBufferPostedInfo(JSON.parse(stored));
-        } catch {
-          // Ignore malformed data
-        }
-      }
-    }
-  }, [videoId]);
-
-  // Upload state from global context
-  const { uploads, startSocialUpload: globalStartSocialUpload } =
-    useContext(UploadContext);
-
-  // Find active social upload for this video
-  const activeSocialUpload = Object.values(uploads).find(
-    (u): u is uploadReducer.BufferUploadEntry =>
-      u.videoId === videoId && u.uploadType === "buffer"
-  );
-
-  // Save buffer posted status to localStorage on success
-  useEffect(() => {
-    if (activeSocialUpload?.status === "success") {
-      const info = {
-        timestamp: new Date().toISOString(),
-        caption: socialCaption,
-      };
-      localStorage.setItem(
-        BUFFER_POSTED_STORAGE_KEY(videoId),
-        JSON.stringify(info)
-      );
-      setBufferPostedInfo(info);
-    }
-  }, [activeSocialUpload?.status, videoId, socialCaption]);
-
   const handleGenerateCaption = async () => {
     setIsGeneratingCaption(true);
     try {
@@ -440,18 +386,22 @@ export default function SocialPage(props: Route.ComponentProps) {
     setPendingGeneratedCaption("");
   };
 
-  // Use title from localStorage for the social post (same key as YouTube page)
-  const title =
-    typeof localStorage !== "undefined"
-      ? (localStorage.getItem(`post-title-${videoId}`) ?? "Social Post")
-      : "Social Post";
-
-  const handleSocialPost = () => {
+  const copyAndNavigate = async (url: string, platform: string) => {
     if (!socialCaption.trim()) return;
-    globalStartSocialUpload(videoId, title, socialCaption);
-    toast("Social post started", {
-      description: "Copying video to Dropbox and posting to Buffer",
+    await navigator.clipboard.writeText(socialCaption);
+    toast(`Caption copied to clipboard`, {
+      description: `Opening ${platform}...`,
     });
+    window.open(url, "_blank");
+  };
+
+  const handlePostToX = () => {
+    const url = `https://x.com/intent/tweet?text=${encodeURIComponent(socialCaption)}`;
+    copyAndNavigate(url, "X");
+  };
+
+  const handlePostToLinkedIn = () => {
+    copyAndNavigate("https://www.linkedin.com/feed/", "LinkedIn");
   };
 
   const handleFileClick = (filePath: string) => {
@@ -551,84 +501,40 @@ export default function SocialPage(props: Route.ComponentProps) {
               />
             </div>
 
-            {/* Post button */}
+            {/* Post buttons */}
             <div className="space-y-3">
-              <Button
-                onClick={handleSocialPost}
-                disabled={!!activeSocialUpload || !socialCaption.trim()}
-                className="w-full"
-                size="lg"
-              >
-                {activeSocialUpload &&
-                activeSocialUpload.status !== "success" &&
-                activeSocialUpload.status !== "error" ? (
-                  <>
-                    <Loader2Icon className="h-4 w-4 animate-spin" />
-                    Posting...
-                  </>
-                ) : (
-                  <>
-                    <SendIcon className="h-4 w-4" />
-                    Post to X / LinkedIn
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handlePostToX}
+                  disabled={!socialCaption.trim()}
+                  className="flex-1"
+                  size="lg"
+                >
+                  <CopyIcon className="h-4 w-4" />
+                  Post to X
+                </Button>
+                <Button
+                  onClick={handlePostToLinkedIn}
+                  disabled={!socialCaption.trim()}
+                  className="flex-1"
+                  size="lg"
+                  variant="outline"
+                >
+                  <CopyIcon className="h-4 w-4" />
+                  Post to LinkedIn
+                </Button>
+              </div>
 
-              {!socialCaption.trim() && !activeSocialUpload && (
+              {!socialCaption.trim() && (
                 <p className="text-sm text-muted-foreground text-center">
                   Write or generate a caption before posting.
                 </p>
               )}
 
-              {/* Social upload progress */}
-              {activeSocialUpload &&
-                activeSocialUpload.status === "uploading" && (
-                  <div className="space-y-1">
-                    <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-primary h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: `${activeSocialUpload.progress}%`,
-                        }}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      {activeSocialUpload.bufferStage === "copying"
-                        ? "Copying to Dropbox..."
-                        : activeSocialUpload.bufferStage === "syncing"
-                          ? "Syncing to Dropbox..."
-                          : activeSocialUpload.bufferStage === "sending-webhook"
-                            ? "Sending to Zapier..."
-                            : `${activeSocialUpload.progress}%`}
-                    </p>
-                  </div>
-                )}
-
-              {/* Social upload success */}
-              {(activeSocialUpload?.status === "success" ||
-                bufferPostedInfo) && (
-                <div className="flex flex-col items-center gap-2 text-green-500">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2Icon className="h-4 w-4" />
-                    <span className="text-sm">Posted to Buffer</span>
-                  </div>
-                  {bufferPostedInfo && (
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(bufferPostedInfo.timestamp).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Social upload error */}
-              {activeSocialUpload?.status === "error" && (
-                <div className="flex items-center gap-2 text-destructive justify-center">
-                  <XCircleIcon className="h-4 w-4" />
-                  <span className="text-sm">
-                    {activeSocialUpload.errorMessage}
-                  </span>
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground text-center">
+                Caption will be copied to clipboard. X will pre-fill the text;
+                for LinkedIn, paste from clipboard.
+              </p>
             </div>
           </div>
         </div>

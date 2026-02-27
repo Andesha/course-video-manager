@@ -72,6 +72,7 @@ import {
 import { marked } from "marked";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { data, useFetcher, useRevalidator } from "react-router";
+import { toast } from "sonner";
 import type { Route } from "./+types/videos.$videoId.write";
 import path from "path";
 import { FileSystem } from "@effect/platform";
@@ -584,6 +585,14 @@ export function InnerComponent(props: Route.ComponentProps) {
   const writeToReadmeFetcher = useFetcher();
   const deleteLinkFetcher = useFetcher();
   const openFolderFetcher = useFetcher();
+
+  useEffect(() => {
+    const result = openFolderFetcher.data as { error?: string } | undefined;
+    if (openFolderFetcher.state === "idle" && result?.error) {
+      toast.error(result.error);
+    }
+  }, [openFolderFetcher.state, openFolderFetcher.data]);
+
   const [isCopied, setIsCopied] = useState(false);
   const revalidator = useRevalidator();
 

@@ -309,6 +309,13 @@ export default function NewsletterPage(props: Route.ComponentProps) {
   const deleteLinkFetcher = useFetcher();
   const openFolderFetcher = useFetcher();
 
+  useEffect(() => {
+    const result = openFolderFetcher.data as { error?: string } | undefined;
+    if (openFolderFetcher.state === "idle" && result?.error) {
+      toast.error(result.error);
+    }
+  }, [openFolderFetcher.state, openFolderFetcher.data]);
+
   // Standalone file management state
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [selectedFilename, setSelectedFilename] = useState<string>("");

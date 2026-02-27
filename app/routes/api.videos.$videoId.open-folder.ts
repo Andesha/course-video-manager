@@ -36,10 +36,14 @@ export const action = async (args: Route.ActionArgs) => {
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
     Effect.catchTag("NotFoundError", () => {
-      return Effect.die(data("Video not found", { status: 404 }));
+      return Effect.succeed(
+        data({ error: "Video not found" }, { status: 404 })
+      );
     }),
     Effect.catchAll(() => {
-      return Effect.die(data("Failed to open folder", { status: 500 }));
+      return Effect.succeed(
+        data({ error: "Failed to open folder" }, { status: 500 })
+      );
     }),
     runtimeLive.runPromise
   );

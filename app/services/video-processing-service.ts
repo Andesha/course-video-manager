@@ -1,10 +1,10 @@
 import { Command, FileSystem } from "@effect/platform";
 import { NodeContext } from "@effect/platform-node";
-import { Config, Data, Effect, Option, Schema } from "effect";
+import { Config, Data, Effect, Option, Schema, Stream } from "effect";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { tmpdir } from "os";
+import { homedir, tmpdir } from "os";
 import OpenAI from "openai";
 import { FFmpegCommandsService } from "./ffmpeg-commands";
 import { findSilenceInVideo } from "./silence-detection";
@@ -15,7 +15,7 @@ const TRANSCRIPTION_PERMITS = 20;
 const AUTO_EDITED_VIDEO_FINAL_END_PADDING = 0.5;
 
 const FUSCRIPT_LOCATION =
-  "/mnt/d/Program\\ Files/Blackmagic\\ Design/DaVinci\\ Resolve/fuscript.exe";
+  "/mnt/d/Program Files/Blackmagic Design/DaVinci Resolve/fuscript.exe";
 
 const transcribeClipsSchema = Schema.Array(
   Schema.Struct({
@@ -79,9 +79,7 @@ export class VideoProcessingService extends Effect.Service<VideoProcessingServic
           if (!opts.filePath) {
             // Without a file path, fall back to the most recent OBS recording.
             const obsDir = yield* Config.string("OBS_RECORDING_DIR").pipe(
-              Effect.orElseSucceed(() =>
-                path.join(require("os").homedir(), "Videos")
-              )
+              Effect.orElseSucceed(() => path.join(homedir(), "Videos"))
             );
 
             // Find the most recent .mp4 file
@@ -189,28 +187,39 @@ export class VideoProcessingService extends Effect.Service<VideoProcessingServic
           .slice(0, 12);
         const outputFile = path.join(outputDir, `${outputHash}.mp3`);
 
-        yield* Effect.async<void, CouldNotExtractAudioError>((resume) => {
-          const { exec } =
-            require("child_process") as typeof import("child_process");
-          exec(
-            `ffmpeg -y -hide_banner -ss ${startTime} -t ${duration} -i "${inputVideo}" -vn -c:a libmp3lame -b:a 384k "${outputFile}"`,
-            { maxBuffer: 50 * 1024 * 1024 },
-            (error) => {
-              if (error) {
-                resume(
-                  Effect.fail(
-                    new CouldNotExtractAudioError({
-                      cause: error,
-                      message: `Failed to extract audio: ${error.message}`,
-                    })
-                  )
-                );
-              } else {
-                resume(Effect.succeed(undefined));
-              }
-            }
-          );
-        });
+        const code = yield* Command.exitCode(
+          Command.make(
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-ss",
+            startTime.toString(),
+            "-t",
+            duration.toString(),
+            "-i",
+            inputVideo,
+            "-vn",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "384k",
+            outputFile
+          )
+        ).pipe(
+          Effect.mapError(
+            (e) =>
+              new CouldNotExtractAudioError({
+                cause: e,
+                message: `Failed to extract audio: ${e.message}`,
+              })
+          )
+        );
+        if (code !== 0) {
+          yield* new CouldNotExtractAudioError({
+            cause: null,
+            message: `Failed to extract audio, exit code: ${code}`,
+          });
+        }
 
         return outputFile;
       });
@@ -402,40 +411,36 @@ export class VideoProcessingService extends Effect.Service<VideoProcessingServic
               `\\\\\\\\wsl.localhost\\\\Ubuntu-24.04\\\\home\\\\${user}`
           );
 
-          const envString = Object.entries(env)
-            .map(([key, value]) => `${key}="${value}"`)
-            .join(" ");
+          const command = Command.make(
+            FUSCRIPT_LOCATION,
+            "-q",
+            windowsScriptPath
+          ).pipe(Command.env(env));
 
-          return yield* Effect.async<
-            { stdout: string; stderr: string },
-            CouldNotRunDavinciResolveScriptError
-          >((resume) => {
-            const { exec } =
-              require("child_process") as typeof import("child_process");
-            exec(
-              `${envString} ${FUSCRIPT_LOCATION} -q "${windowsScriptPath}"`,
-              { maxBuffer: 50 * 1024 * 1024 },
-              (error, stdout, stderr) => {
-                if (error) {
-                  resume(
-                    Effect.fail(
-                      new CouldNotRunDavinciResolveScriptError({
-                        cause: error,
-                        message: `Failed to run DaVinci Resolve script: ${error.message}`,
-                      })
-                    )
-                  );
-                } else {
-                  resume(
-                    Effect.succeed({
-                      stdout: stdout.toString(),
-                      stderr: stderr.toString(),
+          return yield* Effect.scoped(
+            Effect.gen(function* () {
+              const process = yield* Command.start(command).pipe(
+                Effect.mapError(
+                  (e) =>
+                    new CouldNotRunDavinciResolveScriptError({
+                      cause: e,
+                      message: `Failed to run DaVinci Resolve script: ${e.message}`,
                     })
-                  );
-                }
-              }
-            );
-          });
+                )
+              );
+
+              const [stdout, stderr] = yield* Effect.all(
+                [
+                  process.stdout.pipe(Stream.decodeText(), Stream.mkString),
+                  process.stderr.pipe(Stream.decodeText(), Stream.mkString),
+                ],
+                { concurrency: 2 }
+              );
+              yield* process.exitCode.pipe(Effect.ignore);
+
+              return { stdout, stderr };
+            })
+          );
         }
       );
 

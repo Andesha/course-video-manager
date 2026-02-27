@@ -11,6 +11,7 @@ import { startSSEUpload } from "./sse-upload-client";
 import { startSSESocialPost } from "./sse-social-client";
 import { startSSEAiHeroPost } from "./sse-ai-hero-client";
 import { startSSEExport } from "./sse-export-client";
+import { startSSEBatchExport } from "./sse-batch-export-client";
 
 export interface UploadContextType {
   uploads: uploadReducer.State["uploads"];
@@ -35,6 +36,7 @@ export interface UploadContextType {
     dependsOn?: string
   ) => string;
   startExportUpload: (videoId: string, title: string) => string;
+  startBatchExportUpload: (versionId: string) => void;
   dismissUpload: (uploadId: string) => void;
 }
 
@@ -65,6 +67,9 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const aiHeroParamsRef = useRef<
     Map<string, { body: string; description: string; slug: string }>
   >(new Map());
+
+  // Maps videoId → uploadId for batch exports
+  const batchVideoIdToUploadIdRef = useRef<Map<string, string>>(new Map());
 
   const initiateSSEConnection = useCallback(
     (
@@ -361,6 +366,73 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     [initiateSSEExportConnection]
   );
 
+  const startBatchExportUpload = useCallback((versionId: string) => {
+    const abortController = startSSEBatchExport(
+      { versionId },
+      {
+        onVideos: (videos) => {
+          for (const video of videos) {
+            const uploadId = generateUploadId();
+            batchVideoIdToUploadIdRef.current.set(video.id, uploadId);
+            dispatch({
+              type: "START_UPLOAD",
+              uploadId,
+              videoId: video.id,
+              title: video.title,
+              uploadType: "export",
+            });
+          }
+        },
+        onStageChange: (videoId, stage) => {
+          const uploadId = batchVideoIdToUploadIdRef.current.get(videoId);
+          if (uploadId) {
+            dispatch({
+              type: "UPDATE_EXPORT_STAGE",
+              uploadId,
+              stage,
+            });
+          }
+        },
+        onComplete: (videoId) => {
+          const uploadId = batchVideoIdToUploadIdRef.current.get(videoId);
+          if (uploadId) {
+            dispatch({
+              type: "UPLOAD_SUCCESS",
+              uploadId,
+            });
+            batchVideoIdToUploadIdRef.current.delete(videoId);
+          }
+        },
+        onError: (videoId, message) => {
+          if (videoId === null) {
+            // Connection-level error — mark all remaining batch entries as errored
+            for (const [, uid] of batchVideoIdToUploadIdRef.current) {
+              dispatch({
+                type: "UPLOAD_ERROR",
+                uploadId: uid,
+                errorMessage: message,
+              });
+            }
+            batchVideoIdToUploadIdRef.current.clear();
+          } else {
+            const uploadId = batchVideoIdToUploadIdRef.current.get(videoId);
+            if (uploadId) {
+              dispatch({
+                type: "UPLOAD_ERROR",
+                uploadId,
+                errorMessage: message,
+              });
+              batchVideoIdToUploadIdRef.current.delete(videoId);
+            }
+          }
+        },
+      }
+    );
+
+    // Store with a synthetic key so it can be cleaned up on unmount
+    abortControllersRef.current.set(`batch-${versionId}`, abortController);
+  }, []);
+
   const dismissUpload = useCallback((uploadId: string) => {
     const abortController = abortControllersRef.current.get(uploadId);
     if (abortController) {
@@ -563,6 +635,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         startSocialUpload,
         startAiHeroUpload,
         startExportUpload,
+        startBatchExportUpload,
         dismissUpload,
       }}
     >

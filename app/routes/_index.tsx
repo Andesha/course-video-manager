@@ -254,7 +254,8 @@ export default function Component(props: Route.ComponentProps) {
     useState(false);
 
   const publishRepoFetcher = useFetcher();
-  const { startExportUpload } = useContext(UploadContext);
+  const { startExportUpload, startBatchExportUpload } =
+    useContext(UploadContext);
 
   useFocusRevalidate({ enabled: !!selectedRepoId, intervalMs: 5000 });
 
@@ -298,38 +299,9 @@ export default function Component(props: Route.ComponentProps) {
       ? Math.round((totalLessonsWithVideos / totalLessons) * 100)
       : 0;
 
-  const [isBatchExporting, setIsBatchExporting] = useState(false);
-
-  const handleBatchExport = async () => {
+  const handleBatchExport = () => {
     if (!data.selectedVersion) return;
-    setIsBatchExporting(true);
-    try {
-      const response = await fetch(
-        `/api/repoVersions/${data.selectedVersion.id}/unexported-videos`,
-        { method: "POST" }
-      );
-      if (!response.ok) {
-        toast.error("Failed to fetch unexported videos");
-        return;
-      }
-      const result = (await response.json()) as {
-        videos: Array<{ id: string; title: string }>;
-      };
-      if (result.videos.length === 0) {
-        toast.info("All videos are already exported");
-        return;
-      }
-      for (const video of result.videos) {
-        startExportUpload(video.id, video.title);
-      }
-      toast.success(
-        `Started export for ${result.videos.length} video${result.videos.length === 1 ? "" : "s"}`
-      );
-    } catch {
-      toast.error("Failed to start batch export");
-    } finally {
-      setIsBatchExporting(false);
-    }
+    startBatchExportUpload(data.selectedVersion.id);
   };
 
   return (
@@ -378,13 +350,9 @@ export default function Component(props: Route.ComponentProps) {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        disabled={
-                          isBatchExporting ||
-                          publishRepoFetcher.state === "submitting"
-                        }
+                        disabled={publishRepoFetcher.state === "submitting"}
                       >
-                        {isBatchExporting ||
-                        publishRepoFetcher.state === "submitting" ? (
+                        {publishRepoFetcher.state === "submitting" ? (
                           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                         ) : null}
                         Actions
@@ -393,7 +361,7 @@ export default function Component(props: Route.ComponentProps) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-64">
                       <DropdownMenuItem
-                        disabled={!data.selectedVersion || isBatchExporting}
+                        disabled={!data.selectedVersion}
                         onSelect={() => {
                           handleBatchExport();
                         }}

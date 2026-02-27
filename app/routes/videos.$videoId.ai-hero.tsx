@@ -42,6 +42,7 @@ import {
   SendIcon,
   SparklesIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import { UploadContext } from "@/features/upload-manager/upload-context";
 import {
   Card,
@@ -396,14 +397,17 @@ export default function AiHeroPostPage(props: Route.ComponentProps) {
   }, [slug, videoId]);
 
   // Upload context
-  const { uploads, startAiHeroUpload } = useContext(UploadContext);
+  const { uploads, startAiHeroUpload, startExportUpload } =
+    useContext(UploadContext);
 
   // Check if there's an active AI Hero upload for this video
   const activeAiHeroUpload = Object.values(uploads).find(
     (u) =>
       u.uploadType === "ai-hero" &&
       u.videoId === videoId &&
-      (u.status === "uploading" || u.status === "retrying")
+      (u.status === "uploading" ||
+        u.status === "retrying" ||
+        u.status === "waiting")
   );
 
   // Stored slug from successful upload
@@ -437,9 +441,33 @@ export default function AiHeroPostPage(props: Route.ComponentProps) {
 
   const isSeoDescriptionTooLong = seoDescription.length > 160;
 
-  const handlePostToAiHero = () => {
+  const [isCheckingExport, setIsCheckingExport] = useState(false);
+
+  const handlePostToAiHero = async () => {
     if (!title.trim() || isSeoDescriptionTooLong) return;
-    startAiHeroUpload(videoId, title, body, seoDescription, slug);
+
+    setIsCheckingExport(true);
+    try {
+      const res = await fetch(`/api/videos/${videoId}/export-file-exists`);
+      const { exists } = await res.json();
+
+      if (exists) {
+        startAiHeroUpload(videoId, title, body, seoDescription, slug);
+        toast("Post started", {
+          description: `"${title}" is posting to AI Hero`,
+        });
+      } else {
+        const exportId = startExportUpload(videoId, title);
+        startAiHeroUpload(videoId, title, body, seoDescription, slug, exportId);
+        toast("Export + post started", {
+          description: `"${title}" will export first, then post to AI Hero`,
+        });
+      }
+    } catch {
+      toast.error("Failed to check export status");
+    } finally {
+      setIsCheckingExport(false);
+    }
   };
 
   // Context panel state
@@ -748,10 +776,18 @@ export default function AiHeroPostPage(props: Route.ComponentProps) {
                     disabled={
                       !title.trim() ||
                       !!activeAiHeroUpload ||
+                      isCheckingExport ||
                       isSeoDescriptionTooLong
                     }
                   >
-                    Repost
+                    {isCheckingExport ? (
+                      <>
+                        <Loader2Icon className="h-4 w-4 animate-spin" />
+                        Checking export...
+                      </>
+                    ) : (
+                      "Repost"
+                    )}
                   </Button>
                 </div>
               ) : (
@@ -760,12 +796,18 @@ export default function AiHeroPostPage(props: Route.ComponentProps) {
                   disabled={
                     !title.trim() ||
                     !!activeAiHeroUpload ||
+                    isCheckingExport ||
                     isSeoDescriptionTooLong
                   }
                   className="w-full"
                   size="lg"
                 >
-                  {activeAiHeroUpload ? (
+                  {isCheckingExport ? (
+                    <>
+                      <Loader2Icon className="h-4 w-4 animate-spin" />
+                      Checking export...
+                    </>
+                  ) : activeAiHeroUpload ? (
                     <>
                       <Loader2Icon className="h-4 w-4 animate-spin" />
                       Posting to AI Hero...

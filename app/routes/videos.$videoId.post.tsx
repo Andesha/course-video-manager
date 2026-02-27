@@ -401,7 +401,11 @@ export default function PostPage(props: Route.ComponentProps) {
   );
 
   // Upload state from global context
-  const { uploads, startUpload: globalStartUpload } = useContext(UploadContext);
+  const {
+    uploads,
+    startUpload: globalStartUpload,
+    startExportUpload,
+  } = useContext(UploadContext);
 
   // Find active upload for this video in global context
   const activeUpload = Object.values(uploads).find(
@@ -561,12 +565,33 @@ export default function PostPage(props: Route.ComponentProps) {
 
   const selectedThumbnail = thumbnails.find((t) => t.selectedForUpload);
 
-  const handleUpload = () => {
+  const [isCheckingExport, setIsCheckingExport] = useState(false);
+
+  const handleUpload = async () => {
     if (!title.trim() || !description.trim() || !selectedThumbnail) return;
-    globalStartUpload(videoId, title, description, privacyStatus);
-    toast("Upload started", {
-      description: `"${title}" is uploading to YouTube`,
-    });
+
+    setIsCheckingExport(true);
+    try {
+      const res = await fetch(`/api/videos/${videoId}/export-file-exists`);
+      const { exists } = await res.json();
+
+      if (exists) {
+        globalStartUpload(videoId, title, description, privacyStatus);
+        toast("Upload started", {
+          description: `"${title}" is uploading to YouTube`,
+        });
+      } else {
+        const exportId = startExportUpload(videoId, title);
+        globalStartUpload(videoId, title, description, privacyStatus, exportId);
+        toast("Export + upload started", {
+          description: `"${title}" will export first, then upload to YouTube`,
+        });
+      }
+    } catch {
+      toast.error("Failed to check export status");
+    } finally {
+      setIsCheckingExport(false);
+    }
   };
 
   const handleDisconnect = async () => {
@@ -894,6 +919,7 @@ export default function PostPage(props: Route.ComponentProps) {
                   onClick={handleUpload}
                   disabled={
                     !!activeUpload ||
+                    isCheckingExport ||
                     !title.trim() ||
                     !description.trim() ||
                     !selectedThumbnail
@@ -901,7 +927,12 @@ export default function PostPage(props: Route.ComponentProps) {
                   className="w-full"
                   size="lg"
                 >
-                  {uploadStatus === "uploading" ? (
+                  {isCheckingExport ? (
+                    <>
+                      <Loader2Icon className="h-4 w-4 animate-spin" />
+                      Checking export...
+                    </>
+                  ) : uploadStatus === "uploading" ? (
                     <>
                       <Loader2Icon className="h-4 w-4 animate-spin" />
                       Uploading...

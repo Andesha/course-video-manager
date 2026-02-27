@@ -242,7 +242,7 @@ export const loader = async (args: Route.LoaderArgs) => {
         sectionPath: null,
         repoId: null,
         lessonId: null,
-        fullPath: null,
+        fullPath: path.resolve(getStandaloneVideoFilePath(videoId)),
         files: standaloneFiles,
         nextVideoId,
         previousVideoId,

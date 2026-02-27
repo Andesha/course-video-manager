@@ -159,9 +159,14 @@ export class VideoProcessingService extends Effect.Service<VideoProcessingServic
         yield* effectFs.makeDirectory(path.dirname(outputPath), {
           recursive: true,
         });
-        yield* effectFs.rename(normalizedPath, outputPath);
+        // Use copy+remove instead of rename to support cross-device moves
+        // (e.g. /tmp on tmpfs → /mnt/d on NTFS via WSL2)
+        yield* effectFs.copyFile(normalizedPath, outputPath);
 
-        // Clean up intermediate file
+        // Clean up intermediate files
+        yield* effectFs
+          .remove(normalizedPath)
+          .pipe(Effect.catchAll(() => Effect.void));
         yield* effectFs
           .remove(concatenatedPath)
           .pipe(Effect.catchAll(() => Effect.void));

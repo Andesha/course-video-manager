@@ -307,6 +307,7 @@ export default function NewsletterPage(props: Route.ComponentProps) {
 
   // Delete link fetcher
   const deleteLinkFetcher = useFetcher();
+  const openFolderFetcher = useFetcher();
 
   // Standalone file management state
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
@@ -488,6 +489,12 @@ export default function NewsletterPage(props: Route.ComponentProps) {
           enabledFiles={enabledFiles}
           onEnabledFilesChange={setEnabledFiles}
           onFileClick={handleFileClick}
+          onOpenFolderClick={() => {
+            openFolderFetcher.submit(null, {
+              method: "post",
+              action: `/api/videos/${videoId}/open-folder`,
+            });
+          }}
           onAddFromClipboardClick={
             isStandalone
               ? () => setIsPasteModalOpen(true)

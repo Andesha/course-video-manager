@@ -583,6 +583,7 @@ export function InnerComponent(props: Route.ComponentProps) {
 
   const writeToReadmeFetcher = useFetcher();
   const deleteLinkFetcher = useFetcher();
+  const openFolderFetcher = useFetcher();
   const [isCopied, setIsCopied] = useState(false);
   const revalidator = useRevalidator();
 
@@ -855,6 +856,12 @@ export function InnerComponent(props: Route.ComponentProps) {
           enabledFiles={enabledFiles}
           onEnabledFilesChange={setEnabledFiles}
           onFileClick={handleFileClick}
+          onOpenFolderClick={() => {
+            openFolderFetcher.submit(null, {
+              method: "post",
+              action: `/api/videos/${videoId}/open-folder`,
+            });
+          }}
           onAddFromClipboardClick={
             isStandalone
               ? () => setIsPasteModalOpen(true)

@@ -13,6 +13,7 @@ import {
   ExternalLinkIcon,
   Trash2Icon,
   PlusIcon,
+  FolderOpenIcon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -62,6 +63,7 @@ export type VideoContextPanelProps = {
   onEnabledFilesChange: (files: Set<string>) => void;
   onFileClick?: (filePath: string) => void;
   onAddFromClipboardClick?: () => void;
+  onOpenFolderClick?: () => void;
   // Standalone-only handlers
   onEditFile?: (filename: string) => void;
   onDeleteFile?: (filename: string) => void;
@@ -92,6 +94,7 @@ export function VideoContextPanel({
   onEnabledFilesChange,
   onFileClick,
   onAddFromClipboardClick,
+  onOpenFolderClick,
   onEditFile,
   onDeleteFile,
   links,
@@ -267,6 +270,17 @@ export function VideoContextPanel({
                   >
                     Files
                   </label>
+                  {onOpenFolderClick && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={onOpenFolderClick}
+                      title="Open folder"
+                    >
+                      <FolderOpenIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   {onAddFromClipboardClick && (
                     <Button
                       variant="outline"
@@ -316,6 +330,17 @@ export function VideoContextPanel({
                   >
                     Files
                   </label>
+                  {onOpenFolderClick && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={onOpenFolderClick}
+                      title="Open folder"
+                    >
+                      <FolderOpenIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   {onAddFromClipboardClick && (
                     <Button
                       variant="outline"

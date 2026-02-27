@@ -8,6 +8,7 @@ import { VideoProcessingService } from "./video-processing-service";
 import { BackgroundRemovalService } from "./background-removal-service";
 import { VideoEditorLoggerService } from "./video-editor-logger-service";
 import { FeatureFlagService } from "./feature-flag-service";
+import { OpenFolderService } from "./open-folder-service";
 
 export const layerLive = Layer.mergeAll(
   RepoParserService.Default,
@@ -17,6 +18,7 @@ export const layerLive = Layer.mergeAll(
   BackgroundRemovalService.Default,
   VideoEditorLoggerService.Default,
   FeatureFlagService.Default,
+  OpenFolderService.Default,
   NodeContext.layer
 ).pipe(Layer.provideMerge(DrizzleService.Default));
 

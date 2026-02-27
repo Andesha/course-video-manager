@@ -18,7 +18,8 @@ export interface UploadContextType {
     videoId: string,
     title: string,
     description: string,
-    privacyStatus: "public" | "unlisted"
+    privacyStatus: "public" | "unlisted",
+    dependsOn?: string
   ) => string;
   startSocialUpload: (
     videoId: string,
@@ -30,7 +31,8 @@ export interface UploadContextType {
     title: string,
     body: string,
     description: string,
-    slug: string
+    slug: string,
+    dependsOn?: string
   ) => string;
   startExportUpload: (videoId: string, title: string) => string;
   dismissUpload: (uploadId: string) => void;
@@ -251,7 +253,8 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       videoId: string,
       title: string,
       description: string,
-      privacyStatus: "public" | "unlisted"
+      privacyStatus: "public" | "unlisted",
+      dependsOn?: string
     ) => {
       const uploadId = generateUploadId();
 
@@ -262,15 +265,18 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         uploadId,
         videoId,
         title,
+        dependsOn,
       });
 
-      initiateSSEConnection(
-        uploadId,
-        videoId,
-        title,
-        description,
-        privacyStatus
-      );
+      if (!dependsOn) {
+        initiateSSEConnection(
+          uploadId,
+          videoId,
+          title,
+          description,
+          privacyStatus
+        );
+      }
 
       return uploadId;
     },
@@ -304,7 +310,8 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       title: string,
       body: string,
       description: string,
-      slug: string
+      slug: string,
+      dependsOn?: string
     ) => {
       const uploadId = generateUploadId();
 
@@ -316,16 +323,19 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         videoId,
         title,
         uploadType: "ai-hero",
+        dependsOn,
       });
 
-      initiateSSEAiHeroConnection(
-        uploadId,
-        videoId,
-        title,
-        body,
-        description,
-        slug
-      );
+      if (!dependsOn) {
+        initiateSSEAiHeroConnection(
+          uploadId,
+          videoId,
+          title,
+          body,
+          description,
+          slug
+        );
+      }
 
       return uploadId;
     },
@@ -480,6 +490,45 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
               params.body,
               params.description,
               params.slug
+            );
+          }
+        } else if (upload.uploadType === "export") {
+          initiateSSEExportConnection(uploadId, upload.videoId);
+        }
+      }
+
+      // Handle waiting → uploading transition (dependency completed)
+      if (prevUpload.status === "waiting" && upload.status === "uploading") {
+        if (upload.uploadType === "youtube") {
+          const params = uploadParamsRef.current.get(uploadId);
+          if (params) {
+            initiateSSEConnection(
+              uploadId,
+              upload.videoId,
+              upload.title,
+              params.description,
+              params.privacyStatus
+            );
+          }
+        } else if (upload.uploadType === "ai-hero") {
+          const params = aiHeroParamsRef.current.get(uploadId);
+          if (params) {
+            initiateSSEAiHeroConnection(
+              uploadId,
+              upload.videoId,
+              upload.title,
+              params.body,
+              params.description,
+              params.slug
+            );
+          }
+        } else if (upload.uploadType === "buffer") {
+          const params = socialParamsRef.current.get(uploadId);
+          if (params) {
+            initiateSSESocialConnection(
+              uploadId,
+              upload.videoId,
+              params.caption
             );
           }
         } else if (upload.uploadType === "export") {

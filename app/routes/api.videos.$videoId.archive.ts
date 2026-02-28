@@ -1,7 +1,7 @@
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.videos.$videoId.archive";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
 

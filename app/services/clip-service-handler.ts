@@ -19,7 +19,7 @@ import {
   type ClipServiceEvent,
   type TimelineItem,
 } from "./clip-service";
-import type { DrizzleService } from "./drizzle-service";
+import type { DrizzleService } from "./drizzle-service.server";
 import type { LogEvent } from "./video-editor-logger-service";
 
 // ============================================================================

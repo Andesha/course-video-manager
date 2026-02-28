@@ -24,7 +24,7 @@ import {
   type UIMessage,
 } from "ai";
 import { Array, Effect } from "effect";
-import { DBFunctionsService } from "./db-service";
+import { DBFunctionsService } from "./db-service.server";
 import path from "node:path";
 import { FileSystem } from "@effect/platform";
 import { calculateYouTubeChapters, type YouTubeChaptersItem } from "./utils";

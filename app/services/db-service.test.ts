@@ -5,8 +5,8 @@ import { describe, it, expect } from "@effect/vitest";
 import { beforeEach } from "vitest";
 import { Effect, Layer } from "effect";
 import { pushSchema } from "drizzle-kit/api";
-import { DBFunctionsService } from "@/services/db-service";
-import { DrizzleService } from "@/services/drizzle-service";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { DrizzleService } from "@/services/drizzle-service.server";
 import { sortByOrder } from "@/lib/sort-by-order";
 
 let pglite: PGlite;

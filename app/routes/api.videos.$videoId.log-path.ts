@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { Route } from "./+types/api.videos.$videoId.log-path";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { VideoEditorLoggerService } from "@/services/video-editor-logger-service";
 import path from "node:path";
 

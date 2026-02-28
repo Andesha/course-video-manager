@@ -1,6 +1,6 @@
 import { getVideoPath } from "@/lib/get-video";
 import { postToAiHero } from "@/services/ai-hero-upload-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { Effect } from "effect";
 import type { Route } from "./+types/api.videos.$videoId.post-ai-hero";
 

@@ -1,6 +1,6 @@
 import { Layer, ManagedRuntime } from "effect";
-import { DBFunctionsService } from "./db-service";
-import { DrizzleService } from "./drizzle-service";
+import { DBFunctionsService } from "./db-service.server";
+import { DrizzleService } from "./drizzle-service.server";
 import { DatabaseDumpService } from "./dump-service";
 import { RepoParserService } from "./repo-parser";
 import { NodeContext } from "@effect/platform-node";

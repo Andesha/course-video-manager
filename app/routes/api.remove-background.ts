@@ -1,7 +1,7 @@
 import { Console, Effect } from "effect";
 import type { Route } from "./+types/api.remove-background";
 import { BackgroundRemovalService } from "@/services/background-removal-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { data } from "react-router";
 
 function decodeDataUrl(dataUrl: string): Uint8Array {

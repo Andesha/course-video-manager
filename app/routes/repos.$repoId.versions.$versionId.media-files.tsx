@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { Console, Effect } from "effect";
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import { useState } from "react";

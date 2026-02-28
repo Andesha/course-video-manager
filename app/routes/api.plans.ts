@@ -1,8 +1,8 @@
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.plans";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { data, redirect } from "react-router";
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 
 const CreatePlanSchema = Schema.Struct({
   title: Schema.String,

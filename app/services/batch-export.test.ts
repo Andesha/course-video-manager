@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ConfigProvider, Data, Effect, Layer } from "effect";
 import { FileSystem } from "@effect/platform";
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 import { VideoProcessingService } from "@/services/video-processing-service";
-import { batchExportProgram } from "./api.repoVersions.$versionId.batch-export-sse";
+import { batchExportProgram } from "@/services/batch-export.server";
 
 class ExportFailedError extends Data.TaggedError("ExportFailedError")<{
   message: string;

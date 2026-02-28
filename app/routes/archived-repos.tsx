@@ -1,7 +1,7 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { Console, Effect } from "effect";
 import { ArchiveRestore } from "lucide-react";
 import { useState } from "react";

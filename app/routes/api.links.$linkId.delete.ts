@@ -1,8 +1,8 @@
 import { Console, Effect } from "effect";
 import type { Route } from "./+types/api.links.$linkId.delete";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { data } from "react-router";
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 
 export const action = async (args: Route.ActionArgs) => {
   const { linkId } = args.params;

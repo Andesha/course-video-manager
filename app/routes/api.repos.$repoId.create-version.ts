@@ -1,6 +1,6 @@
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 import { withDatabaseDump } from "@/services/dump-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { Config, Console, Effect, Schema } from "effect";
 import { FileSystem } from "@effect/platform";
 import type { Route } from "./+types/api.repos.$repoId.create-version";

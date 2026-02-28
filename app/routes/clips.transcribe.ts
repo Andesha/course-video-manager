@@ -1,9 +1,9 @@
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 import { VideoProcessingService } from "@/services/video-processing-service";
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/clips.transcribe";
 import { withDatabaseDump } from "@/services/dump-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { data } from "react-router";
 
 const transcribeClipsSchema = Schema.Struct({

@@ -1,8 +1,8 @@
 import { Console, Effect } from "effect";
 import type { Route } from "./+types/videos.$videoId.export-to-davinci-resolve";
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 import { VideoProcessingService } from "@/services/video-processing-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
 

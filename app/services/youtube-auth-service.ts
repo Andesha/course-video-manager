@@ -1,5 +1,5 @@
 import { Config, ConfigProvider, Data, Effect } from "effect";
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 
 export class YouTubeAuthError extends Data.TaggedError("YouTubeAuthError")<{
   message: string;

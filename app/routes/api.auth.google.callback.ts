@@ -1,7 +1,7 @@
 import { Config, ConfigProvider, Console, Data, Effect } from "effect";
 import { redirect } from "react-router";
-import { runtimeLive } from "@/services/layer";
-import { DBFunctionsService } from "@/services/db-service";
+import { runtimeLive } from "@/services/layer.server";
+import { DBFunctionsService } from "@/services/db-service.server";
 
 class GoogleOAuthError extends Data.TaggedError("GoogleOAuthError")<{
   message: string;

@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
-import { runtimeLive } from "@/services/layer";
-import { DBFunctionsService } from "@/services/db-service";
+import { runtimeLive } from "@/services/layer.server";
+import { DBFunctionsService } from "@/services/db-service.server";
 
 /**
  * Disconnect YouTube account by deleting stored OAuth tokens.

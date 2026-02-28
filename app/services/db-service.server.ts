@@ -1,4 +1,4 @@
-import { DrizzleService } from "@/services/drizzle-service";
+import { DrizzleService } from "@/services/drizzle-service.server";
 import {
   clips,
   clipSections,

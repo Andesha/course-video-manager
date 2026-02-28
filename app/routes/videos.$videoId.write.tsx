@@ -1,8 +1,8 @@
 "use client";
 
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 import { sortByOrder } from "@/lib/sort-by-order";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import type {
   SectionWithWordCount,
   Mode,

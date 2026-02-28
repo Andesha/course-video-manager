@@ -13,8 +13,8 @@ import {
 import type { BeatType } from "@/services/video-processing-service";
 import { useOBSConnector } from "@/features/video-editor/obs-connector";
 import { VideoEditor } from "@/features/video-editor/video-editor";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { FileSystem } from "@effect/platform";
 import { Console, Effect } from "effect";
 import { useEffectReducer } from "use-effect-reducer";

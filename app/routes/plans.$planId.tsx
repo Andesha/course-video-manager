@@ -44,8 +44,8 @@ import type {
 import type { planStateReducer } from "@/features/course-planner/plan-state-reducer";
 import type { Route } from "./+types/plans.$planId";
 import { Console, Effect } from "effect";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import {
   DndContext,
   closestCenter,

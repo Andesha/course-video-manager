@@ -14,10 +14,10 @@ import {
   ClipServiceEventSchema,
   type ClipServiceEvent,
 } from "@/services/clip-service";
-import { DBFunctionsService } from "@/services/db-service";
-import { DrizzleService } from "@/services/drizzle-service";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { DrizzleService } from "@/services/drizzle-service.server";
 import { withDatabaseDump } from "@/services/dump-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { VideoProcessingService } from "@/services/video-processing-service";
 import { VideoEditorLoggerService } from "@/services/video-editor-logger-service";
 import { Console, Effect, Schema } from "effect";

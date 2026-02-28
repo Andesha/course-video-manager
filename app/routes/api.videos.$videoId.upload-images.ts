@@ -1,8 +1,8 @@
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/api.videos.$videoId.upload-images";
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 import { CloudinaryMarkdownService } from "@/services/cloudinary-markdown-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { data } from "react-router";
 import { getStandaloneVideoFilePath } from "@/services/standalone-video-files";
 import path from "node:path";

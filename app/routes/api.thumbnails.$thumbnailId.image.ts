@@ -1,7 +1,7 @@
 import { createReadStream } from "fs";
 import type { Route } from "./+types/api.thumbnails.$thumbnailId.image";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { Console, Effect } from "effect";
 import { data } from "react-router";
 

@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
 import { findOrCreateShortLink } from "@/services/ai-hero-shortlink-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 
 /**
  * POST /api/shortlinks/find-or-create

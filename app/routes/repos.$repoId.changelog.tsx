@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
 import { generateChangelog } from "@/services/changelog-service";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { Console, Effect } from "effect";
 import { ArrowLeft } from "lucide-react";
 import Markdown from "react-markdown";

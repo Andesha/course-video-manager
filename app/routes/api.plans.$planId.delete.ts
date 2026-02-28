@@ -1,7 +1,7 @@
 import { Console, Effect } from "effect";
 import type { Route } from "./+types/api.plans.$planId.delete";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { data, redirect } from "react-router";
 
 export const action = async (args: Route.ActionArgs) => {

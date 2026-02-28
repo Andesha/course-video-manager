@@ -11,8 +11,8 @@ import {
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
 import { getVideoPath } from "@/lib/get-video";
 import { formatSecondsToTimeCode } from "@/services/utils";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { FileSystem } from "@effect/platform";
 import { Console, Effect } from "effect";
 import {

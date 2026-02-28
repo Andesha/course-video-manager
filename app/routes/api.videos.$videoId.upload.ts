@@ -1,11 +1,11 @@
 import { getVideoPath } from "@/lib/get-video";
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 import { getValidAccessToken } from "@/services/youtube-auth-service";
 import {
   setYouTubeThumbnail,
   uploadVideoToYouTube,
 } from "@/services/youtube-upload-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { Effect } from "effect";
 import type { Route } from "./+types/api.videos.$videoId.upload";
 

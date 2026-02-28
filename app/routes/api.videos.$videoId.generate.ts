@@ -1,5 +1,5 @@
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { acquireTextWritingContext } from "@/services/text-writing-agent";
 import { generateYoutubeTitlePrompt } from "@/prompts/generate-youtube-title";
 import { generateSingleYoutubeTitlePrompt } from "@/prompts/generate-single-youtube-title";

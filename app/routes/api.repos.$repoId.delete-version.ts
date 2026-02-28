@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import type { Route } from "./+types/api.repos.$repoId.delete-version";
-import { DBFunctionsService } from "@/services/db-service";
-import { runtimeLive } from "@/services/layer";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { runtimeLive } from "@/services/layer.server";
 import { withDatabaseDump } from "@/services/dump-service";
 
 const deleteVersionSchema = Schema.Struct({

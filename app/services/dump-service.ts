@@ -1,5 +1,5 @@
 import { Config, Effect } from "effect";
-import { DBFunctionsService } from "./db-service";
+import { DBFunctionsService } from "./db-service.server";
 import { FileSystem } from "@effect/platform";
 import { NodeFileSystem } from "@effect/platform-node";
 

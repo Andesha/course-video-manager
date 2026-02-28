@@ -1,11 +1,11 @@
 import { sortByOrder } from "@/lib/sort-by-order";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { acquireTextWritingContext } from "@/services/text-writing-agent";
 import {
   generateSuggestNextClipPrompt,
   type FewShotExample,
 } from "@/prompts/generate-suggest-next-clip";
-import { DBFunctionsService } from "@/services/db-service";
+import { DBFunctionsService } from "@/services/db-service.server";
 import { Experimental_Agent as Agent } from "ai";
 import { Console, Effect, Schema } from "effect";
 import type { Route } from "./+types/videos.$videoId.suggest-next-clip";

@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
 import type { Route } from "./+types/api.videos.$videoId.reveal";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 import { data } from "react-router";
 import { getVideoPath } from "@/lib/get-video";
 import { exec } from "node:child_process";

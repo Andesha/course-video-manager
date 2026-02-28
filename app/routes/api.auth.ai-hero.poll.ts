@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
 import { pollForToken } from "@/services/ai-hero-auth-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 
 /**
  * Polls AI Hero's token endpoint for device authorization completion.

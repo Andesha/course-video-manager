@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
 import { requestDeviceCode } from "@/services/ai-hero-auth-service";
-import { runtimeLive } from "@/services/layer";
+import { runtimeLive } from "@/services/layer.server";
 
 /**
  * Initiates AI Hero device authorization flow.

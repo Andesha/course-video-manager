@@ -404,6 +404,9 @@ export const ComponentInner = (props: Route.ComponentProps) => {
             });
           });
       },
+      "start-orphan-timer": (_state, _effect, _dispatch) => {
+        // TODO: Implement orphan timer (Issue #295)
+      },
       "create-clip-section-at": (_state, effect, dispatch) => {
         clipService
           .createClipSectionAtPosition({

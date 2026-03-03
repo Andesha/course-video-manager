@@ -134,6 +134,9 @@ export namespace clipStateReducer {
         type: "recording-started";
       }
     | {
+        type: "recording-stopped";
+      }
+    | {
         type: "new-optimistic-clip-detected";
         scene: string;
         profile: string;
@@ -259,6 +262,10 @@ export namespace clipStateReducer {
         position: "before" | "after";
         targetItemId: DatabaseId;
         targetItemType: "clip" | "clip-section";
+      }
+    | {
+        type: "start-orphan-timer";
+        sessionId: SessionId;
       };
 }
 
@@ -287,6 +294,24 @@ export const clipStateReducer: EffectReducer<
       return {
         ...state,
         sessions: [...state.sessions, newSession],
+      };
+    }
+    case "recording-stopped": {
+      const activeSession = state.sessions.find((s) => s.isRecording);
+      if (!activeSession) {
+        return state;
+      }
+
+      exec({
+        type: "start-orphan-timer",
+        sessionId: activeSession.id,
+      });
+
+      return {
+        ...state,
+        sessions: state.sessions.map((s) =>
+          s.id === activeSession.id ? { ...s, isRecording: false } : s
+        ),
       };
     }
     case "new-optimistic-clip-detected": {

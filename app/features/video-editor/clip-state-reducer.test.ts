@@ -1766,6 +1766,81 @@ describe("clipStateReducer", () => {
       });
     });
 
+    describe("recording-stopped", () => {
+      it("Should mark the active session as no longer recording", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester
+          .send({ type: "recording-started" })
+          .send({ type: "recording-stopped" });
+
+        const state = tester.getState();
+        expect(state.sessions).toHaveLength(1);
+        expect(state.sessions[0]).toMatchObject({
+          displayNumber: 1,
+          isRecording: false,
+        });
+      });
+
+      it("Should only mark the currently recording session as stopped", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        // Start first session, stop it, start second session
+        tester
+          .send({ type: "recording-started" })
+          .send({ type: "recording-stopped" })
+          .send({ type: "recording-started" });
+
+        const stateBefore = tester.getState();
+        expect(stateBefore.sessions[0]).toMatchObject({ isRecording: false });
+        expect(stateBefore.sessions[1]).toMatchObject({ isRecording: true });
+
+        // Stop second session
+        tester.send({ type: "recording-stopped" });
+
+        const state = tester.getState();
+        expect(state.sessions[0]).toMatchObject({ isRecording: false });
+        expect(state.sessions[1]).toMatchObject({ isRecording: false });
+      });
+
+      it("Should fire start-orphan-timer effect with the session id", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({ type: "recording-started" });
+        const sessionId = tester.getState().sessions[0]!.id;
+
+        tester.resetExec().send({ type: "recording-stopped" });
+
+        expect(tester.getExec()).toHaveBeenCalledWith({
+          type: "start-orphan-timer",
+          sessionId,
+        });
+      });
+
+      it("Should no-op if no session is currently recording", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        const stateBefore = tester.getState();
+        tester.send({ type: "recording-stopped" });
+        const stateAfter = tester.getState();
+
+        expect(stateAfter).toEqual(stateBefore);
+        expect(tester.getExec()).not.toHaveBeenCalled();
+      });
+    });
+
     describe("new-optimistic-clip-detected with sessions", () => {
       it("Should associate optimistic clip with active recording session", () => {
         const tester = new ReducerTester(

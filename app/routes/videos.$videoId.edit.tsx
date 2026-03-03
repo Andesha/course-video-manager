@@ -404,8 +404,17 @@ export const ComponentInner = (props: Route.ComponentProps) => {
             });
           });
       },
-      "start-orphan-timer": (_state, _effect, _dispatch) => {
-        // TODO: Implement orphan timer (Issue #295)
+      "start-orphan-timer": (_state, effect, dispatch) => {
+        const timeout = setTimeout(() => {
+          dispatch({
+            type: "mark-orphans",
+            sessionId: effect.sessionId,
+          });
+        }, 10_000);
+
+        return () => {
+          clearTimeout(timeout);
+        };
       },
       "create-clip-section-at": (_state, effect, dispatch) => {
         clipService

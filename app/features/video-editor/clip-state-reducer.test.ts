@@ -2,6 +2,7 @@ import { fromPartial } from "@total-typescript/shoehorn";
 import { describe, expect, it } from "vitest";
 import {
   clipStateReducer,
+  type ClipOnDatabase,
   type ClipOptimisticallyAdded,
   type DatabaseId,
   type FrontendId,
@@ -2189,6 +2190,140 @@ describe("clipStateReducer", () => {
 
         const state = tester.getState();
         expect(state.sessions).toHaveLength(1);
+      });
+    });
+
+    describe("restore-clip", () => {
+      it("Should set shouldArchive to false on an archived optimistic clip", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({ type: "recording-started" }).send(
+          fromPartial({
+            type: "new-optimistic-clip-detected",
+            soundDetectionId: "sound-1",
+          })
+        );
+
+        const clipId = tester.getState().items[0]!.frontendId;
+
+        // Archive the clip
+        tester.send({ type: "clips-deleted", clipIds: [clipId] });
+
+        const archivedClip = tester.getState()
+          .items[0] as ClipOptimisticallyAdded;
+        expect(archivedClip.shouldArchive).toBe(true);
+
+        // Restore the clip
+        tester.send({ type: "restore-clip", clipId });
+
+        const restoredClip = tester.getState()
+          .items[0] as ClipOptimisticallyAdded;
+        expect(restoredClip.shouldArchive).toBeUndefined();
+      });
+
+      it("Should set shouldArchive to false on an archived database clip", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({ type: "recording-started" }).send(
+          fromPartial({
+            type: "new-optimistic-clip-detected",
+            soundDetectionId: "sound-1",
+          })
+        );
+
+        const clipId = tester.getState().items[0]!.frontendId;
+
+        // Archive the clip, then pair with DB clip (creates ClipOnDatabase with shouldArchive)
+        tester.send({ type: "clips-deleted", clipIds: [clipId] }).send({
+          type: "new-database-clips",
+          clips: [fromPartial({ id: "db-1", text: "Hello world" })],
+        });
+
+        const archivedDbClip = tester.getState().items[0] as ClipOnDatabase;
+        expect(archivedDbClip.type).toBe("on-database");
+        expect(archivedDbClip.shouldArchive).toBe(true);
+
+        // Restore the clip
+        tester.resetExec().send({ type: "restore-clip", clipId });
+
+        const restoredClip = tester.getState().items[0] as ClipOnDatabase;
+        expect(restoredClip.shouldArchive).toBeUndefined();
+      });
+
+      it("Should fire unarchive-clips effect for restored database clips", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({ type: "recording-started" }).send(
+          fromPartial({
+            type: "new-optimistic-clip-detected",
+            soundDetectionId: "sound-1",
+          })
+        );
+
+        const clipId = tester.getState().items[0]!.frontendId;
+
+        tester.send({ type: "clips-deleted", clipIds: [clipId] }).send({
+          type: "new-database-clips",
+          clips: [fromPartial({ id: "db-1", text: "" })],
+        });
+
+        // Restore the resolved clip
+        tester.resetExec().send({ type: "restore-clip", clipId });
+
+        expect(tester.getExec()).toHaveBeenCalledWith({
+          type: "unarchive-clips",
+          clipIds: ["db-1"],
+        });
+      });
+
+      it("Should not fire unarchive-clips effect for restored optimistic clips", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({ type: "recording-started" }).send(
+          fromPartial({
+            type: "new-optimistic-clip-detected",
+            soundDetectionId: "sound-1",
+          })
+        );
+
+        const clipId = tester.getState().items[0]!.frontendId;
+
+        tester.send({ type: "clips-deleted", clipIds: [clipId] });
+
+        // Restore the unresolved clip
+        tester.resetExec().send({ type: "restore-clip", clipId });
+
+        expect(tester.getExec()).not.toHaveBeenCalledWith(
+          expect.objectContaining({ type: "unarchive-clips" })
+        );
+      });
+
+      it("Should no-op if clip is not found", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        const stateBefore = tester.getState();
+        tester.send({
+          type: "restore-clip",
+          clipId: "nonexistent" as FrontendId,
+        });
+
+        expect(tester.getState()).toEqual(stateBefore);
+        expect(tester.getExec()).not.toHaveBeenCalled();
       });
     });
   });

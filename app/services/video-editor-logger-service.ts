@@ -27,6 +27,10 @@ export type LogEvent =
       clipIds: string[];
     }
   | {
+      type: "clips-unarchived";
+      clipIds: string[];
+    }
+  | {
       type: "clips-updated";
       clips: {
         id: string;

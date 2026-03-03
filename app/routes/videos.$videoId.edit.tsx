@@ -253,6 +253,18 @@ export const ComponentInner = (props: Route.ComponentProps) => {
           });
         });
       },
+      "unarchive-clips": (_state, effect, dispatch) => {
+        clipService.unarchiveClips(effect.clipIds).catch((error) => {
+          dispatch({
+            type: "effect-failed",
+            effectType: "unarchive-clips",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to unarchive clips",
+          });
+        });
+      },
       "transcribe-clips": (_state, effect, dispatch) => {
         fetch("/clips/transcribe", {
           method: "POST",

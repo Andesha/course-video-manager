@@ -222,6 +222,10 @@ export namespace clipStateReducer {
         databaseId: DatabaseId;
       }
     | {
+        type: "restore-clip";
+        clipId: FrontendId;
+      }
+    | {
         type: "effect-failed";
         effectType: string;
         message: string;
@@ -287,6 +291,10 @@ export namespace clipStateReducer {
     | {
         type: "start-orphan-timer";
         sessionId: SessionId;
+      }
+    | {
+        type: "unarchive-clips";
+        clipIds: DatabaseId[];
       };
 }
 
@@ -1157,6 +1165,42 @@ export const clipStateReducer: EffectReducer<
             return onDatabase;
           }
           return item;
+        }),
+      };
+    }
+    case "restore-clip": {
+      const item = state.items.find((c) => c.frontendId === action.clipId);
+
+      if (!item) {
+        return state;
+      }
+
+      // Only restore clips that have shouldArchive
+      if (
+        (item.type !== "optimistically-added" && item.type !== "on-database") ||
+        !item.shouldArchive
+      ) {
+        return state;
+      }
+
+      // Fire unarchive-clips effect for resolved (database) clips
+      if (item.type === "on-database") {
+        exec({
+          type: "unarchive-clips",
+          clipIds: [item.databaseId],
+        });
+      }
+
+      return {
+        ...state,
+        items: state.items.map((c) => {
+          if (c.frontendId === action.clipId) {
+            const { shouldArchive, ...rest } = c as
+              | ClipOnDatabase
+              | ClipOptimisticallyAdded;
+            return rest;
+          }
+          return c;
         }),
       };
     }

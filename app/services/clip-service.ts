@@ -313,6 +313,7 @@ export interface ClipService {
   appendClips(input: AppendClipsInput): Promise<Clip[]>;
   appendFromObs(input: AppendFromObsInput): Promise<Clip[]>;
   archiveClips(clipIds: string[]): Promise<void>;
+  unarchiveClips(clipIds: string[]): Promise<void>;
   updateClips(clips: UpdateClipInput[]): Promise<void>;
   updateBeat(clipId: string, beatType: string): Promise<void>;
   reorderClip(clipId: string, direction: ReorderDirection): Promise<void>;
@@ -351,6 +352,7 @@ export type ClipServiceEvent =
   | { type: "append-clips"; input: InternalAppendClipsInput }
   | { type: "append-from-obs"; input: InternalAppendFromObsInput }
   | { type: "archive-clips"; clipIds: readonly string[] }
+  | { type: "unarchive-clips"; clipIds: readonly string[] }
   | { type: "update-clips"; clips: readonly UpdateClipInput[] }
   | { type: "update-beat"; clipId: string; beatType: string }
   | { type: "reorder-clip"; clipId: string; direction: ReorderDirection }
@@ -432,6 +434,10 @@ export function createClipService(send: ClipServiceTransport): ClipService {
 
     async archiveClips(clipIds) {
       await send({ type: "archive-clips", clipIds });
+    },
+
+    async unarchiveClips(clipIds) {
+      await send({ type: "unarchive-clips", clipIds });
     },
 
     async updateClips(clips) {
@@ -594,6 +600,10 @@ export const ClipServiceEventSchema = Schema.Union(
   }),
   Schema.Struct({
     type: Schema.Literal("archive-clips"),
+    clipIds: Schema.Array(Schema.String),
+  }),
+  Schema.Struct({
+    type: Schema.Literal("unarchive-clips"),
     clipIds: Schema.Array(Schema.String),
   }),
   Schema.Struct({

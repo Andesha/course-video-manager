@@ -446,6 +446,32 @@ export const handleClipServiceEvent = Effect.fn("handleClipServiceEvent")(
         return;
       }
 
+      case "unarchive-clips": {
+        for (const clipId of event.clipIds) {
+          yield* Effect.promise(() =>
+            db
+              .update(clips)
+              .set({ archived: false })
+              .where(eq(clips.id, clipId))
+          );
+        }
+
+        if (event.clipIds.length > 0) {
+          const firstClip = yield* Effect.promise(() =>
+            db.query.clips.findFirst({
+              where: eq(clips.id, event.clipIds[0]!),
+            })
+          );
+          if (firstClip) {
+            logger.log(firstClip.videoId, {
+              type: "clips-unarchived",
+              clipIds: [...event.clipIds],
+            });
+          }
+        }
+        return;
+      }
+
       case "update-clips": {
         for (const clip of event.clips) {
           yield* Effect.promise(() =>

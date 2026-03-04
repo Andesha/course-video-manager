@@ -111,7 +111,8 @@ const ArchivedClipRow = ({
         {isOrphaned
           ? "No clip found"
           : isResolved
-            ? clip.text || "No transcript"
+            ? clip.text ||
+              (!clip.transcribedAt ? "Transcribing..." : "No transcript")
             : "Awaiting clip..."}
       </span>
       <span className="text-[10px] text-gray-600">

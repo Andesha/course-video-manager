@@ -1911,6 +1911,55 @@ describe("clipStateReducer", () => {
           status: "recording",
         });
       });
+
+      it("Should fire start-session-polling effect with sessionId and outputPath", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({
+          type: "recording-started",
+          outputPath: "/videos/recording.mkv",
+        });
+
+        const sessionId = tester.getState().sessions[0]!.id;
+
+        expect(tester.getExec()).toHaveBeenCalledWith({
+          type: "start-session-polling",
+          sessionId,
+          outputPath: "/videos/recording.mkv",
+        });
+      });
+
+      it("Should fire separate start-session-polling effects for each session", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({
+          type: "recording-started",
+          outputPath: "/videos/session1.mkv",
+        });
+        const session1Id = tester.getState().sessions[0]!.id;
+
+        tester.resetExec().send({ type: "recording-stopped" });
+
+        tester.resetExec().send({
+          type: "recording-started",
+          outputPath: "/videos/session2.mkv",
+        });
+        const session2Id = tester.getState().sessions[1]!.id;
+
+        expect(tester.getExec()).toHaveBeenCalledWith({
+          type: "start-session-polling",
+          sessionId: session2Id,
+          outputPath: "/videos/session2.mkv",
+        });
+
+        expect(session1Id).not.toEqual(session2Id);
+      });
     });
 
     describe("recording-stopped", () => {

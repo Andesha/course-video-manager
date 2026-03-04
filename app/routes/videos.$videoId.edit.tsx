@@ -213,37 +213,41 @@ export default function Component(props: Route.ComponentProps) {
 export const ComponentInner = (props: Route.ComponentProps) => {
   const navigate = useNavigate();
 
+  const initialState: clipStateReducer.State = {
+    items: props.loaderData.items.map((item): TimelineItem => {
+      if (item.type === "clip") {
+        const clip = item.data;
+        return {
+          ...clip,
+          type: "on-database",
+          frontendId: createFrontendId(),
+          databaseId: clip.id,
+          insertionOrder: null,
+          beatType: clip.beatType as BeatType,
+        } satisfies ClipOnDatabase;
+      } else {
+        const clipSection = item.data;
+        return {
+          type: "clip-section-on-database",
+          frontendId: createFrontendId(),
+          databaseId: clipSection.id,
+          name: clipSection.name,
+          insertionOrder: null,
+        } satisfies ClipSectionOnDatabase;
+      }
+    }),
+    clipIdsBeingTranscribed: new Set() satisfies Set<FrontendId>,
+    insertionOrder: 0,
+    insertionPoint: { type: "end" },
+    error: null,
+    sessions: [],
+  };
+
+  const clipStateRef = useRef(initialState);
+
   const [clipState, dispatch] = useEffectReducer(
     clipStateReducer,
-    {
-      items: props.loaderData.items.map((item): TimelineItem => {
-        if (item.type === "clip") {
-          const clip = item.data;
-          return {
-            ...clip,
-            type: "on-database",
-            frontendId: createFrontendId(),
-            databaseId: clip.id,
-            insertionOrder: null,
-            beatType: clip.beatType as BeatType,
-          } satisfies ClipOnDatabase;
-        } else {
-          const clipSection = item.data;
-          return {
-            type: "clip-section-on-database",
-            frontendId: createFrontendId(),
-            databaseId: clipSection.id,
-            name: clipSection.name,
-            insertionOrder: null,
-          } satisfies ClipSectionOnDatabase;
-        }
-      }),
-      clipIdsBeingTranscribed: new Set() satisfies Set<FrontendId>,
-      insertionOrder: 0,
-      insertionPoint: { type: "end" },
-      error: null,
-      sessions: [],
-    },
+    initialState,
     {
       "archive-clips": (_state, effect, dispatch) => {
         clipService.archiveClips(effect.clipIds).catch((error) => {
@@ -441,6 +445,37 @@ export const ComponentInner = (props: Route.ComponentProps) => {
           clearTimeout(timeout);
         };
       },
+      "start-session-polling": (_state, effect, dispatch) => {
+        let unmounted = false;
+
+        (async () => {
+          while (!unmounted) {
+            try {
+              const { insertionPoint, items } = clipStateRef.current;
+              const clips = await clipService.appendFromObs({
+                videoId: props.loaderData.video.id,
+                filePath: effect.outputPath,
+                insertionPoint,
+                items,
+              });
+              if (clips.length > 0) {
+                dispatch({
+                  type: "new-database-clips",
+                  clips: clips as DB.Clip[],
+                  outputPath: effect.outputPath,
+                });
+              }
+            } catch (e) {
+              // Errors are swallowed; polling continues
+            }
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+        })();
+
+        return () => {
+          unmounted = true;
+        };
+      },
       "create-clip-section-at": (_state, effect, dispatch) => {
         clipService
           .createClipSectionAtPosition({
@@ -471,14 +506,9 @@ export const ComponentInner = (props: Route.ComponentProps) => {
     }
   );
 
+  clipStateRef.current = clipState;
+
   const obsConnector = useOBSConnector({
-    videoId: props.loaderData.video.id,
-    clipService,
-    insertionPoint: clipState.insertionPoint,
-    items: clipState.items,
-    onNewDatabaseClips: (databaseClips) => {
-      dispatch({ type: "new-database-clips", clips: databaseClips });
-    },
     onNewClipOptimisticallyAdded: ({ scene, profile, soundDetectionId }) => {
       dispatch({
         type: "new-optimistic-clip-detected",

@@ -1,12 +1,6 @@
-import type { DB } from "@/db/schema";
 import { OBSWebSocket } from "obs-websocket-js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useEffectReducer, type EffectReducer } from "use-effect-reducer";
-import type {
-  ClipService,
-  FrontendInsertionPoint,
-  FrontendTimelineItem,
-} from "@/services/clip-service";
 import {
   useSpeechDetector,
   useWatchForSpeechDetected,
@@ -180,58 +174,6 @@ export const useConnectToOBSVirtualCamera = (props: {
   }, [shouldShowMediaStream, props.websocket]);
 
   return mediaStream;
-};
-
-export const useRunOBSImportRepeatedly = (props: {
-  videoId: string;
-  clipService: ClipService;
-  insertionPoint: FrontendInsertionPoint;
-  items: FrontendTimelineItem[];
-  state:
-    | {
-        type: "should-run";
-        filePath: string;
-      }
-    | {
-        type: "should-not-run";
-      };
-  onNewDatabaseClips: (clips: DB.Clip[]) => void;
-}) => {
-  useEffect(() => {
-    if (props.state.type === "should-run") {
-      let unmounted = false;
-      const filePath = props.state.filePath;
-
-      let error: Error | null = null;
-
-      (async () => {
-        while (!unmounted) {
-          try {
-            const clips = await props.clipService.appendFromObs({
-              videoId: props.videoId,
-              filePath,
-              insertionPoint: props.insertionPoint,
-              items: props.items,
-            });
-            if (clips.length > 0) {
-              props.onNewDatabaseClips(clips as DB.Clip[]);
-            }
-          } catch (e) {
-            error = e as Error;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      })();
-
-      if (error) {
-        throw error;
-      }
-
-      return () => {
-        unmounted = true;
-      };
-    }
-  }, [JSON.stringify(props.state), props.insertionPoint, props.items]);
 };
 
 export namespace useOBSConnector {
@@ -416,11 +358,6 @@ const innerToOuterState = (
 };
 
 export const useOBSConnector = (props: {
-  videoId: string;
-  clipService: ClipService;
-  insertionPoint: FrontendInsertionPoint;
-  items: FrontendTimelineItem[];
-  onNewDatabaseClips: (clips: DB.Clip[]) => void;
   onNewClipOptimisticallyAdded: (opts: {
     scene: string;
     profile: string;
@@ -533,23 +470,6 @@ export const useOBSConnector = (props: {
       },
     }
   );
-
-  useRunOBSImportRepeatedly({
-    videoId: props.videoId,
-    clipService: props.clipService,
-    insertionPoint: props.insertionPoint,
-    items: props.items,
-    state:
-      state.type === "obs-recording" && state.hasSpeechBeenDetected
-        ? {
-            type: "should-run",
-            filePath: state.latestOutputPath,
-          }
-        : {
-            type: "should-not-run",
-          },
-    onNewDatabaseClips: props.onNewDatabaseClips,
-  });
 
   const outerState = useMemo(() => innerToOuterState(state), [state]);
 

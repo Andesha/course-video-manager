@@ -170,6 +170,7 @@ export namespace clipStateReducer {
     | {
         type: "new-database-clips";
         clips: DB.Clip[];
+        outputPath?: string;
       }
     | {
         type: "clips-deleted";
@@ -303,6 +304,11 @@ export namespace clipStateReducer {
     | {
         type: "unarchive-clips";
         clipIds: DatabaseId[];
+      }
+    | {
+        type: "start-session-polling";
+        sessionId: SessionId;
+        outputPath: string;
       };
 }
 
@@ -328,6 +334,12 @@ export const clipStateReducer: EffectReducer<
         status: "recording",
         outputPath: action.outputPath,
       };
+
+      exec({
+        type: "start-session-polling",
+        sessionId: newSession.id,
+        outputPath: action.outputPath,
+      });
 
       return {
         ...state,

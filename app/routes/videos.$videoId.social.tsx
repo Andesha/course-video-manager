@@ -1,6 +1,7 @@
 "use client";
 
 import { DBFunctionsService } from "@/services/db-service.server";
+import { FeatureFlagService } from "@/services/feature-flag-service";
 import { sortByOrder } from "@/lib/sort-by-order";
 import { runtimeLive } from "@/services/layer.server";
 import type { SectionWithWordCount } from "@/features/article-writer/types";
@@ -48,7 +49,11 @@ export const loader = async (args: Route.LoaderArgs) => {
   return Effect.gen(function* () {
     const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
+    const featureFlags = yield* FeatureFlagService;
     const video = yield* db.getVideoWithClipsById(videoId);
+    const showSocialShareButtons = featureFlags.isEnabled(
+      "ENABLE_SOCIAL_SHARE_BUTTONS"
+    );
 
     const globalLinks = yield* db.getLinks();
 
@@ -170,6 +175,7 @@ export const loader = async (args: Route.LoaderArgs) => {
         clipSections: sectionsWithWordCount,
         links: globalLinks,
         courseStructure: null as CourseStructure | null,
+        showSocialShareButtons,
       };
     }
 
@@ -247,6 +253,7 @@ export const loader = async (args: Route.LoaderArgs) => {
       clipSections: sectionsWithWordCount,
       links: globalLinks,
       courseStructure,
+      showSocialShareButtons,
     };
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
@@ -281,6 +288,7 @@ export default function SocialPage(props: Route.ComponentProps) {
     clipSections,
     links,
     courseStructure,
+    showSocialShareButtons,
   } = props.loaderData;
 
   // Context panel state
@@ -566,40 +574,42 @@ export default function SocialPage(props: Route.ComponentProps) {
             </div>
 
             {/* Post buttons */}
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                <Button
-                  onClick={handlePostToX}
-                  disabled={!socialCaption.trim()}
-                  className="flex-1"
-                  size="lg"
-                >
-                  <CopyIcon className="h-4 w-4" />
-                  Post to X
-                </Button>
-                <Button
-                  onClick={handlePostToLinkedIn}
-                  disabled={!socialCaption.trim()}
-                  className="flex-1"
-                  size="lg"
-                  variant="outline"
-                >
-                  <CopyIcon className="h-4 w-4" />
-                  Post to LinkedIn
-                </Button>
-              </div>
+            {showSocialShareButtons && (
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handlePostToX}
+                    disabled={!socialCaption.trim()}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    <CopyIcon className="h-4 w-4" />
+                    Post to X
+                  </Button>
+                  <Button
+                    onClick={handlePostToLinkedIn}
+                    disabled={!socialCaption.trim()}
+                    className="flex-1"
+                    size="lg"
+                    variant="outline"
+                  >
+                    <CopyIcon className="h-4 w-4" />
+                    Post to LinkedIn
+                  </Button>
+                </div>
 
-              {!socialCaption.trim() && (
-                <p className="text-sm text-muted-foreground text-center">
-                  Write or generate a caption before posting.
+                {!socialCaption.trim() && (
+                  <p className="text-sm text-muted-foreground text-center">
+                    Write or generate a caption before posting.
+                  </p>
+                )}
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Caption will be copied to clipboard. X will pre-fill the text;
+                  for LinkedIn, paste from clipboard.
                 </p>
-              )}
-
-              <p className="text-xs text-muted-foreground text-center">
-                Caption will be copied to clipboard. X will pre-fill the text;
-                for LinkedIn, paste from clipboard.
-              </p>
-            </div>
+              </div>
+            )}
 
             {/* Short link buttons */}
             <div className="space-y-3 pt-2 border-t border-border">

@@ -512,7 +512,17 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
             });
           }
         } else if (upload.uploadType === "export") {
-          toast.success(`"${upload.title}" exported successfully`);
+          toast.success(`"${upload.title}" exported successfully`, {
+            duration: Infinity,
+            cancel: {
+              label: "Reveal in File System",
+              onClick: () => {
+                fetch(`/api/videos/${upload.videoId}/reveal`, {
+                  method: "POST",
+                }).catch(() => {});
+              },
+            },
+          });
         }
       }
 

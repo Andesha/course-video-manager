@@ -315,7 +315,7 @@ export const VideoPlayerPanel = () => {
               <ActionsDropdown
                 allClipsHaveSilenceDetected={allClipsHaveSilenceDetected}
                 allClipsHaveText={allClipsHaveText}
-                onExport={() => startExportUpload(videoId, videoId)}
+                onExport={() => startExportUpload(videoId, videoPath)}
                 exportToDavinciResolveFetcher={exportToDavinciResolveFetcher}
                 videoId={videoId}
                 lessonId={lessonId}

@@ -14,6 +14,7 @@ import type {
   ClipOnDatabase,
 } from "../clip-state-reducer";
 import { cn } from "@/lib/utils";
+import { RECORDING_SESSION_PANELS_ID } from "../constants";
 
 /**
  * Renders a single pending clip row within a session panel.
@@ -207,7 +208,7 @@ export const RecordingSessionPanels = () => {
   if (sessionPanels.length === 0) return null;
 
   return (
-    <div className="space-y-3">
+    <div id={RECORDING_SESSION_PANELS_ID} className="space-y-3">
       {sessionPanels.map((panel) => (
         <SessionPanel key={panel.sessionId} panel={panel} />
       ))}

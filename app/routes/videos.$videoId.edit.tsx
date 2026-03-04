@@ -19,7 +19,10 @@ import { FileSystem } from "@effect/platform";
 import { Console, Effect } from "effect";
 import { useEffectReducer } from "use-effect-reducer";
 import type { Route } from "./+types/videos.$videoId.edit";
-import { INSERTION_POINT_ID } from "@/features/video-editor/constants";
+import {
+  INSERTION_POINT_ID,
+  RECORDING_SESSION_PANELS_ID,
+} from "@/features/video-editor/constants";
 import { data, useNavigate } from "react-router";
 import { getStandaloneVideoFilePath } from "@/services/standalone-video-files";
 import { Array as EffectArray } from "effect";
@@ -297,11 +300,20 @@ export const ComponentInner = (props: Route.ComponentProps) => {
           });
       },
       "scroll-to-insertion-point": () => {
-        window.scrollTo({
-          top:
-            (document.getElementById(INSERTION_POINT_ID)?.offsetTop ?? 0) - 200,
-          behavior: "smooth",
-        });
+        const sessionPanels = document.getElementById(
+          RECORDING_SESSION_PANELS_ID
+        );
+        if (sessionPanels) {
+          sessionPanels.scrollIntoView({ behavior: "smooth", block: "end" });
+          return;
+        }
+        const insertionPoint = document.getElementById(INSERTION_POINT_ID);
+        if (insertionPoint) {
+          insertionPoint.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
       },
       "update-clips": (_state, effect, dispatch) => {
         // Transform tuple format [id, { scene, profile, beatType }] to UpdateClipInput

@@ -609,20 +609,6 @@ export default function SocialPage(props: Route.ComponentProps) {
                   variant="outline"
                   size="sm"
                   className="flex-1"
-                  onClick={() => handleCreateShortLink("Newsletter")}
-                  disabled={creatingShortLink !== null}
-                >
-                  {creatingShortLink === "Newsletter" ? (
-                    <Loader2Icon className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <LinkIcon className="h-4 w-4" />
-                  )}
-                  Newsletter
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
                   onClick={() => handleCreateShortLink("X")}
                   disabled={creatingShortLink !== null}
                 >
@@ -649,8 +635,7 @@ export default function SocialPage(props: Route.ComponentProps) {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                Creates a tracked short link to the newsletter and copies it to
-                clipboard.
+                Creates a tracked short link and copies it to clipboard.
               </p>
             </div>
           </div>

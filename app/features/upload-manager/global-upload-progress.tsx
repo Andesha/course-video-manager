@@ -1,4 +1,4 @@
-import { useContext, useRef, useState, useEffect, useCallback } from "react";
+import { useContext, useEffect, useCallback } from "react";
 import {
   CheckCircle2,
   AlertCircle,
@@ -11,16 +11,26 @@ import {
   Copy,
   Film,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { Link } from "react-router";
 import { UploadContext } from "./upload-context";
 import type { uploadReducer } from "./upload-reducer";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+
+const CIRCLE_RADIUS = 16;
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
 
 export function GlobalUploadProgress() {
   const { uploads, dismissUpload } = useContext(UploadContext);
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const uploadEntries = Object.values(uploads);
   const hasUploads = uploadEntries.length > 0;
@@ -33,6 +43,11 @@ export function GlobalUploadProgress() {
   );
   const isActive = activeUploads.length > 0;
 
+  const completedCount = uploadEntries.filter(
+    (u) => u.status === "success"
+  ).length;
+  const errorCount = uploadEntries.filter((u) => u.status === "error").length;
+
   const aggregateProgress =
     activeUploads.length > 0
       ? Math.round(
@@ -40,6 +55,9 @@ export function GlobalUploadProgress() {
             activeUploads.length
         )
       : 100;
+
+  const strokeDashoffset =
+    CIRCLE_CIRCUMFERENCE - (aggregateProgress / 100) * CIRCLE_CIRCUMFERENCE;
 
   // Auto-dismiss all uploads 5 seconds after all finish
   useEffect(() => {
@@ -54,31 +72,6 @@ export function GlobalUploadProgress() {
     return () => clearTimeout(timer);
   }, [hasUploads, isActive, uploadEntries, dismissUpload]);
 
-  // Close dropdown on click outside
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [isOpen]);
-
-  // Close dropdown on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsOpen(false);
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
   const handleDismiss = useCallback(
     (e: React.MouseEvent, uploadId: string) => {
       e.stopPropagation();
@@ -90,50 +83,102 @@ export function GlobalUploadProgress() {
   if (!hasUploads) return null;
 
   return (
-    <div
-      ref={dropdownRef}
-      className="fixed top-[0px] left-[0px] right-[0px] z-50"
-    >
-      {/* Thin progress bar */}
+    <>
+      {/* Floating circular indicator */}
       <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="w-full h-1 bg-secondary cursor-pointer"
-        aria-label="Toggle upload details"
+        onClick={() => setIsModalOpen(true)}
+        className="fixed bottom-16 right-4 z-40 flex items-center justify-center size-10 rounded-full shadow-lg bg-background border hover:bg-accent transition-colors"
+        aria-label="View upload status"
         type="button"
       >
-        <div
-          className={`h-full rounded-r-full transition-all duration-300 ${
-            isActive ? "bg-blue-500" : "bg-green-500"
-          }`}
-          style={{ width: `${aggregateProgress}%` }}
-        />
+        <svg
+          className="absolute inset-0 -rotate-90"
+          viewBox="0 0 40 40"
+          fill="none"
+        >
+          {/* Background circle */}
+          <circle
+            cx="20"
+            cy="20"
+            r={CIRCLE_RADIUS}
+            stroke="currentColor"
+            strokeWidth="3"
+            className="text-secondary"
+          />
+          {/* Progress circle */}
+          <circle
+            cx="20"
+            cy="20"
+            r={CIRCLE_RADIUS}
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray={CIRCLE_CIRCUMFERENCE}
+            strokeDashoffset={strokeDashoffset}
+            className={`transition-all duration-300 ${
+              errorCount > 0
+                ? "text-destructive"
+                : isActive
+                  ? "text-blue-500"
+                  : "text-green-500"
+            }`}
+          />
+        </svg>
+        {/* Center icon */}
+        <span className="relative z-10">
+          {isActive ? (
+            <Loader2 className="size-4 text-blue-500 animate-spin" />
+          ) : errorCount > 0 ? (
+            <AlertCircle className="size-4 text-destructive" />
+          ) : (
+            <CheckCircle2 className="size-4 text-green-500" />
+          )}
+        </span>
       </button>
 
-      {/* Expandable dropdown */}
-      {isOpen && (
-        <div className="mx-auto max-w-md mt-1 mr-4 ml-auto rounded-md border bg-popover text-popover-foreground shadow-lg overflow-hidden">
-          <div className="px-3 py-2 border-b flex items-center justify-between">
-            <span className="text-sm font-medium">Uploads</span>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-muted-foreground hover:text-foreground"
-              type="button"
-            >
-              <X className="size-4" />
-            </button>
+      {/* Upload details modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Uploads
+              {isActive && (
+                <Badge variant="secondary" className="text-xs">
+                  {activeUploads.length} active
+                </Badge>
+              )}
+              {completedCount > 0 && (
+                <Badge variant="secondary" className="text-xs text-green-500">
+                  {completedCount} done
+                </Badge>
+              )}
+              {errorCount > 0 && (
+                <Badge variant="secondary" className="text-xs text-destructive">
+                  {errorCount} failed
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-80 overflow-y-auto -mx-6 px-6">
+            {uploadEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No uploads
+              </p>
+            ) : (
+              <div className="space-y-0 divide-y">
+                {uploadEntries.map((upload) => (
+                  <UploadRow
+                    key={upload.uploadId}
+                    upload={upload}
+                    onDismiss={handleDismiss}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-          <div className="max-h-64 overflow-y-auto">
-            {uploadEntries.map((upload) => (
-              <UploadRow
-                key={upload.uploadId}
-                upload={upload}
-                onDismiss={handleDismiss}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -145,7 +190,7 @@ function UploadRow({
   onDismiss: (e: React.MouseEvent, uploadId: string) => void;
 }) {
   return (
-    <div className="px-3 py-2 flex items-center gap-3 border-b last:border-b-0 hover:bg-accent/50">
+    <div className="py-2.5 flex items-center gap-3">
       <StatusIcon upload={upload} />
       <div className="flex-1 min-w-0">
         <p className="text-sm truncate">{upload.title}</p>

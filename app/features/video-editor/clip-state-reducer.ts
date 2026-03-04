@@ -226,6 +226,10 @@ export namespace clipStateReducer {
         clipId: FrontendId;
       }
     | {
+        type: "permanently-remove-archived";
+        sessionId: SessionId;
+      }
+    | {
         type: "effect-failed";
         effectType: string;
         message: string;
@@ -1202,6 +1206,36 @@ export const clipStateReducer: EffectReducer<
           }
           return c;
         }),
+      };
+    }
+    case "permanently-remove-archived": {
+      const itemsToRemove = state.items.filter((item) => {
+        if (
+          item.type === "optimistically-added" &&
+          item.shouldArchive &&
+          item.sessionId === action.sessionId
+        ) {
+          return true;
+        }
+        if (
+          item.type === "on-database" &&
+          item.shouldArchive &&
+          item.sessionId === action.sessionId
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      if (itemsToRemove.length === 0) {
+        return state;
+      }
+
+      const idsToRemove = new Set(itemsToRemove.map((i) => i.frontendId));
+
+      return {
+        ...state,
+        items: state.items.filter((item) => !idsToRemove.has(item.frontendId)),
       };
     }
     case "effect-failed": {

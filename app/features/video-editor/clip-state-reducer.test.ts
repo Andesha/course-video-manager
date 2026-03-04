@@ -2326,5 +2326,196 @@ describe("clipStateReducer", () => {
         expect(tester.getExec()).not.toHaveBeenCalled();
       });
     });
+
+    describe("permanently-remove-archived", () => {
+      it("Should remove all archived optimistic clips for a session", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({ type: "recording-started" });
+
+        const sessionId = tester.getState().sessions[0]!.id;
+
+        // Add two optimistic clips and archive them
+        tester
+          .send(
+            fromPartial({
+              type: "new-optimistic-clip-detected",
+              soundDetectionId: "sound-1",
+            })
+          )
+          .send(
+            fromPartial({
+              type: "new-optimistic-clip-detected",
+              soundDetectionId: "sound-2",
+            })
+          );
+
+        const clip1Id = tester.getState().items[0]!.frontendId;
+        const clip2Id = tester.getState().items[1]!.frontendId;
+
+        tester.send({ type: "clips-deleted", clipIds: [clip1Id, clip2Id] });
+
+        // Both should be archived
+        expect(
+          (tester.getState().items[0] as ClipOptimisticallyAdded).shouldArchive
+        ).toBe(true);
+        expect(
+          (tester.getState().items[1] as ClipOptimisticallyAdded).shouldArchive
+        ).toBe(true);
+
+        // Permanently remove all archived clips for the session
+        tester.send({
+          type: "permanently-remove-archived",
+          sessionId,
+        });
+
+        expect(tester.getState().items).toHaveLength(0);
+      });
+
+      it("Should remove archived database clips for a session", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({ type: "recording-started" }).send(
+          fromPartial({
+            type: "new-optimistic-clip-detected",
+            soundDetectionId: "sound-1",
+          })
+        );
+
+        const clipId = tester.getState().items[0]!.frontendId;
+
+        // Archive, then pair with DB clip
+        tester.send({ type: "clips-deleted", clipIds: [clipId] }).send({
+          type: "new-database-clips",
+          clips: [fromPartial({ id: "db-1", text: "Hello world" })],
+        });
+
+        const sessionId = tester.getState().sessions[0]!.id;
+        const archivedDbClip = tester.getState().items[0] as ClipOnDatabase;
+        expect(archivedDbClip.shouldArchive).toBe(true);
+
+        // Permanently remove
+        tester.resetExec().send({
+          type: "permanently-remove-archived",
+          sessionId,
+        });
+
+        expect(tester.getState().items).toHaveLength(0);
+      });
+
+      it("Should not affect clips from other sessions", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        // Session 1: create and archive a clip
+        tester.send({ type: "recording-started" }).send(
+          fromPartial({
+            type: "new-optimistic-clip-detected",
+            soundDetectionId: "sound-1",
+          })
+        );
+
+        const session1Id = tester.getState().sessions[0]!.id;
+        const clip1Id = tester.getState().items[0]!.frontendId;
+        tester
+          .send({ type: "clips-deleted", clipIds: [clip1Id] })
+          .send({ type: "recording-stopped" });
+
+        // Session 2: create and archive a clip
+        tester.send({ type: "recording-started" }).send(
+          fromPartial({
+            type: "new-optimistic-clip-detected",
+            soundDetectionId: "sound-2",
+          })
+        );
+
+        const clip2Id = tester.getState().items[1]!.frontendId;
+        tester.send({ type: "clips-deleted", clipIds: [clip2Id] });
+
+        expect(tester.getState().items).toHaveLength(2);
+
+        // Remove only session 1's archived clips
+        tester.send({
+          type: "permanently-remove-archived",
+          sessionId: session1Id,
+        });
+
+        // Session 2's archived clip should remain
+        expect(tester.getState().items).toHaveLength(1);
+        expect(tester.getState().items[0]!.frontendId).toBe(clip2Id);
+      });
+
+      it("Should not affect non-archived clips in the same session", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester
+          .send({ type: "recording-started" })
+          .send(
+            fromPartial({
+              type: "new-optimistic-clip-detected",
+              soundDetectionId: "sound-1",
+            })
+          )
+          .send(
+            fromPartial({
+              type: "new-optimistic-clip-detected",
+              soundDetectionId: "sound-2",
+            })
+          );
+
+        const sessionId = tester.getState().sessions[0]!.id;
+        const clip1Id = tester.getState().items[0]!.frontendId;
+
+        // Archive only clip 1, leave clip 2 pending
+        tester.send({ type: "clips-deleted", clipIds: [clip1Id] });
+
+        // Permanently remove archived clips
+        tester.send({
+          type: "permanently-remove-archived",
+          sessionId,
+        });
+
+        // Clip 2 (non-archived) should remain
+        expect(tester.getState().items).toHaveLength(1);
+        expect(
+          (tester.getState().items[0] as ClipOptimisticallyAdded).shouldArchive
+        ).toBeUndefined();
+      });
+
+      it("Should no-op if no archived clips exist for the session", () => {
+        const tester = new ReducerTester(
+          clipStateReducer,
+          createInitialState()
+        );
+
+        tester.send({ type: "recording-started" }).send(
+          fromPartial({
+            type: "new-optimistic-clip-detected",
+            soundDetectionId: "sound-1",
+          })
+        );
+
+        const sessionId = tester.getState().sessions[0]!.id;
+        const stateBefore = tester.getState();
+
+        tester.send({
+          type: "permanently-remove-archived",
+          sessionId,
+        });
+
+        expect(tester.getState()).toEqual(stateBefore);
+      });
+    });
   });
 });

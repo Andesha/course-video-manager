@@ -17,6 +17,7 @@ import { FileSystem } from "@effect/platform";
 import { Console, Effect } from "effect";
 import {
   Archive,
+  FileX,
   FolderOpen,
   PencilIcon,
   Plus,
@@ -89,6 +90,7 @@ export default function Component(props: Route.ComponentProps) {
   } | null>(null);
   const archiveVideoFetcher = useFetcher();
   const revealVideoFetcher = useFetcher();
+  const deleteVideoFileFetcher = useFetcher();
 
   useFocusRevalidate({ enabled: true });
 
@@ -214,6 +216,21 @@ export default function Component(props: Route.ComponentProps) {
                       <ContextMenuItem
                         variant="destructive"
                         onSelect={() => {
+                          deleteVideoFileFetcher.submit(
+                            {},
+                            {
+                              method: "post",
+                              action: `/api/videos/${video.id}/delete-file`,
+                            }
+                          );
+                        }}
+                      >
+                        <FileX className="w-4 h-4" />
+                        Delete from File System
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        variant="destructive"
+                        onSelect={() => {
                           setVideoToDelete({ id: video.id, path: video.path });
                         }}
                       >
@@ -298,6 +315,21 @@ export default function Component(props: Route.ComponentProps) {
                         >
                           <Archive className="w-4 h-4" />
                           Unarchive
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          variant="destructive"
+                          onSelect={() => {
+                            deleteVideoFileFetcher.submit(
+                              {},
+                              {
+                                method: "post",
+                                action: `/api/videos/${video.id}/delete-file`,
+                              }
+                            );
+                          }}
+                        >
+                          <FileX className="w-4 h-4" />
+                          Delete from File System
                         </ContextMenuItem>
                         <ContextMenuItem
                           variant="destructive"

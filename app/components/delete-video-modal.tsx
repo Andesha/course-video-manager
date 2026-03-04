@@ -26,9 +26,8 @@ export function DeleteVideoModal(props: {
             Delete Video
           </DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete "{props.videoPath}"? This will
-            permanently delete the video and all its clips. This action cannot
-            be undone.
+            Are you sure you want to delete "{props.videoPath}"? The video and
+            its clips will be archived and can be recovered later.
           </DialogDescription>
         </DialogHeader>
         <fetcher.Form

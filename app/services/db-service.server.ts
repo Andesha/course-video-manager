@@ -1041,7 +1041,10 @@ export class DBFunctionsService extends Effect.Service<DBFunctionsService>()(
         }),
         deleteVideo: Effect.fn("deleteVideo")(function* (videoId: string) {
           const videoResult = yield* makeDbCall(() =>
-            db.delete(videos).where(eq(videos.id, videoId))
+            db
+              .update(videos)
+              .set({ archived: true })
+              .where(eq(videos.id, videoId))
           );
 
           return videoResult;

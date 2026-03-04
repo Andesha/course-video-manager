@@ -118,7 +118,7 @@ describe("clipStateReducer", () => {
         type: "on-database",
         id: "123",
       });
-      expect(reportEffect2).not.toHaveBeenCalledWith({
+      expect(reportEffect2).toHaveBeenCalledWith({
         type: "scroll-to-insertion-point",
       });
       expect(reportEffect2).toHaveBeenCalledWith({

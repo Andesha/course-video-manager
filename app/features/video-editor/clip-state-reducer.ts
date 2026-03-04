@@ -528,8 +528,6 @@ export const clipStateReducer: EffectReducer<
       };
     }
     case "new-database-clips": {
-      let shouldScrollToBottom = false;
-
       let newClipsState: (TimelineItem | undefined)[] = [...state.items];
 
       const clipsToArchive = new Set<DatabaseId>();
@@ -646,8 +644,6 @@ export const clipStateReducer: EffectReducer<
 
           frontendClipIdsToTranscribe.add(newFrontendId);
           databaseClipIdsToTranscribe.add(databaseClip.id);
-
-          shouldScrollToBottom = true;
         }
       }
 
@@ -658,7 +654,7 @@ export const clipStateReducer: EffectReducer<
         });
       }
 
-      if (shouldScrollToBottom) {
+      if (action.clips.length > 0) {
         exec({
           type: "scroll-to-insertion-point",
         });

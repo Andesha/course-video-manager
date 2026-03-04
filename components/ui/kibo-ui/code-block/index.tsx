@@ -97,7 +97,7 @@ import {
   type BundledLanguage,
   type CodeOptionsMultipleThemes,
   codeToHtml,
-} from "shiki";
+} from "shiki/bundle/web";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -108,7 +108,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-export type { BundledLanguage } from "shiki";
+export type { BundledLanguage } from "shiki/bundle/web";
 
 const filenameIconMap = {
   ".env": SiDotenv,

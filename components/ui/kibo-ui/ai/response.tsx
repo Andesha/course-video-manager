@@ -1,13 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import "katex/dist/katex.min.css";
 import type { HTMLAttributes } from "react";
 import { memo, useMemo } from "react";
 import ReactMarkdown, { type Options } from "react-markdown";
-import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
 import {
   type BundledLanguage,
   CodeBlock,
@@ -199,8 +196,7 @@ export const AIResponse = memo(
       >
         <ReactMarkdown
           components={components}
-          rehypePlugins={[rehypeKatex]}
-          remarkPlugins={[remarkGfm, remarkMath]}
+          remarkPlugins={[remarkGfm]}
           {...options}
         >
           {children}

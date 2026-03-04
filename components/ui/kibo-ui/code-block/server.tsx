@@ -10,7 +10,7 @@ import {
   type BundledLanguage,
   type CodeOptionsMultipleThemes,
   codeToHtml,
-} from "shiki";
+} from "shiki/bundle/web";
 
 export type CodeBlockContentProps = HTMLAttributes<HTMLDivElement> & {
   themes?: CodeOptionsMultipleThemes["themes"];

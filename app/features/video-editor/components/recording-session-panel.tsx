@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Loader2,
   CircleDotIcon,
@@ -15,6 +16,7 @@ import type {
 } from "../clip-state-reducer";
 import { cn } from "@/lib/utils";
 import { RECORDING_SESSION_PANELS_ID } from "../constants";
+import { formatSecondsToTimeCode } from "@/services/utils";
 
 /**
  * Renders a single pending clip row within a session panel.
@@ -148,6 +150,22 @@ const SessionPanel = ({ panel }: { panel: SessionPanelData }) => {
     (ctx) => ctx.onPermanentlyRemoveArchived
   );
 
+  const [elapsedSeconds, setElapsedSeconds] = useState(() =>
+    Math.floor((Date.now() - panel.startedAt) / 1000)
+  );
+
+  useEffect(() => {
+    if (!panel.isRecording) return;
+
+    setElapsedSeconds(Math.floor((Date.now() - panel.startedAt) / 1000));
+
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - panel.startedAt) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [panel.isRecording, panel.startedAt]);
+
   const hasArchived = panel.archivedClips.length > 0;
 
   return (
@@ -164,6 +182,9 @@ const SessionPanel = ({ panel }: { panel: SessionPanelData }) => {
           <span className="flex items-center gap-1.5 text-xs text-red-400">
             <CircleDotIcon className="size-3 animate-pulse" />
             Recording
+            <span className="font-mono tabular-nums">
+              {formatSecondsToTimeCode(elapsedSeconds)}
+            </span>
           </span>
         )}
       </div>

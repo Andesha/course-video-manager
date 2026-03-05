@@ -42,6 +42,7 @@ export type SessionPanelData = {
   sessionId: SessionId;
   displayNumber: number;
   isRecording: boolean;
+  startedAt: number;
   pendingClips: ClipOptimisticallyAdded[];
   archivedClips: (ClipOptimisticallyAdded | ClipOnDatabase)[];
 };
@@ -95,6 +96,7 @@ export const getSessionPanels = (
       sessionId: session.id,
       displayNumber: session.displayNumber,
       isRecording: session.status === "recording",
+      startedAt: session.startedAt,
       pendingClips: pendingBySession.get(session.id) ?? [],
       archivedClips: archivedBySession.get(session.id) ?? [],
     }))

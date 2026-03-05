@@ -129,6 +129,7 @@ export type RecordingSession = {
   displayNumber: number;
   status: RecordingSessionStatus;
   outputPath: string;
+  startedAt: number;
 };
 
 export namespace clipStateReducer {
@@ -336,6 +337,7 @@ export const clipStateReducer: EffectReducer<
         displayNumber: nextDisplayNumber,
         status: "recording",
         outputPath: action.outputPath,
+        startedAt: Date.now(),
       };
 
       exec({
@@ -428,6 +430,7 @@ export const clipStateReducer: EffectReducer<
           displayNumber: nextDisplayNumber,
           status: "recording",
           outputPath: "",
+          startedAt: Date.now(),
         };
         sessions = [...sessions, activeSession];
       }

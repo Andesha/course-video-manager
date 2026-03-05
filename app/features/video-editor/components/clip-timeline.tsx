@@ -46,10 +46,16 @@ export const ClipTimeline = () => {
     VideoEditorContext,
     (ctx) => ctx.onAddSectionAfter
   );
+  const sessions = useContextSelector(
+    VideoEditorContext,
+    (ctx) => ctx.sessions
+  );
   return (
     <div className="lg:flex-1 flex gap-2 h-full order-2 lg:order-1 overflow-y-auto">
       <div className="grid gap-4 w-full p-2">
-        {clips.length === 0 && <PreRecordingChecklist />}
+        {clips.length === 0 && sessions.length === 0 && (
+          <PreRecordingChecklist />
+        )}
 
         {items.length > 0 && (
           <>

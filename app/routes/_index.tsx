@@ -7,6 +7,7 @@ import { CreateVersionModal } from "@/components/create-version-modal";
 import { DeleteVersionModal } from "@/components/delete-version-modal";
 import { EditLessonModal } from "@/components/edit-lesson-modal";
 import { MoveVideoModal } from "@/components/move-video-modal";
+import { RenameVideoModal } from "@/components/rename-video-modal";
 import { RenameRepoModal } from "@/components/rename-repo-modal";
 import { RewriteRepoPathModal } from "@/components/rewrite-repo-path-modal";
 import { RenameVersionModal } from "@/components/rename-version-modal";
@@ -264,6 +265,10 @@ export default function Component(props: Route.ComponentProps) {
     videoId: string;
     videoPath: string;
     currentLessonId: string;
+  } | null>(null);
+  const [renameVideoState, setRenameVideoState] = useState<{
+    videoId: string;
+    videoPath: string;
   } | null>(null);
 
   const publishRepoFetcher = useFetcher();
@@ -814,6 +819,17 @@ export default function Component(props: Route.ComponentProps) {
                                         </ContextMenuItem>
                                         <ContextMenuItem
                                           onSelect={() => {
+                                            setRenameVideoState({
+                                              videoId: video.id,
+                                              videoPath: video.path,
+                                            });
+                                          }}
+                                        >
+                                          <PencilIcon className="w-4 h-4" />
+                                          Rename
+                                        </ContextMenuItem>
+                                        <ContextMenuItem
+                                          onSelect={() => {
                                             setMoveVideoState({
                                               videoId: video.id,
                                               videoPath: video.path,
@@ -1058,6 +1074,17 @@ export default function Component(props: Route.ComponentProps) {
           open={true}
           onOpenChange={(open) => {
             if (!open) setMoveVideoState(null);
+          }}
+        />
+      )}
+
+      {renameVideoState && (
+        <RenameVideoModal
+          videoId={renameVideoState.videoId}
+          currentName={renameVideoState.videoPath}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) setRenameVideoState(null);
           }}
         />
       )}

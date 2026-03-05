@@ -67,6 +67,7 @@ export function AppSidebar({
   const revealVideoFetcher = useFetcher();
   const deletePlanFetcher = useFetcher();
   const renamePlanFetcher = useFetcher();
+  const archivePlanFetcher = useFetcher();
 
   const [isCreatePlanModalOpen, setIsCreatePlanModalOpen] = useState(false);
   const [isInternalAddVideoModalOpen, setIsInternalAddVideoModalOpen] =
@@ -316,6 +317,20 @@ export function AppSidebar({
                     Rename
                   </ContextMenuItem>
                   <ContextMenuItem
+                    onSelect={() => {
+                      archivePlanFetcher.submit(
+                        { archived: "true" },
+                        {
+                          method: "post",
+                          action: `/api/plans/${plan.id}/archive`,
+                        }
+                      );
+                    }}
+                  >
+                    <Archive className="w-4 h-4" />
+                    Archive
+                  </ContextMenuItem>
+                  <ContextMenuItem
                     variant="destructive"
                     onSelect={() => {
                       deletePlanFetcher.submit(
@@ -338,6 +353,13 @@ export function AppSidebar({
             <p className="text-sm text-muted-foreground px-2">No plans yet</p>
           )}
         </div>
+        <Link
+          to="/archived-plans"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mt-2 px-2 transition-colors"
+        >
+          <Archive className="w-3 h-3" />
+          Archived Plans
+        </Link>
       </div>
     </>
   );

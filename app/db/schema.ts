@@ -261,6 +261,7 @@ export const plans = createTable("plan", {
   })
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
+  archived: boolean("archived").notNull().default(false),
 });
 
 export const planSections = createTable("plan_section", {

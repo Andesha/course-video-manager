@@ -2055,6 +2055,7 @@ export class DBFunctionsService extends Effect.Service<DBFunctionsService>()(
         getPlans: Effect.fn("getPlans")(function* () {
           const allPlans = yield* makeDbCall(() =>
             db.query.plans.findMany({
+              where: eq(plans.archived, false),
               orderBy: desc(plans.updatedAt),
               with: {
                 sections: {
@@ -2193,6 +2194,71 @@ export class DBFunctionsService extends Effect.Service<DBFunctionsService>()(
           );
           return { success: true };
         }),
+        getArchivedPlans: Effect.fn("getArchivedPlans")(function* () {
+          const archivedPlansList = yield* makeDbCall(() =>
+            db.query.plans.findMany({
+              where: eq(plans.archived, true),
+              orderBy: desc(plans.updatedAt),
+              with: {
+                sections: {
+                  orderBy: asc(planSections.order),
+                  with: {
+                    lessons: {
+                      orderBy: asc(planLessons.order),
+                    },
+                  },
+                },
+              },
+            })
+          );
+
+          return archivedPlansList.map((plan) => ({
+            id: plan.id,
+            title: plan.title,
+            createdAt: plan.createdAt.toISOString(),
+            updatedAt: plan.updatedAt.toISOString(),
+            sections: plan.sections.map((section) => ({
+              id: section.id,
+              title: section.title,
+              order: section.order,
+              lessons: section.lessons.map((lesson) => ({
+                id: lesson.id,
+                title: lesson.title,
+                order: lesson.order,
+                description: lesson.description,
+                icon: lesson.icon as
+                  | "watch"
+                  | "code"
+                  | "discussion"
+                  | undefined,
+                status: lesson.status as "todo" | "done" | "maybe" | undefined,
+                priority: lesson.priority as 1 | 2 | 3 | undefined,
+                dependencies: lesson.dependencies ?? undefined,
+              })),
+            })),
+          }));
+        }),
+        updatePlanArchiveStatus: Effect.fn("updatePlanArchiveStatus")(
+          function* (opts: { planId: string; archived: boolean }) {
+            const { planId, archived } = opts;
+            const [updated] = yield* makeDbCall(() =>
+              db
+                .update(plans)
+                .set({ archived })
+                .where(eq(plans.id, planId))
+                .returning()
+            );
+
+            if (!updated) {
+              return yield* new NotFoundError({
+                type: "updatePlanArchiveStatus",
+                params: { planId },
+              });
+            }
+
+            return updated;
+          }
+        ),
         // Link-related methods for global link management
         /**
          * Get all links ordered by creation date (newest first).

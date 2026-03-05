@@ -933,6 +933,153 @@ describe("clipStateReducer", () => {
         },
       ]);
     });
+
+    it("Should skip already-archived optimistic clips and delete the next one (insertion point end)", () => {
+      const tester = new ReducerTester(
+        clipStateReducer,
+        createInitialState({
+          items: [
+            fromPartial({
+              type: "on-database",
+              frontendId: "db-1" as FrontendId,
+              databaseId: "db-1" as DatabaseId,
+              scene: "DB Clip 1",
+              insertionOrder: null,
+            }),
+            fromPartial({
+              type: "optimistically-added",
+              frontendId: "opt-1" as FrontendId,
+              scene: "Opt Clip 1",
+              insertionOrder: 1,
+              soundDetectionId: "sound-1",
+              sessionId: "session-1",
+            }),
+            fromPartial({
+              type: "optimistically-added",
+              frontendId: "opt-2" as FrontendId,
+              scene: "Opt Clip 2",
+              insertionOrder: 2,
+              soundDetectionId: "sound-2",
+              sessionId: "session-1",
+            }),
+          ],
+          insertionPoint: { type: "end" },
+        })
+      );
+
+      // First delete should mark opt-2 as shouldArchive
+      const stateAfterFirst = tester
+        .send({ type: "delete-latest-inserted-clip" })
+        .getState();
+
+      expect(stateAfterFirst.items).toMatchObject([
+        { frontendId: "db-1", type: "on-database" },
+        { frontendId: "opt-1", type: "optimistically-added" },
+        {
+          frontendId: "opt-2",
+          type: "optimistically-added",
+          shouldArchive: true,
+        },
+      ]);
+
+      // Second delete should skip opt-2 (already shouldArchive) and mark opt-1
+      const stateAfterSecond = tester
+        .send({ type: "delete-latest-inserted-clip" })
+        .getState();
+
+      expect(stateAfterSecond.items).toMatchObject([
+        { frontendId: "db-1", type: "on-database" },
+        {
+          frontendId: "opt-1",
+          type: "optimistically-added",
+          shouldArchive: true,
+        },
+        {
+          frontendId: "opt-2",
+          type: "optimistically-added",
+          shouldArchive: true,
+        },
+      ]);
+    });
+
+    it("Should archive database clips after all optimistic clips are exhausted (insertion point end)", () => {
+      const tester = new ReducerTester(
+        clipStateReducer,
+        createInitialState({
+          items: [
+            fromPartial({
+              type: "on-database",
+              frontendId: "db-1" as FrontendId,
+              databaseId: "db-1" as DatabaseId,
+              scene: "DB Clip 1",
+              insertionOrder: null,
+            }),
+            fromPartial({
+              type: "optimistically-added",
+              frontendId: "opt-1" as FrontendId,
+              scene: "Opt Clip 1",
+              insertionOrder: 1,
+              soundDetectionId: "sound-1",
+              sessionId: "session-1",
+            }),
+          ],
+          insertionPoint: { type: "end" },
+        })
+      );
+
+      // First delete marks opt-1 as shouldArchive
+      tester.send({ type: "delete-latest-inserted-clip" });
+
+      // Second delete should skip opt-1 and archive db-1
+      tester.resetExec();
+      const stateAfterSecond = tester
+        .send({ type: "delete-latest-inserted-clip" })
+        .getState();
+
+      // db-1 is removed from items (database clips get set to undefined and filtered out)
+      // opt-1 remains with shouldArchive
+      expect(stateAfterSecond.items).toMatchObject([
+        {
+          frontendId: "opt-1",
+          type: "optimistically-added",
+          shouldArchive: true,
+        },
+      ]);
+
+      // Should have fired archive-clips effect for db-1
+      expect(tester.getExec()).toHaveBeenCalledWith({
+        type: "archive-clips",
+        clipIds: ["db-1"],
+      });
+    });
+
+    it("Should return state unchanged when all clips are already archived (insertion point end)", () => {
+      const tester = new ReducerTester(
+        clipStateReducer,
+        createInitialState({
+          items: [
+            fromPartial({
+              type: "optimistically-added",
+              frontendId: "opt-1" as FrontendId,
+              scene: "Opt Clip 1",
+              insertionOrder: 1,
+              shouldArchive: true,
+              soundDetectionId: "sound-1",
+              sessionId: "session-1",
+            }),
+          ],
+          insertionPoint: { type: "end" },
+        })
+      );
+
+      const stateBefore = tester.getState();
+      const stateAfter = tester
+        .send({ type: "delete-latest-inserted-clip" })
+        .getState();
+
+      // Should be the same reference — nothing to delete
+      expect(stateAfter).toBe(stateBefore);
+    });
   });
 
   describe("Inserting clips with clip sections", () => {

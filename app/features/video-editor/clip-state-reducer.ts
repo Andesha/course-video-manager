@@ -789,7 +789,11 @@ export const clipStateReducer: EffectReducer<
       }
 
       if (state.insertionPoint.type === "end") {
-        const lastClip = state.items[state.items.length - 1];
+        // Skip clips already marked for archive so repeated stream deck
+        // presses continue deleting backwards through the timeline
+        const lastClip = state.items.findLast(
+          (c) => !("shouldArchive" in c && c.shouldArchive)
+        );
 
         if (!lastClip) {
           return state;

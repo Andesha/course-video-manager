@@ -54,6 +54,9 @@ const createNotRunningListener = (
   };
 };
 
+// Module-level timeout so navigating between edit pages can cancel a pending stop
+let pendingStopTimeout: ReturnType<typeof setTimeout> | null = null;
+
 export const useConnectToOBSVirtualCamera = (props: {
   state: OBSConnectionOuterState;
   websocket: OBSWebSocket;
@@ -71,6 +74,12 @@ export const useConnectToOBSVirtualCamera = (props: {
 
   // Manage virtualCameraState
   useEffect(() => {
+    // Cancel any pending stop from a previous instance (e.g., navigating between videos)
+    if (pendingStopTimeout) {
+      clearTimeout(pendingStopTimeout);
+      pendingStopTimeout = null;
+    }
+
     if (!shouldShowMediaStream) {
       cleanupMediaStream();
 
@@ -157,18 +166,23 @@ export const useConnectToOBSVirtualCamera = (props: {
       }
     })();
 
-    const onBeforeUnload = () => {
+    const stopVirtualCam = () => {
       props.websocket.call("StopVirtualCam").catch((e) => {
         console.error(e);
       });
     };
 
-    window.addEventListener("beforeunload", onBeforeUnload);
+    // Stop immediately on tab/window close
+    window.addEventListener("beforeunload", stopVirtualCam);
 
     return () => {
       unmounted = true;
-      onBeforeUnload();
-      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("beforeunload", stopVirtualCam);
+      // Defer the stop so navigating to another edit page can cancel it
+      pendingStopTimeout = setTimeout(() => {
+        stopVirtualCam();
+        pendingStopTimeout = null;
+      }, 500);
     };
   }, [shouldShowMediaStream, props.websocket]);
 

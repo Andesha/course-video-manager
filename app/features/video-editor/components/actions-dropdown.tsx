@@ -59,8 +59,8 @@ export const ActionsDropdown = (props: {
   onAddVideoClick: () => void;
   /** Callback to open "Rename Video" modal */
   onRenameVideoClick: () => void;
-  /** Callback to reveal video in file system */
-  onRevealInFileSystem: () => void;
+  /** Callback to reveal video in file system (hidden when no exported file) */
+  onRevealInFileSystem?: () => void;
   /** Whether log path has been copied (shows checkmark) */
   isLogPathCopied: boolean;
   /** Callback to copy log path to clipboard */
@@ -102,15 +102,17 @@ export const ActionsDropdown = (props: {
           </div>
         </DropdownMenuItem>
 
-        <DropdownMenuItem onSelect={props.onRevealInFileSystem}>
-          <FolderOpen className="w-4 h-4 mr-2" />
-          <div className="flex flex-col">
-            <span className="font-medium">Reveal in File System</span>
-            <span className="text-xs text-muted-foreground">
-              Open in Windows Explorer
-            </span>
-          </div>
-        </DropdownMenuItem>
+        {props.onRevealInFileSystem && (
+          <DropdownMenuItem onSelect={props.onRevealInFileSystem}>
+            <FolderOpen className="w-4 h-4 mr-2" />
+            <div className="flex flex-col">
+              <span className="font-medium">Reveal in File System</span>
+              <span className="text-xs text-muted-foreground">
+                Open in Windows Explorer
+              </span>
+            </div>
+          </DropdownMenuItem>
+        )}
 
         <DropdownMenuSeparator />
 

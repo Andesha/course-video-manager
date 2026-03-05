@@ -24,7 +24,7 @@ import {
   VideoEditorContext,
   type SuggestionState,
 } from "../video-editor-context";
-import { useState, useMemo, useCallback, useContext } from "react";
+import { useState, useMemo, useCallback, useContext, useEffect } from "react";
 import { UploadContext } from "@/features/upload-manager/upload-context";
 
 /**
@@ -184,6 +184,14 @@ export const VideoPlayerPanel = () => {
   );
   const revealVideoFetcher = useFetcher();
 
+  const [exportFileExists, setExportFileExists] = useState(false);
+  useEffect(() => {
+    fetch(`/api/videos/${videoId}/export-file-exists`)
+      .then((res) => res.json())
+      .then((data: { exists: boolean }) => setExportFileExists(data.exists))
+      .catch(() => setExportFileExists(false));
+  }, [videoId]);
+
   const [isLogPathCopied, setIsLogPathCopied] = useState(false);
   const copyLogPathToClipboard = useCallback(async () => {
     try {
@@ -338,15 +346,19 @@ export const VideoPlayerPanel = () => {
                 copyYoutubeChaptersToClipboard={copyYoutubeChaptersToClipboard}
                 onAddVideoClick={() => setIsAddVideoModalOpen(true)}
                 onRenameVideoClick={() => setIsRenameVideoModalOpen(true)}
-                onRevealInFileSystem={() => {
-                  revealVideoFetcher.submit(
-                    {},
-                    {
-                      method: "post",
-                      action: `/api/videos/${videoId}/reveal`,
-                    }
-                  );
-                }}
+                onRevealInFileSystem={
+                  exportFileExists
+                    ? () => {
+                        revealVideoFetcher.submit(
+                          {},
+                          {
+                            method: "post",
+                            action: `/api/videos/${videoId}/reveal`,
+                          }
+                        );
+                      }
+                    : undefined
+                }
                 isLogPathCopied={isLogPathCopied}
                 copyLogPathToClipboard={copyLogPathToClipboard}
               />

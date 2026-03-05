@@ -5,6 +5,7 @@ import type {
   ClipSectionOnDatabase,
   DatabaseId,
   FrontendId,
+  FrontendInsertionPoint,
   TimelineItem,
 } from "@/features/video-editor/clip-state-reducer";
 import {
@@ -206,6 +207,36 @@ export const loader = async (args: Route.LoaderArgs) => {
 // Create ClipService instance for all clip operations
 const clipService = createHttpClipService();
 
+/**
+ * Returns the default insertion point: below the first section that has no
+ * clips after it (before the next section or end of list). Falls back to "end".
+ */
+function getDefaultInsertionPoint(
+  items: TimelineItem[]
+): FrontendInsertionPoint {
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]!;
+    if (
+      item.type === "clip-section-on-database" ||
+      item.type === "clip-section-optimistically-added"
+    ) {
+      const nextItem = items[i + 1];
+      // Section is "empty" if the next item is another section or there's nothing after it
+      const isEmpty =
+        !nextItem ||
+        nextItem.type === "clip-section-on-database" ||
+        nextItem.type === "clip-section-optimistically-added";
+      if (isEmpty) {
+        return {
+          type: "after-clip-section",
+          frontendClipSectionId: item.frontendId,
+        };
+      }
+    }
+  }
+  return { type: "end" };
+}
+
 export default function Component(props: Route.ComponentProps) {
   return <ComponentInner {...props} key={props.loaderData.video.id} />;
 }
@@ -213,8 +244,8 @@ export default function Component(props: Route.ComponentProps) {
 export const ComponentInner = (props: Route.ComponentProps) => {
   const navigate = useNavigate();
 
-  const initialState: clipStateReducer.State = {
-    items: props.loaderData.items.map((item): TimelineItem => {
+  const initialItems: TimelineItem[] = props.loaderData.items.map(
+    (item): TimelineItem => {
       if (item.type === "clip") {
         const clip = item.data;
         return {
@@ -235,10 +266,14 @@ export const ComponentInner = (props: Route.ComponentProps) => {
           insertionOrder: null,
         } satisfies ClipSectionOnDatabase;
       }
-    }),
+    }
+  );
+
+  const initialState: clipStateReducer.State = {
+    items: initialItems,
     clipIdsBeingTranscribed: new Set() satisfies Set<FrontendId>,
     insertionOrder: 0,
-    insertionPoint: { type: "end" },
+    insertionPoint: getDefaultInsertionPoint(initialItems),
     error: null,
     sessions: [],
   };

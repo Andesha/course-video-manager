@@ -191,11 +191,9 @@ export const loader = async (args: Route.LoaderArgs) => {
 
             return {
               ...repo,
-              sections: allSections
-                .filter((section) => {
-                  return !section.path.endsWith("ARCHIVE");
-                })
-                .filter((section) => section.lessons.length > 0),
+              sections: allSections.filter((section) => {
+                return !section.path.endsWith("ARCHIVE");
+              }),
             };
           })
         );

@@ -44,6 +44,8 @@ import {
 } from "@/components/ui/tooltip";
 import { VersionSelectorModal } from "@/components/version-selector-modal";
 import { VideoModal } from "@/components/video-player";
+import { useCourseViewReducer } from "@/hooks/use-course-view-reducer";
+import { courseViewReducer } from "@/features/course-view/course-view-reducer";
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
 import { getVideoPath } from "@/lib/get-video";
 import { Badge } from "@/components/ui/badge";
@@ -280,82 +282,30 @@ export default function Component(props: Route.ComponentProps) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedRepoId = searchParams.get("repoId");
-  const [isAddRepoModalOpen, setIsAddRepoModalOpen] = useState(false);
-  const [addGhostLessonSectionId, setAddGhostLessonSectionId] = useState<
-    string | null
-  >(null);
-  const [isCreateSectionModalOpen, setIsCreateSectionModalOpen] =
-    useState(false);
-  const [addVideoToLessonId, setAddVideoToLessonId] = useState<string | null>(
-    null
-  );
-  const [editLessonId, setEditLessonId] = useState<string | null>(null);
-  const [convertToGhostLessonId, setConvertToGhostLessonId] = useState<
-    string | null
-  >(null);
-  const [videoPlayerState, setVideoPlayerState] = useState<{
-    isOpen: boolean;
-    videoId: string;
-    videoPath: string;
-  }>({
-    isOpen: false,
-    videoId: "",
-    videoPath: "",
-  });
-  const [isCreateVersionModalOpen, setIsCreateVersionModalOpen] =
-    useState(false);
-  const [isVersionSelectorModalOpen, setIsVersionSelectorModalOpen] =
-    useState(false);
-  const [isEditVersionModalOpen, setIsEditVersionModalOpen] = useState(false);
-  const [isRenameRepoModalOpen, setIsRenameRepoModalOpen] = useState(false);
-  const [isDeleteVersionModalOpen, setIsDeleteVersionModalOpen] =
-    useState(false);
-  const [isClearVideoFilesModalOpen, setIsClearVideoFilesModalOpen] =
-    useState(false);
-  const [isRewriteRepoPathModalOpen, setIsRewriteRepoPathModalOpen] =
-    useState(false);
-  const [isAddStandaloneVideoModalOpen, setIsAddStandaloneVideoModalOpen] =
-    useState(false);
-  const [moveVideoState, setMoveVideoState] = useState<{
-    videoId: string;
-    videoPath: string;
-    currentLessonId: string;
-  } | null>(null);
-  const [moveLessonState, setMoveLessonState] = useState<{
-    lessonId: string;
-    lessonTitle: string;
-    currentSectionId: string;
-  } | null>(null);
-  const [renameVideoState, setRenameVideoState] = useState<{
-    videoId: string;
-    videoPath: string;
-  } | null>(null);
-
-  const [priorityFilter, setPriorityFilter] = useState<number[]>([]);
-  const [iconFilter, setIconFilter] = useState<string[]>([]);
-  const [fsStatusFilter, setFsStatusFilter] = useState<string[]>([]);
-
-  const togglePriorityFilter = useCallback((priority: number) => {
-    setPriorityFilter((prev) =>
-      prev.includes(priority)
-        ? prev.filter((p) => p !== priority)
-        : [...prev, priority]
-    );
-  }, []);
-
-  const toggleIconFilter = useCallback((icon: string) => {
-    setIconFilter((prev) =>
-      prev.includes(icon) ? prev.filter((i) => i !== icon) : [...prev, icon]
-    );
-  }, []);
-
-  const toggleFsStatusFilter = useCallback((status: string) => {
-    setFsStatusFilter((prev) =>
-      prev.includes(status)
-        ? prev.filter((s) => s !== status)
-        : [...prev, status]
-    );
-  }, []);
+  const { state: viewState, dispatch } = useCourseViewReducer();
+  const {
+    isAddRepoModalOpen,
+    isCreateSectionModalOpen,
+    isCreateVersionModalOpen,
+    isVersionSelectorModalOpen,
+    isEditVersionModalOpen,
+    isRenameRepoModalOpen,
+    isDeleteVersionModalOpen,
+    isClearVideoFilesModalOpen,
+    isRewriteRepoPathModalOpen,
+    isAddStandaloneVideoModalOpen,
+    addGhostLessonSectionId,
+    addVideoToLessonId,
+    editLessonId,
+    convertToGhostLessonId,
+    videoPlayerState,
+    moveVideoState,
+    moveLessonState,
+    renameVideoState,
+    priorityFilter,
+    iconFilter,
+    fsStatusFilter,
+  } = viewState;
 
   const publishRepoFetcher = useFetcher();
   const { startExportUpload, startBatchExportUpload } =
@@ -508,9 +458,13 @@ export default function Component(props: Route.ComponentProps) {
         standaloneVideos={data.standaloneVideos}
         selectedRepoId={selectedRepoId}
         isAddRepoModalOpen={isAddRepoModalOpen}
-        setIsAddRepoModalOpen={setIsAddRepoModalOpen}
+        setIsAddRepoModalOpen={(open) =>
+          dispatch({ type: "set-add-repo-modal-open", open })
+        }
         isAddStandaloneVideoModalOpen={isAddStandaloneVideoModalOpen}
-        setIsAddStandaloneVideoModalOpen={setIsAddStandaloneVideoModalOpen}
+        setIsAddStandaloneVideoModalOpen={(open) =>
+          dispatch({ type: "set-add-standalone-video-modal-open", open })
+        }
         plans={data.plans}
       />
 
@@ -526,7 +480,12 @@ export default function Component(props: Route.ComponentProps) {
                       {currentRepo.name}
                       {data.selectedVersion && data.versions.length > 1 && (
                         <button
-                          onClick={() => setIsVersionSelectorModalOpen(true)}
+                          onClick={() =>
+                            dispatch({
+                              type: "set-version-selector-modal-open",
+                              open: true,
+                            })
+                          }
                           className="text-muted-foreground hover:text-foreground transition-colors text-lg font-normal"
                         >
                           [{data.selectedVersion.name}]
@@ -606,7 +565,12 @@ export default function Component(props: Route.ComponentProps) {
                         <DropdownMenuLabel>Course</DropdownMenuLabel>
                         <DropdownMenuGroup>
                           <DropdownMenuItem
-                            onSelect={() => setIsRenameRepoModalOpen(true)}
+                            onSelect={() =>
+                              dispatch({
+                                type: "set-rename-repo-modal-open",
+                                open: true,
+                              })
+                            }
                           >
                             <PencilIcon className="w-4 h-4 mr-2" />
                             <div className="flex flex-col">
@@ -617,7 +581,12 @@ export default function Component(props: Route.ComponentProps) {
                             </div>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onSelect={() => setIsRewriteRepoPathModalOpen(true)}
+                            onSelect={() =>
+                              dispatch({
+                                type: "set-rewrite-repo-path-modal-open",
+                                open: true,
+                              })
+                            }
                           >
                             <FolderPen className="w-4 h-4 mr-2" />
                             <div className="flex flex-col">
@@ -667,7 +636,10 @@ export default function Component(props: Route.ComponentProps) {
                               {data.isLatestVersion && (
                                 <DropdownMenuItem
                                   onSelect={() =>
-                                    setIsCreateVersionModalOpen(true)
+                                    dispatch({
+                                      type: "set-create-version-modal-open",
+                                      open: true,
+                                    })
                                   }
                                 >
                                   <Copy className="w-4 h-4 mr-2" />
@@ -682,7 +654,12 @@ export default function Component(props: Route.ComponentProps) {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem
-                                onSelect={() => setIsEditVersionModalOpen(true)}
+                                onSelect={() =>
+                                  dispatch({
+                                    type: "set-edit-version-modal-open",
+                                    open: true,
+                                  })
+                                }
                               >
                                 <PencilIcon className="w-4 h-4 mr-2" />
                                 <div className="flex flex-col">
@@ -739,7 +716,10 @@ export default function Component(props: Route.ComponentProps) {
                                     <DropdownMenuItem
                                       onSelect={() =>
                                         canDelete &&
-                                        setIsDeleteVersionModalOpen(true)
+                                        dispatch({
+                                          type: "set-delete-version-modal-open",
+                                          open: true,
+                                        })
                                       }
                                       disabled={!canDelete}
                                       className="text-destructive focus:text-destructive"
@@ -778,7 +758,10 @@ export default function Component(props: Route.ComponentProps) {
                             <DropdownMenuGroup>
                               <DropdownMenuItem
                                 onSelect={() =>
-                                  setIsClearVideoFilesModalOpen(true)
+                                  dispatch({
+                                    type: "set-clear-video-files-modal-open",
+                                    open: true,
+                                  })
                                 }
                                 className="text-destructive focus:text-destructive"
                               >
@@ -832,7 +815,12 @@ export default function Component(props: Route.ComponentProps) {
                                   : "bg-sky-500/20 text-sky-500"
                               : "bg-muted text-muted-foreground hover:bg-muted/80"
                           } ${isSelected ? "ring-1 ring-current" : ""}`}
-                          onClick={() => togglePriorityFilter(priority)}
+                          onClick={() =>
+                            dispatch({
+                              type: "toggle-priority-filter",
+                              priority,
+                            })
+                          }
                         >
                           P{priority}
                         </button>
@@ -860,7 +848,9 @@ export default function Component(props: Route.ComponentProps) {
                                   ? "bg-purple-500/20 text-purple-600"
                                   : "bg-muted text-muted-foreground hover:bg-muted/80"
                           } ${isSelected ? "ring-1 ring-current" : ""}`}
-                          onClick={() => toggleIconFilter(icon)}
+                          onClick={() =>
+                            dispatch({ type: "toggle-icon-filter", icon })
+                          }
                           title={
                             icon === "code"
                               ? "Interactive"
@@ -893,7 +883,12 @@ export default function Component(props: Route.ComponentProps) {
                               ? "bg-muted text-muted-foreground"
                               : "bg-muted text-muted-foreground hover:bg-muted/80"
                           } ${isSelected ? "ring-1 ring-current" : ""}`}
-                          onClick={() => toggleFsStatusFilter(status)}
+                          onClick={() =>
+                            dispatch({
+                              type: "toggle-fs-status-filter",
+                              status,
+                            })
+                          }
                           title={status === "ghost" ? "Ghost" : "Real"}
                         >
                           {status === "ghost" ? (
@@ -1208,30 +1203,19 @@ export default function Component(props: Route.ComponentProps) {
                                                     allFlatLessons={
                                                       allFlatLessons
                                                     }
-                                                    setAddVideoToLessonId={
-                                                      setAddVideoToLessonId
-                                                    }
                                                     addVideoToLessonId={
                                                       addVideoToLessonId
                                                     }
-                                                    setEditLessonId={
-                                                      setEditLessonId
-                                                    }
                                                     editLessonId={editLessonId}
-                                                    setVideoPlayerState={
-                                                      setVideoPlayerState
+                                                    convertToGhostLessonId={
+                                                      convertToGhostLessonId
                                                     }
+                                                    dispatch={dispatch}
                                                     startExportUpload={
                                                       startExportUpload
                                                     }
                                                     revealVideoFetcher={
                                                       revealVideoFetcher
-                                                    }
-                                                    setRenameVideoState={
-                                                      setRenameVideoState
-                                                    }
-                                                    setMoveVideoState={
-                                                      setMoveVideoState
                                                     }
                                                     deleteVideoFileFetcher={
                                                       deleteVideoFileFetcher
@@ -1241,15 +1225,6 @@ export default function Component(props: Route.ComponentProps) {
                                                     }
                                                     deleteLessonFetcher={
                                                       deleteLessonFetcher
-                                                    }
-                                                    convertToGhostLessonId={
-                                                      convertToGhostLessonId
-                                                    }
-                                                    setConvertToGhostLessonId={
-                                                      setConvertToGhostLessonId
-                                                    }
-                                                    setMoveLessonState={
-                                                      setMoveLessonState
                                                     }
                                                     dependencyMap={
                                                       dependencyMap
@@ -1265,7 +1240,10 @@ export default function Component(props: Route.ComponentProps) {
                                     <ContextMenuContent>
                                       <ContextMenuItem
                                         onSelect={() =>
-                                          setAddGhostLessonSectionId(section.id)
+                                          dispatch({
+                                            type: "set-add-ghost-lesson-section-id",
+                                            sectionId: section.id,
+                                          })
                                         }
                                       >
                                         <Plus className="w-4 h-4" />
@@ -1279,9 +1257,10 @@ export default function Component(props: Route.ComponentProps) {
                                       addGhostLessonSectionId === section.id
                                     }
                                     onOpenChange={(open) => {
-                                      setAddGhostLessonSectionId(
-                                        open ? section.id : null
-                                      );
+                                      dispatch({
+                                        type: "set-add-ghost-lesson-section-id",
+                                        sectionId: open ? section.id : null,
+                                      });
                                     }}
                                     fetcher={addGhostFetcher}
                                   />
@@ -1295,7 +1274,12 @@ export default function Component(props: Route.ComponentProps) {
                         <Button
                           variant="outline"
                           className="border-dashed"
-                          onClick={() => setIsCreateSectionModalOpen(true)}
+                          onClick={() =>
+                            dispatch({
+                              type: "set-create-section-modal-open",
+                              open: true,
+                            })
+                          }
                         >
                           <Plus className="w-4 h-4" />
                           Add Section
@@ -1310,7 +1294,9 @@ export default function Component(props: Route.ComponentProps) {
                   repoVersionId={data.selectedVersion.id}
                   maxOrder={currentRepo.sections.length}
                   open={isCreateSectionModalOpen}
-                  onOpenChange={setIsCreateSectionModalOpen}
+                  onOpenChange={(open) =>
+                    dispatch({ type: "set-create-section-modal-open", open })
+                  }
                   fetcher={createSectionFetcher}
                 />
               )}
@@ -1399,7 +1385,9 @@ export default function Component(props: Route.ComponentProps) {
                     Get started by adding your first repository
                   </p>
                   <Button
-                    onClick={() => setIsAddRepoModalOpen(true)}
+                    onClick={() =>
+                      dispatch({ type: "set-add-repo-modal-open", open: true })
+                    }
                     className="mx-auto"
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -1417,11 +1405,7 @@ export default function Component(props: Route.ComponentProps) {
         videoPath={videoPlayerState.videoPath}
         isOpen={videoPlayerState.isOpen}
         onClose={() => {
-          setVideoPlayerState({
-            isOpen: false,
-            videoId: "",
-            videoPath: "",
-          });
+          dispatch({ type: "close-video-player" });
         }}
       />
 
@@ -1430,7 +1414,9 @@ export default function Component(props: Route.ComponentProps) {
           repoId={currentRepo.id}
           sourceVersionId={data.selectedVersion.id}
           isOpen={isCreateVersionModalOpen}
-          onOpenChange={setIsCreateVersionModalOpen}
+          onOpenChange={(open) =>
+            dispatch({ type: "set-create-version-modal-open", open })
+          }
         />
       )}
 
@@ -1441,7 +1427,9 @@ export default function Component(props: Route.ComponentProps) {
           currentName={data.selectedVersion.name}
           currentDescription={data.selectedVersion.description}
           open={isEditVersionModalOpen}
-          onOpenChange={setIsEditVersionModalOpen}
+          onOpenChange={(open) =>
+            dispatch({ type: "set-edit-version-modal-open", open })
+          }
         />
       )}
 
@@ -1450,7 +1438,9 @@ export default function Component(props: Route.ComponentProps) {
           repoId={currentRepo.id}
           currentName={currentRepo.name}
           open={isRenameRepoModalOpen}
-          onOpenChange={setIsRenameRepoModalOpen}
+          onOpenChange={(open) =>
+            dispatch({ type: "set-rename-repo-modal-open", open })
+          }
         />
       )}
 
@@ -1459,7 +1449,9 @@ export default function Component(props: Route.ComponentProps) {
           versions={data.versions}
           selectedVersionId={data.selectedVersion?.id}
           isOpen={isVersionSelectorModalOpen}
-          onOpenChange={setIsVersionSelectorModalOpen}
+          onOpenChange={(open) =>
+            dispatch({ type: "set-version-selector-modal-open", open })
+          }
           onSelectVersion={(versionId) => {
             navigate(`?repoId=${selectedRepoId}&versionId=${versionId}`, {
               preventScrollReset: true,
@@ -1474,7 +1466,9 @@ export default function Component(props: Route.ComponentProps) {
           versionId={data.selectedVersion.id}
           versionName={data.selectedVersion.name}
           open={isDeleteVersionModalOpen}
-          onOpenChange={setIsDeleteVersionModalOpen}
+          onOpenChange={(open) =>
+            dispatch({ type: "set-delete-version-modal-open", open })
+          }
         />
       )}
 
@@ -1484,7 +1478,9 @@ export default function Component(props: Route.ComponentProps) {
           versionId={data.selectedVersion.id}
           versionName={data.selectedVersion.name}
           open={isClearVideoFilesModalOpen}
-          onOpenChange={setIsClearVideoFilesModalOpen}
+          onOpenChange={(open) =>
+            dispatch({ type: "set-clear-video-files-modal-open", open })
+          }
         />
       )}
 
@@ -1493,7 +1489,9 @@ export default function Component(props: Route.ComponentProps) {
           repoId={currentRepo.id}
           currentPath={currentRepo.filePath}
           open={isRewriteRepoPathModalOpen}
-          onOpenChange={setIsRewriteRepoPathModalOpen}
+          onOpenChange={(open) =>
+            dispatch({ type: "set-rewrite-repo-path-modal-open", open })
+          }
         />
       )}
 
@@ -1505,7 +1503,7 @@ export default function Component(props: Route.ComponentProps) {
           sections={currentRepo.sections}
           open={true}
           onOpenChange={(open) => {
-            if (!open) setMoveLessonState(null);
+            if (!open) dispatch({ type: "close-move-lesson" });
           }}
           fetcher={moveLessonFetcher}
         />
@@ -1519,7 +1517,7 @@ export default function Component(props: Route.ComponentProps) {
           sections={currentRepo.sections}
           open={true}
           onOpenChange={(open) => {
-            if (!open) setMoveVideoState(null);
+            if (!open) dispatch({ type: "close-move-video" });
           }}
         />
       )}
@@ -1530,7 +1528,7 @@ export default function Component(props: Route.ComponentProps) {
           currentName={renameVideoState.videoPath}
           open={true}
           onOpenChange={(open) => {
-            if (!open) setRenameVideoState(null);
+            if (!open) dispatch({ type: "close-rename-video" });
           }}
         />
       )}
@@ -1584,21 +1582,15 @@ function SortableLessonItem({
   section,
   data,
   navigate,
-  setAddVideoToLessonId,
   addVideoToLessonId,
-  setEditLessonId,
   editLessonId,
-  setVideoPlayerState,
+  convertToGhostLessonId,
+  dispatch,
   startExportUpload,
   revealVideoFetcher,
-  setRenameVideoState,
-  setMoveVideoState,
   deleteVideoFileFetcher,
   deleteVideoFetcher,
   deleteLessonFetcher,
-  convertToGhostLessonId,
-  setConvertToGhostLessonId,
-  setMoveLessonState,
   allFlatLessons,
   dependencyMap,
 }: {
@@ -1607,39 +1599,15 @@ function SortableLessonItem({
   section: Section;
   data: LoaderData;
   navigate: ReturnType<typeof useNavigate>;
-  setAddVideoToLessonId: (id: string | null) => void;
   addVideoToLessonId: string | null;
-  setEditLessonId: (id: string | null) => void;
   editLessonId: string | null;
-  setVideoPlayerState: (state: {
-    isOpen: boolean;
-    videoId: string;
-    videoPath: string;
-  }) => void;
+  convertToGhostLessonId: string | null;
+  dispatch: (action: courseViewReducer.Action) => void;
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
-  setRenameVideoState: (
-    state: { videoId: string; videoPath: string } | null
-  ) => void;
-  setMoveVideoState: (
-    state: {
-      videoId: string;
-      videoPath: string;
-      currentLessonId: string;
-    } | null
-  ) => void;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFetcher: ReturnType<typeof useFetcher>;
   deleteLessonFetcher: ReturnType<typeof useFetcher>;
-  convertToGhostLessonId: string | null;
-  setConvertToGhostLessonId: (id: string | null) => void;
-  setMoveLessonState: (
-    state: {
-      lessonId: string;
-      lessonTitle: string;
-      currentSectionId: string;
-    } | null
-  ) => void;
   allFlatLessons: DependencyLessonItem[];
   dependencyMap: Record<string, string[]>;
 }) {
@@ -1880,7 +1848,14 @@ function SortableLessonItem({
                   Create on Disk
                 </ContextMenuItem>
                 <ContextMenuSeparator />
-                <ContextMenuItem onSelect={() => setEditLessonId(lesson.id)}>
+                <ContextMenuItem
+                  onSelect={() =>
+                    dispatch({
+                      type: "set-edit-lesson-id",
+                      lessonId: lesson.id,
+                    })
+                  }
+                >
                   <PencilIcon className="w-4 h-4" />
                   Rename
                 </ContextMenuItem>
@@ -1888,18 +1863,35 @@ function SortableLessonItem({
             ) : (
               <>
                 <ContextMenuItem
-                  onSelect={() => setAddVideoToLessonId(lesson.id)}
+                  onSelect={() =>
+                    dispatch({
+                      type: "set-add-video-to-lesson-id",
+                      lessonId: lesson.id,
+                    })
+                  }
                 >
                   <Plus className="w-4 h-4" />
                   Add Video
                 </ContextMenuItem>
-                <ContextMenuItem onSelect={() => setEditLessonId(lesson.id)}>
+                <ContextMenuItem
+                  onSelect={() =>
+                    dispatch({
+                      type: "set-edit-lesson-id",
+                      lessonId: lesson.id,
+                    })
+                  }
+                >
                   <PencilIcon className="w-4 h-4" />
                   Rename
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem
-                  onSelect={() => setConvertToGhostLessonId(lesson.id)}
+                  onSelect={() =>
+                    dispatch({
+                      type: "set-convert-to-ghost-lesson-id",
+                      lessonId: lesson.id,
+                    })
+                  }
                 >
                   <Ghost className="w-4 h-4" />
                   Convert to Ghost
@@ -1909,7 +1901,8 @@ function SortableLessonItem({
             <ContextMenuSeparator />
             <ContextMenuItem
               onSelect={() =>
-                setMoveLessonState({
+                dispatch({
+                  type: "open-move-lesson",
                   lessonId: lesson.id,
                   lessonTitle: lesson.title || lesson.path,
                   currentSectionId: section.id,
@@ -1986,7 +1979,10 @@ function SortableLessonItem({
           hasExplainerFolder={data.hasExplainerFolderMap[lesson.id] ?? false}
           open={addVideoToLessonId === lesson.id}
           onOpenChange={(open) => {
-            setAddVideoToLessonId(open ? lesson.id : null);
+            dispatch({
+              type: "set-add-video-to-lesson-id",
+              lessonId: open ? lesson.id : null,
+            });
           }}
         />
         {isGhost ? (
@@ -1995,7 +1991,10 @@ function SortableLessonItem({
             currentTitle={lesson.title || lesson.path}
             open={editLessonId === lesson.id}
             onOpenChange={(open) => {
-              setEditLessonId(open ? lesson.id : null);
+              dispatch({
+                type: "set-edit-lesson-id",
+                lessonId: open ? lesson.id : null,
+              });
             }}
           />
         ) : (
@@ -2004,7 +2003,10 @@ function SortableLessonItem({
             currentPath={lesson.path}
             open={editLessonId === lesson.id}
             onOpenChange={(open) => {
-              setEditLessonId(open ? lesson.id : null);
+              dispatch({
+                type: "set-edit-lesson-id",
+                lessonId: open ? lesson.id : null,
+              });
             }}
           />
         )}
@@ -2016,7 +2018,10 @@ function SortableLessonItem({
             hasVideos={lesson.videos.length > 0}
             open={convertToGhostLessonId === lesson.id}
             onOpenChange={(open) => {
-              setConvertToGhostLessonId(open ? lesson.id : null);
+              dispatch({
+                type: "set-convert-to-ghost-lesson-id",
+                lessonId: open ? lesson.id : null,
+              });
             }}
           />
         )}
@@ -2057,8 +2062,8 @@ function SortableLessonItem({
                 <ContextMenuContent>
                   <ContextMenuItem
                     onSelect={() => {
-                      setVideoPlayerState({
-                        isOpen: true,
+                      dispatch({
+                        type: "open-video-player",
                         videoId: video.id,
                         videoPath: `${section.path}/${lesson.path}/${video.path}`,
                       });
@@ -2094,7 +2099,8 @@ function SortableLessonItem({
                   </ContextMenuItem>
                   <ContextMenuItem
                     onSelect={() => {
-                      setRenameVideoState({
+                      dispatch({
+                        type: "open-rename-video",
                         videoId: video.id,
                         videoPath: video.path,
                       });
@@ -2105,7 +2111,8 @@ function SortableLessonItem({
                   </ContextMenuItem>
                   <ContextMenuItem
                     onSelect={() => {
-                      setMoveVideoState({
+                      dispatch({
+                        type: "open-move-video",
                         videoId: video.id,
                         videoPath: video.path,
                         currentLessonId: lesson.id,

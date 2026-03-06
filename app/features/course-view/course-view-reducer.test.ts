@@ -45,6 +45,7 @@ describe("courseViewReducer", () => {
       const state = createTester().getState();
       expect(state.moveVideoState).toBeNull();
       expect(state.moveLessonState).toBeNull();
+      expect(state.linkGhostLessonState).toBeNull();
       expect(state.renameVideoState).toBeNull();
     });
 
@@ -299,8 +300,36 @@ describe("courseViewReducer", () => {
     });
   });
 
+  describe("Link ghost lesson", () => {
+    it("29. open-link-ghost-lesson: sets link ghost lesson state", () => {
+      const state = createTester()
+        .send({
+          type: "open-link-ghost-lesson",
+          lessonId: "lesson-1",
+          sectionId: "section-1",
+        })
+        .getState();
+      expect(state.linkGhostLessonState).toEqual({
+        lessonId: "lesson-1",
+        sectionId: "section-1",
+      });
+    });
+
+    it("30. close-link-ghost-lesson: clears link ghost lesson state", () => {
+      const state = createTester()
+        .send({
+          type: "open-link-ghost-lesson",
+          lessonId: "lesson-1",
+          sectionId: "section-1",
+        })
+        .send({ type: "close-link-ghost-lesson" })
+        .getState();
+      expect(state.linkGhostLessonState).toBeNull();
+    });
+  });
+
   describe("Rename video", () => {
-    it("29. open-rename-video: sets rename video state", () => {
+    it("31. open-rename-video: sets rename video state", () => {
       const state = createTester()
         .send({
           type: "open-rename-video",
@@ -314,7 +343,7 @@ describe("courseViewReducer", () => {
       });
     });
 
-    it("30. close-rename-video: clears rename video state", () => {
+    it("32. close-rename-video: clears rename video state", () => {
       const state = createTester()
         .send({
           type: "open-rename-video",
@@ -328,14 +357,14 @@ describe("courseViewReducer", () => {
   });
 
   describe("Filters", () => {
-    it("31. toggle-priority-filter: adds priority when not present", () => {
+    it("33. toggle-priority-filter: adds priority when not present", () => {
       const state = createTester()
         .send({ type: "toggle-priority-filter", priority: 1 })
         .getState();
       expect(state.priorityFilter).toEqual([1]);
     });
 
-    it("32. toggle-priority-filter: removes priority when already present", () => {
+    it("34. toggle-priority-filter: removes priority when already present", () => {
       const state = createTester()
         .send({ type: "toggle-priority-filter", priority: 1 })
         .send({ type: "toggle-priority-filter", priority: 1 })
@@ -343,7 +372,7 @@ describe("courseViewReducer", () => {
       expect(state.priorityFilter).toEqual([]);
     });
 
-    it("33. toggle-priority-filter: supports multiple priorities", () => {
+    it("35. toggle-priority-filter: supports multiple priorities", () => {
       const state = createTester()
         .send({ type: "toggle-priority-filter", priority: 1 })
         .send({ type: "toggle-priority-filter", priority: 3 })
@@ -351,7 +380,7 @@ describe("courseViewReducer", () => {
       expect(state.priorityFilter).toEqual([1, 3]);
     });
 
-    it("34. toggle-priority-filter: removes one while keeping others", () => {
+    it("36. toggle-priority-filter: removes one while keeping others", () => {
       const state = createTester()
         .send({ type: "toggle-priority-filter", priority: 1 })
         .send({ type: "toggle-priority-filter", priority: 2 })
@@ -361,14 +390,14 @@ describe("courseViewReducer", () => {
       expect(state.priorityFilter).toEqual([1, 3]);
     });
 
-    it("35. toggle-icon-filter: adds icon when not present", () => {
+    it("37. toggle-icon-filter: adds icon when not present", () => {
       const state = createTester()
         .send({ type: "toggle-icon-filter", icon: "code" })
         .getState();
       expect(state.iconFilter).toEqual(["code"]);
     });
 
-    it("36. toggle-icon-filter: removes icon when already present", () => {
+    it("38. toggle-icon-filter: removes icon when already present", () => {
       const state = createTester()
         .send({ type: "toggle-icon-filter", icon: "code" })
         .send({ type: "toggle-icon-filter", icon: "code" })
@@ -376,7 +405,7 @@ describe("courseViewReducer", () => {
       expect(state.iconFilter).toEqual([]);
     });
 
-    it("37. toggle-icon-filter: supports multiple icons", () => {
+    it("39. toggle-icon-filter: supports multiple icons", () => {
       const state = createTester()
         .send({ type: "toggle-icon-filter", icon: "code" })
         .send({ type: "toggle-icon-filter", icon: "discussion" })
@@ -384,14 +413,14 @@ describe("courseViewReducer", () => {
       expect(state.iconFilter).toEqual(["code", "discussion"]);
     });
 
-    it("38. toggle-fs-status-filter: adds status when not present", () => {
+    it("40. toggle-fs-status-filter: adds status when not present", () => {
       const state = createTester()
         .send({ type: "toggle-fs-status-filter", status: "ghost" })
         .getState();
       expect(state.fsStatusFilter).toEqual(["ghost"]);
     });
 
-    it("39. toggle-fs-status-filter: removes status when already present", () => {
+    it("41. toggle-fs-status-filter: removes status when already present", () => {
       const state = createTester()
         .send({ type: "toggle-fs-status-filter", status: "ghost" })
         .send({ type: "toggle-fs-status-filter", status: "ghost" })
@@ -399,7 +428,7 @@ describe("courseViewReducer", () => {
       expect(state.fsStatusFilter).toEqual([]);
     });
 
-    it("40. toggle-fs-status-filter: supports multiple statuses", () => {
+    it("42. toggle-fs-status-filter: supports multiple statuses", () => {
       const state = createTester()
         .send({ type: "toggle-fs-status-filter", status: "ghost" })
         .send({ type: "toggle-fs-status-filter", status: "real" })
@@ -407,7 +436,7 @@ describe("courseViewReducer", () => {
       expect(state.fsStatusFilter).toEqual(["ghost", "real"]);
     });
 
-    it("41. filters are independent of each other", () => {
+    it("43. filters are independent of each other", () => {
       const state = createTester()
         .send({ type: "toggle-priority-filter", priority: 1 })
         .send({ type: "toggle-icon-filter", icon: "code" })
@@ -420,7 +449,7 @@ describe("courseViewReducer", () => {
   });
 
   describe("State independence", () => {
-    it("42. modal toggle does not affect filters", () => {
+    it("44. modal toggle does not affect filters", () => {
       const state = createTester()
         .send({ type: "toggle-priority-filter", priority: 1 })
         .send({ type: "set-add-repo-modal-open", open: true })
@@ -429,7 +458,7 @@ describe("courseViewReducer", () => {
       expect(state.isAddRepoModalOpen).toBe(true);
     });
 
-    it("43. opening video player does not affect modals", () => {
+    it("45. opening video player does not affect modals", () => {
       const state = createTester()
         .send({ type: "set-add-repo-modal-open", open: true })
         .send({

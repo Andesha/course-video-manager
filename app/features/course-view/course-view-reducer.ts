@@ -19,6 +19,11 @@ export namespace courseViewReducer {
     currentSectionId: string;
   } | null;
 
+  export type LinkGhostLessonState = {
+    lessonId: string;
+    sectionId: string;
+  } | null;
+
   export type RenameVideoState = {
     videoId: string;
     videoPath: string;
@@ -47,6 +52,7 @@ export namespace courseViewReducer {
     videoPlayerState: VideoPlayerState;
     moveVideoState: MoveVideoState;
     moveLessonState: MoveLessonState;
+    linkGhostLessonState: LinkGhostLessonState;
     renameVideoState: RenameVideoState;
 
     // Filter states
@@ -95,6 +101,13 @@ export namespace courseViewReducer {
         currentSectionId: string;
       }
     | { type: "close-move-lesson" }
+    // Link ghost lesson
+    | {
+        type: "open-link-ghost-lesson";
+        lessonId: string;
+        sectionId: string;
+      }
+    | { type: "close-link-ghost-lesson" }
     // Rename video
     | { type: "open-rename-video"; videoId: string; videoPath: string }
     | { type: "close-rename-video" }
@@ -125,6 +138,7 @@ export function createInitialCourseViewState(): courseViewReducer.State {
     videoPlayerState: { isOpen: false, videoId: "", videoPath: "" },
     moveVideoState: null,
     moveLessonState: null,
+    linkGhostLessonState: null,
     renameVideoState: null,
     priorityFilter: [],
     iconFilter: [],
@@ -211,6 +225,18 @@ export const courseViewReducer: EffectReducer<
       };
     case "close-move-lesson":
       return { ...state, moveLessonState: null };
+
+    // Link ghost lesson
+    case "open-link-ghost-lesson":
+      return {
+        ...state,
+        linkGhostLessonState: {
+          lessonId: action.lessonId,
+          sectionId: action.sectionId,
+        },
+      };
+    case "close-link-ghost-lesson":
+      return { ...state, linkGhostLessonState: null };
 
     // Rename video
     case "open-rename-video":

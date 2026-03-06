@@ -1678,9 +1678,9 @@ function SortableLessonItem({
       >
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <div className="flex items-start gap-2 mb-1.5 cursor-context-menu hover:bg-muted/50 rounded px-1 py-0.5 transition-colors">
+            <div className="flex items-center gap-2 mb-1.5 cursor-context-menu hover:bg-muted/50 rounded px-1 py-0.5 transition-colors">
               <button
-                className="cursor-grab active:cursor-grabbing p-0.5 -ml-1 touch-none"
+                className="cursor-grab active:cursor-grabbing p-0.5 -ml-1 touch-none flex items-center justify-center"
                 {...attributes}
                 {...listeners}
               >

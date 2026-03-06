@@ -860,7 +860,7 @@ function SortableLessonItem({
                     </p>
                   ) : (
                     <button
-                      className="text-xs text-muted-foreground/40 mt-1 hover:text-muted-foreground transition-colors opacity-0 group-hover:opacity-100"
+                      className="text-xs text-muted-foreground/50 mt-1 hover:text-muted-foreground transition-colors"
                       onClick={() => setEditingDesc(true)}
                     >
                       + Add description

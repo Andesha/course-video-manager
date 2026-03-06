@@ -1716,7 +1716,7 @@ function SortableLessonItem({
             </p>
           ) : (
             <button
-              className="text-xs text-muted-foreground/40 mt-1 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+              className="text-xs text-muted-foreground/50 mt-1 hover:text-muted-foreground transition-colors"
               onClick={() => {
                 setDescValue("");
                 setEditingDesc(true);

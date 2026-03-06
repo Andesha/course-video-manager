@@ -365,6 +365,36 @@ export default function Component(props: Route.ComponentProps) {
       );
     }, 0) ?? 0;
 
+  const totalDurationSeconds =
+    data.selectedRepo?.sections.reduce((acc, section) => {
+      return (
+        acc +
+        section.lessons.reduce((lessonAcc, lesson) => {
+          return (
+            lessonAcc +
+            lesson.videos.reduce((videoAcc, video) => {
+              return (
+                videoAcc +
+                video.clips.reduce((clipAcc, clip) => {
+                  return clipAcc + (clip.sourceEndTime - clip.sourceStartTime);
+                }, 0)
+              );
+            }, 0)
+          );
+        }, 0)
+      );
+    }, 0) ?? 0;
+
+  const totalDurationFormatted = (() => {
+    const hours = Math.floor(totalDurationSeconds / 3600);
+    const minutes = Math.floor((totalDurationSeconds % 3600) / 60);
+    const seconds = Math.floor(totalDurationSeconds % 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    }
+    return `${minutes}m ${seconds}s`;
+  })();
+
   const percentageComplete =
     totalLessons > 0
       ? Math.round((totalLessonsWithVideos / totalLessons) * 100)
@@ -414,6 +444,11 @@ export default function Component(props: Route.ComponentProps) {
                     <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
                       {totalVideos} videos
                     </span>
+                    {totalDurationSeconds > 0 && (
+                      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                        {totalDurationFormatted}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">

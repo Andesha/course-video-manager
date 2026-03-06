@@ -882,9 +882,7 @@ export default function Component(props: Route.ComponentProps) {
                           key={status}
                           className={`text-xs px-2 py-0.5 rounded-sm font-medium transition-colors flex items-center gap-1 ${
                             showAsActive
-                              ? status === "ghost"
-                                ? "bg-muted text-muted-foreground"
-                                : "bg-blue-500/20 text-blue-600"
+                              ? "bg-muted text-muted-foreground"
                               : "bg-muted text-muted-foreground hover:bg-muted/80"
                           } ${isSelected ? "ring-1 ring-current" : ""}`}
                           onClick={() => toggleFsStatusFilter(status)}

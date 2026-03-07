@@ -102,6 +102,45 @@ export const computeRenumberingPlan = (
   return renames;
 };
 
+/**
+ * Given the existing real lessons in a section and a desired insert position,
+ * returns the new lesson's directory name and any renames needed to shift
+ * subsequent lessons.
+ */
+export const computeInsertionPlan = (opts: {
+  existingRealLessons: LessonForReorder[];
+  insertAtIndex: number;
+  sectionNumber: number;
+  slug: string;
+}): {
+  newLessonDirName: string;
+  newLessonNumber: number;
+  renames: RenameEntry[];
+} => {
+  const { existingRealLessons, insertAtIndex, sectionNumber, slug } = opts;
+
+  const newLessonNumber = insertAtIndex + 1;
+  const newLessonDirName = buildLessonPath(
+    sectionNumber,
+    newLessonNumber,
+    slug
+  );
+
+  const renames: RenameEntry[] = [];
+  for (let i = insertAtIndex; i < existingRealLessons.length; i++) {
+    const lesson = existingRealLessons[i]!;
+    const parsed = parseLessonPath(lesson.path);
+    if (!parsed) continue;
+
+    const newPath = buildLessonPath(sectionNumber, i + 2, parsed.slug);
+    if (newPath !== lesson.path) {
+      renames.push({ id: lesson.id, oldPath: lesson.path, newPath });
+    }
+  }
+
+  return { newLessonDirName, newLessonNumber, renames };
+};
+
 export const parseLessonPath = (
   lessonPath: string
 ): ParsedLessonPath | null => {

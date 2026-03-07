@@ -4,6 +4,7 @@ import {
   buildLessonPath,
   parseLessonPath,
   computeRenumberingPlan,
+  computeInsertionPlan,
 } from "./lesson-path-service";
 
 describe("toSlug", () => {
@@ -283,6 +284,94 @@ describe("computeRenumberingPlan", () => {
     expect(plan).toEqual([
       { id: "lesson-2", oldPath: "01.02-beta", newPath: "01.01-beta" },
       { id: "lesson-1", oldPath: "01.01-alpha", newPath: "01.03-alpha" },
+    ]);
+  });
+});
+
+describe("computeInsertionPlan", () => {
+  const makeLessons = (slugs: string[], sectionNumber = 1) =>
+    slugs.map((slug, i) => ({
+      id: `lesson-${i + 1}`,
+      path: buildLessonPath(sectionNumber, i + 1, slug),
+    }));
+
+  it("inserts between two existing lessons", () => {
+    const existing = makeLessons(["alpha", "beta", "gamma"]);
+    // Insert at position 1 (between alpha and beta)
+    const plan = computeInsertionPlan({
+      existingRealLessons: existing,
+      insertAtIndex: 1,
+      sectionNumber: 1,
+      slug: "new-lesson",
+    });
+
+    expect(plan.newLessonDirName).toBe("01.02-new-lesson");
+    expect(plan.newLessonNumber).toBe(2);
+    expect(plan.renames).toEqual([
+      { id: "lesson-2", oldPath: "01.02-beta", newPath: "01.03-beta" },
+      { id: "lesson-3", oldPath: "01.03-gamma", newPath: "01.04-gamma" },
+    ]);
+  });
+
+  it("appends at the end with no renumbering", () => {
+    const existing = makeLessons(["alpha", "beta"]);
+    const plan = computeInsertionPlan({
+      existingRealLessons: existing,
+      insertAtIndex: 2,
+      sectionNumber: 1,
+      slug: "new-lesson",
+    });
+
+    expect(plan.newLessonDirName).toBe("01.03-new-lesson");
+    expect(plan.newLessonNumber).toBe(3);
+    expect(plan.renames).toEqual([]);
+  });
+
+  it("inserts at the beginning and shifts all lessons", () => {
+    const existing = makeLessons(["alpha", "beta"]);
+    const plan = computeInsertionPlan({
+      existingRealLessons: existing,
+      insertAtIndex: 0,
+      sectionNumber: 1,
+      slug: "new-lesson",
+    });
+
+    expect(plan.newLessonDirName).toBe("01.01-new-lesson");
+    expect(plan.newLessonNumber).toBe(1);
+    expect(plan.renames).toEqual([
+      { id: "lesson-1", oldPath: "01.01-alpha", newPath: "01.02-alpha" },
+      { id: "lesson-2", oldPath: "01.02-beta", newPath: "01.03-beta" },
+    ]);
+  });
+
+  it("inserts into an empty section", () => {
+    const plan = computeInsertionPlan({
+      existingRealLessons: [],
+      insertAtIndex: 0,
+      sectionNumber: 3,
+      slug: "first-lesson",
+    });
+
+    expect(plan.newLessonDirName).toBe("03.01-first-lesson");
+    expect(plan.newLessonNumber).toBe(1);
+    expect(plan.renames).toEqual([]);
+  });
+
+  it("preserves section number from input", () => {
+    const existing = [
+      { id: "a", path: "05.01-intro" },
+      { id: "b", path: "05.02-basics" },
+    ];
+    const plan = computeInsertionPlan({
+      existingRealLessons: existing,
+      insertAtIndex: 1,
+      sectionNumber: 5,
+      slug: "middle",
+    });
+
+    expect(plan.newLessonDirName).toBe("05.02-middle");
+    expect(plan.renames).toEqual([
+      { id: "b", oldPath: "05.02-basics", newPath: "05.03-basics" },
     ]);
   });
 });

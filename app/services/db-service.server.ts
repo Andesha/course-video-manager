@@ -1327,6 +1327,16 @@ export class DBFunctionsService extends Effect.Service<DBFunctionsService>()(
             })
           );
         }),
+        getSectionsByRepoVersionId: Effect.fn("getSectionsByRepoVersionId")(
+          function* (repoVersionId: string) {
+            return yield* makeDbCall(() =>
+              db.query.sections.findMany({
+                where: eq(sections.repoVersionId, repoVersionId),
+                orderBy: asc(sections.order),
+              })
+            );
+          }
+        ),
         updateLessonOrder: Effect.fn("updateLessonOrder")(function* (
           lessonId: string,
           order: number

@@ -1656,5 +1656,223 @@ describe("CourseWriteService", () => {
       const updatedSection = await getSection(section.id);
       expect(updatedSection.path).toBe("01-intro");
     });
+
+    it("dematerializing a section renumbers remaining real sections and their lessons", async () => {
+      const {
+        run,
+        createGhostSection,
+        createSection,
+        createRealLesson,
+        createGhostLesson,
+        getLesson,
+        getSection,
+      } = await setup();
+
+      // Ghost section → materialize → then dematerialize
+      const section1 = await createGhostSection("Before We Start", 1);
+      const section2 = await createSection("02-intro", 2);
+      const lesson2 = await createRealLesson(
+        section2.id,
+        "02-intro",
+        "02.01-basics",
+        1
+      );
+
+      // Materialize ghost section by adding and materializing a lesson
+      const ghost = await createGhostLesson(
+        section1.id,
+        "Where Were Going",
+        "where-were-going",
+        1
+      );
+
+      await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.materializeGhost(ghost.id);
+        })
+      );
+
+      // After materialize: 01-before-we-start, 02-intro
+      const materializedSection = await getSection(section1.id);
+      expect(materializedSection.path).toBe("01-before-we-start");
+
+      // Convert the lesson back to ghost → section dematerializes
+      await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.convertToGhost(ghost.id);
+        })
+      );
+
+      // Section reverted to ghost
+      const ghostSection = await getSection(section1.id);
+      expect(ghostSection.path).toBe("Before We Start");
+
+      // Other section renumbered: 02-intro → 01-intro
+      const updatedSection2 = await getSection(section2.id);
+      expect(updatedSection2.path).toBe("01-intro");
+
+      // Lesson within renumbered section also updated
+      const updatedLesson2 = await getLesson(lesson2.id);
+      expect(updatedLesson2.path).toBe("01.01-basics");
+
+      // Verify filesystem
+      expect(
+        fs.existsSync(path.join(tempDir, "01-intro", "01.01-basics"))
+      ).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, "02-intro"))).toBe(false);
+    });
+  });
+
+  describe("materializeGhost renumbering", () => {
+    it("materializing a ghost section in the middle renumbers other sections", async () => {
+      const {
+        run,
+        createSection,
+        createGhostSection,
+        createRealLesson,
+        createGhostLesson,
+        getLesson,
+        getSection,
+      } = await setup();
+
+      const section1 = await createSection("01-intro", 1);
+      const lesson1 = await createRealLesson(
+        section1.id,
+        "01-intro",
+        "01.01-basics",
+        1
+      );
+
+      // Ghost section in the middle (order 2)
+      const section2 = await createGhostSection("Middle Section", 2);
+
+      const section3 = await createSection("02-advanced", 3);
+      const lesson3 = await createRealLesson(
+        section3.id,
+        "02-advanced",
+        "02.01-deep-dive",
+        1
+      );
+
+      // Add and materialize ghost lesson → ghost section materializes
+      const ghost = await createGhostLesson(section2.id, "Setup", "setup", 1);
+
+      await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.materializeGhost(ghost.id);
+        })
+      );
+
+      // Ghost section materialized at position 2
+      const updatedSection2 = await getSection(section2.id);
+      expect(updatedSection2.path).toBe("02-middle-section");
+
+      // First section unchanged (already 01)
+      const updatedSection1 = await getSection(section1.id);
+      expect(updatedSection1.path).toBe("01-intro");
+
+      // Third section renumbered: 02-advanced → 03-advanced
+      const updatedSection3 = await getSection(section3.id);
+      expect(updatedSection3.path).toBe("03-advanced");
+
+      // Lesson in third section renumbered
+      const updatedLesson3 = await getLesson(lesson3.id);
+      expect(updatedLesson3.path).toBe("03.01-deep-dive");
+
+      // Lesson in first section unchanged
+      const updatedLesson1 = await getLesson(lesson1.id);
+      expect(updatedLesson1.path).toBe("01.01-basics");
+
+      // Verify filesystem
+      expect(
+        fs.existsSync(path.join(tempDir, "02-middle-section", "02.01-setup"))
+      ).toBe(true);
+      expect(
+        fs.existsSync(path.join(tempDir, "03-advanced", "03.01-deep-dive"))
+      ).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, "02-advanced"))).toBe(false);
+    });
+
+    it("materializing a ghost section at the start renumbers all other sections and lessons", async () => {
+      const {
+        run,
+        createSection,
+        createGhostSection,
+        createRealLesson,
+        createGhostLesson,
+        getLesson,
+        getSection,
+      } = await setup();
+
+      // Ghost section at order 1 (first position)
+      const section1 = await createGhostSection("Before We Start", 1);
+
+      const section2 = await createSection("01-intro", 2);
+      const lesson2 = await createRealLesson(
+        section2.id,
+        "01-intro",
+        "01.01-basics",
+        1
+      );
+
+      const section3 = await createSection("02-advanced", 3);
+      const lesson3 = await createRealLesson(
+        section3.id,
+        "02-advanced",
+        "02.01-deep-dive",
+        1
+      );
+
+      // Add and materialize ghost lesson
+      const ghost = await createGhostLesson(
+        section1.id,
+        "Where Were Going",
+        "where-were-going",
+        1
+      );
+
+      await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.materializeGhost(ghost.id);
+        })
+      );
+
+      // Ghost section materialized at position 1
+      const updatedSection1 = await getSection(section1.id);
+      expect(updatedSection1.path).toBe("01-before-we-start");
+
+      // Other sections renumbered
+      const updatedSection2 = await getSection(section2.id);
+      expect(updatedSection2.path).toBe("02-intro");
+
+      const updatedSection3 = await getSection(section3.id);
+      expect(updatedSection3.path).toBe("03-advanced");
+
+      // Lessons renumbered
+      const updatedLesson2 = await getLesson(lesson2.id);
+      expect(updatedLesson2.path).toBe("02.01-basics");
+
+      const updatedLesson3 = await getLesson(lesson3.id);
+      expect(updatedLesson3.path).toBe("03.01-deep-dive");
+
+      // Verify filesystem
+      expect(
+        fs.existsSync(
+          path.join(tempDir, "01-before-we-start", "01.01-where-were-going")
+        )
+      ).toBe(true);
+      expect(
+        fs.existsSync(path.join(tempDir, "02-intro", "02.01-basics"))
+      ).toBe(true);
+      expect(
+        fs.existsSync(path.join(tempDir, "03-advanced", "03.01-deep-dive"))
+      ).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, "01-intro"))).toBe(false);
+      expect(fs.existsSync(path.join(tempDir, "02-advanced"))).toBe(false);
+    });
   });
 });

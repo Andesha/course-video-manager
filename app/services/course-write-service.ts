@@ -28,6 +28,130 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
       const repoWrite = yield* RepoWriteService;
 
       /**
+       * Renumbers all sections for a repo version to ensure consistent
+       * NN-slug numbering. Renames section directories and nested lesson
+       * paths on disk, and updates DB records.
+       *
+       * Called after a ghost section materializes or dematerializes.
+       */
+      const renumberSections = Effect.fn("renumberSections")(function* (
+        repoVersionId: string,
+        repoPath: string
+      ) {
+        const allSections = yield* db.getSectionsByRepoVersionId(repoVersionId);
+
+        const sectionRenames: Array<{
+          id: string;
+          oldPath: string;
+          newPath: string;
+          newSectionNumber: number;
+        }> = [];
+
+        // Only real (parseable) sections get sequential numbers;
+        // ghost sections are skipped and don't reserve a number slot.
+        let realNumber = 0;
+        for (let i = 0; i < allSections.length; i++) {
+          const section = allSections[i]!;
+          const parsed = parseSectionPath(section.path);
+          if (!parsed) continue; // skip ghost sections (unparseable paths)
+
+          realNumber++;
+          if (parsed.sectionNumber !== realNumber) {
+            const newPath = buildSectionPath(realNumber, parsed.slug);
+            sectionRenames.push({
+              id: section.id,
+              oldPath: section.path,
+              newPath,
+              newSectionNumber: realNumber,
+            });
+          }
+        }
+
+        if (sectionRenames.length === 0) return;
+
+        // Check which sections have directories on disk
+        const sectionsWithDir = new Set<string>();
+        for (const rename of sectionRenames) {
+          const exists = yield* repoWrite.sectionDirExists({
+            repoPath,
+            sectionPath: rename.oldPath,
+          });
+          if (exists) {
+            sectionsWithDir.add(rename.id);
+          }
+        }
+
+        const fsRenames = sectionRenames.filter((r) =>
+          sectionsWithDir.has(r.id)
+        );
+
+        if (fsRenames.length > 0) {
+          yield* repoWrite.renameSections({
+            repoPath,
+            renames: fsRenames.map((r) => ({
+              oldPath: r.oldPath,
+              newPath: r.newPath,
+            })),
+          });
+        }
+
+        // Update DB paths for all renamed sections
+        for (const rename of sectionRenames) {
+          yield* db.updateSectionPath(rename.id, rename.newPath);
+        }
+
+        // Rename lessons within each renamed section
+        for (const sectionRename of sectionRenames) {
+          const sectionLessons = yield* db.getLessonsBySectionId(
+            sectionRename.id
+          );
+          const realLessons = sectionLessons.filter(
+            (l) => l.fsStatus !== "ghost"
+          );
+
+          if (realLessons.length === 0) continue;
+
+          const lessonRenames: Array<{
+            id: string;
+            oldPath: string;
+            newPath: string;
+          }> = [];
+          for (const lesson of realLessons) {
+            const lParsed = parseLessonPath(lesson.path);
+            if (!lParsed) continue;
+
+            const newLessonPath = buildLessonPath(
+              sectionRename.newSectionNumber,
+              lParsed.lessonNumber,
+              lParsed.slug
+            );
+            if (newLessonPath !== lesson.path) {
+              lessonRenames.push({
+                id: lesson.id,
+                oldPath: lesson.path,
+                newPath: newLessonPath,
+              });
+            }
+          }
+
+          if (lessonRenames.length > 0) {
+            yield* repoWrite.renameLessons({
+              repoPath,
+              sectionPath: sectionRename.newPath,
+              renames: lessonRenames.map((r) => ({
+                oldPath: r.oldPath,
+                newPath: r.newPath,
+              })),
+            });
+
+            for (const rename of lessonRenames) {
+              yield* db.updateLesson(rename.id, { path: rename.newPath });
+            }
+          }
+        }
+      });
+
+      /**
        * Materializes a ghost lesson to disk.
        *
        * Fetches the ghost lesson and its section hierarchy, computes the
@@ -48,18 +172,36 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
         }
 
         const repoPath = lesson.section.repoVersion.repo.filePath;
+        const repoVersionId = lesson.section.repoVersionId;
         let sectionPath = lesson.section.path;
         const parsed = parseSectionPath(sectionPath);
-        const sectionNumber = parsed?.sectionNumber ?? 1;
         const slug =
           toSlug(lesson.title || "") || toSlug(lesson.path) || "untitled";
 
         // If the section path is not a valid NN-slug format, it's a ghost section
         // that needs to be materialized (title → slugified path)
+        let sectionMaterialized = false;
+        let sectionNumber: number;
         if (!parsed) {
+          // Compute the correct section number: count real sections before
+          // this one, plus 1 for itself.
+          const allSections =
+            yield* db.getSectionsByRepoVersionId(repoVersionId);
+          const positionIndex = allSections.findIndex(
+            (s) => s.id === lesson.sectionId
+          );
+          let realBefore = 0;
+          for (let i = 0; i < positionIndex; i++) {
+            if (parseSectionPath(allSections[i]!.path)) realBefore++;
+          }
+          sectionNumber = realBefore + 1;
+
           const sectionSlug = toSlug(sectionPath) || "untitled";
           sectionPath = buildSectionPath(sectionNumber, sectionSlug);
           yield* db.updateSectionPath(lesson.sectionId, sectionPath);
+          sectionMaterialized = true;
+        } else {
+          sectionNumber = parsed.sectionNumber;
         }
 
         // Get all lessons in the section to determine insert position
@@ -127,6 +269,11 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
           path: plan.newLessonDirName,
           sectionId: lesson.sectionId,
         });
+
+        // If a ghost section was materialized, renumber other sections
+        if (sectionMaterialized) {
+          yield* renumberSections(repoVersionId, repoPath);
+        }
 
         return { success: true, path: plan.newLessonDirName };
       });
@@ -278,11 +425,13 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
         }
 
         // If no real lessons remain, revert the section path to title case
+        // and renumber other sections to close the gap
         if (remainingReal.length === 0) {
           const sectionParsed = parseSectionPath(sectionPath);
           if (sectionParsed) {
             const title = titleFromSlug(sectionParsed.slug);
             yield* db.updateSectionPath(lesson.sectionId, title);
+            yield* renumberSections(lesson.section.repoVersionId, repoPath);
           }
         }
 

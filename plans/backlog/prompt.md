@@ -4,12 +4,6 @@ Issues JSON is provided at start of context. Parse it to get open issues with th
 
 You've also been passed a file containing the last 10 RALPH commits (SHA, date, full message). Review these to understand what work has been done.
 
-# TASK BREAKDOWN
-
-Break down the issues into tasks. An issue may contain a single task (a small bugfix or visual tweak) or many, many tasks (a PRD or a large refactor).
-
-Make each task the smallest possible unit of work. We don't want to outrun our headlights. Aim for one small change per task.
-
 # TASK SELECTION
 
 Pick the next task. Prioritize tasks in this order:
@@ -33,10 +27,6 @@ Explore the repo and fill your context window with relevant information that wil
 # EXECUTION
 
 Complete the task.
-
-If you find that the task is larger than you expected (for instance, requires a refactor first), output "HANG ON A SECOND".
-
-Then, find a way to break it into a smaller chunk and only do that chunk (i.e. complete the smaller refactor).
 
 # COMMIT
 

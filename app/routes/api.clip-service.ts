@@ -10,10 +10,8 @@ import {
   type VideoProcessingAdapter,
   type LoggerAdapter,
 } from "@/services/clip-service-handler";
-import {
-  ClipServiceEventSchema,
-  type ClipServiceEvent,
-} from "@/services/clip-service";
+import { ClipServiceEventSchema } from "@/services/clip-service.schemas";
+import type { ClipServiceEvent } from "@/services/clip-service";
 import { DBFunctionsService } from "@/services/db-service.server";
 import { DrizzleService } from "@/services/drizzle-service.server";
 import { withDatabaseDump } from "@/services/dump-service";

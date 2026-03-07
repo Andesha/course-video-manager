@@ -10,6 +10,7 @@ import {
 } from "./lesson-path-service";
 import {
   parseSectionPath,
+  buildSectionPath,
   computeSectionRenumberingPlan,
 } from "./section-path-service";
 
@@ -577,6 +578,45 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
         return { success: true };
       });
 
+      /**
+       * Renames a section's slug (preserves section number).
+       * Renames the section directory on disk via git mv,
+       * updates DB section path, and renames nested real lesson
+       * directories to match the new section number prefix.
+       */
+      const renameSection = Effect.fn("renameSection")(function* (
+        sectionId: string,
+        newSlug: string
+      ) {
+        const section = yield* db.getSectionWithHierarchyById(sectionId);
+        const parsed = parseSectionPath(section.path);
+
+        if (!parsed) {
+          return yield* new CourseWriteError({
+            cause: null,
+            message: `Cannot parse section path: ${section.path}`,
+          });
+        }
+
+        if (parsed.slug === newSlug) {
+          return { success: true, path: section.path };
+        }
+
+        const repoPath = section.repoVersion.repo.filePath;
+        const newPath = buildSectionPath(parsed.sectionNumber, newSlug);
+
+        // Rename section directory on disk
+        yield* repoWrite.renameSections({
+          repoPath,
+          renames: [{ oldPath: section.path, newPath }],
+        });
+
+        // Update DB section path
+        yield* db.updateSectionPath(sectionId, newPath);
+
+        return { success: true, path: newPath };
+      });
+
       return {
         materializeGhost,
         addGhostLesson,
@@ -586,6 +626,7 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
         reorderLessons,
         moveToSection,
         reorderSections,
+        renameSection,
       };
     }),
     dependencies: [DBFunctionsService.Default, RepoWriteService.Default],

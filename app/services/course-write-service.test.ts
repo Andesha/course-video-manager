@@ -1037,6 +1037,94 @@ describe("CourseWriteService", () => {
     });
   });
 
+  describe("renameSection", () => {
+    it("renames a section slug via git mv and updates DB path", async () => {
+      const { run, createSection, getSection } = await setup();
+
+      const section = await createSection("01-intro", 1);
+
+      const result = await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.renameSection(section.id, "introduction");
+        })
+      );
+
+      expect(result.path).toBe("01-introduction");
+
+      // Old dir gone, new dir exists
+      expect(fs.existsSync(path.join(tempDir, "01-intro"))).toBe(false);
+      expect(fs.existsSync(path.join(tempDir, "01-introduction"))).toBe(true);
+
+      // DB updated
+      const updated = await getSection(section.id);
+      expect(updated.path).toBe("01-introduction");
+    });
+
+    it("is a no-op when slug hasn't changed", async () => {
+      const { run, createSection, getSection } = await setup();
+
+      const section = await createSection("01-intro", 1);
+
+      const result = await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.renameSection(section.id, "intro");
+        })
+      );
+
+      expect(result.path).toBe("01-intro");
+
+      // Directory unchanged
+      expect(fs.existsSync(path.join(tempDir, "01-intro"))).toBe(true);
+
+      // DB unchanged
+      const updated = await getSection(section.id);
+      expect(updated.path).toBe("01-intro");
+    });
+
+    it("renames section with real lessons: lesson dirs preserved inside renamed section", async () => {
+      const { run, createSection, createRealLesson, getSection, getLesson } =
+        await setup();
+
+      const section = await createSection("01-intro", 1);
+      const real1 = await createRealLesson(
+        section.id,
+        "01-intro",
+        "01.01-first-lesson",
+        1
+      );
+
+      const result = await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.renameSection(section.id, "introduction");
+        })
+      );
+
+      expect(result.path).toBe("01-introduction");
+
+      // Section directory renamed
+      expect(fs.existsSync(path.join(tempDir, "01-intro"))).toBe(false);
+      expect(fs.existsSync(path.join(tempDir, "01-introduction"))).toBe(true);
+
+      // Lesson directory preserved inside renamed section
+      expect(
+        fs.existsSync(
+          path.join(tempDir, "01-introduction", "01.01-first-lesson")
+        )
+      ).toBe(true);
+
+      // DB: section path updated
+      const updated = await getSection(section.id);
+      expect(updated.path).toBe("01-introduction");
+
+      // DB: lesson path unchanged (section number didn't change)
+      const updatedLesson = await getLesson(real1.id);
+      expect(updatedLesson.path).toBe("01.01-first-lesson");
+    });
+  });
+
   describe("reorderSections", () => {
     it("section swap: directories renamed, nested lesson paths updated on disk and in DB", async () => {
       const { run, createSection, createRealLesson, getLesson, getSection } =
@@ -1200,6 +1288,65 @@ describe("CourseWriteService", () => {
       const updatedSection2 = await getSection(section2.id);
       expect(updatedSection2.path).toBe("01-advanced");
       expect(updatedSection2.order).toBe(0);
+    });
+  });
+
+  describe("end-to-end: create section → add ghost → materialize → rename", () => {
+    it("full flow with slugified section path works without errors", async () => {
+      const { run, createSection, getLesson } = await setup();
+
+      // Create section with proper NN-slug path (as the fixed route now does)
+      const section = await createSection("01-before-we-start", 1);
+
+      // Add ghost lesson
+      const ghostResult = await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.addGhostLesson(section.id, "Where Were Going");
+        })
+      );
+      expect(ghostResult.success).toBe(true);
+
+      // Materialize ghost
+      const materializeResult = await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.materializeGhost(ghostResult.lessonId);
+        })
+      );
+      expect(materializeResult.path).toBe("01.01-where-were-going");
+
+      // Commit materialized files so git mv can operate on them
+      execSync("git add . && git commit -m 'materialize'", { cwd: tempDir });
+
+      // Rename lesson (the operation that was failing before the fix)
+      const renameResult = await run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.renameLesson(
+            ghostResult.lessonId,
+            "where-we-are-going"
+          );
+        })
+      );
+      expect(renameResult.path).toBe("01.01-where-we-are-going");
+
+      // Verify final state on disk
+      expect(
+        fs.existsSync(
+          path.join(tempDir, "01-before-we-start", "01.01-where-we-are-going")
+        )
+      ).toBe(true);
+      expect(
+        fs.existsSync(
+          path.join(tempDir, "01-before-we-start", "01.01-where-were-going")
+        )
+      ).toBe(false);
+
+      // Verify DB state
+      const updatedLesson = await getLesson(ghostResult.lessonId);
+      expect(updatedLesson.path).toBe("01.01-where-we-are-going");
+      expect(updatedLesson.fsStatus).toBe("real");
     });
   });
 });

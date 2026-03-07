@@ -4,6 +4,8 @@ import { DBFunctionsService } from "@/services/db-service.server";
 import { runtimeLive } from "@/services/layer.server";
 import { withDatabaseDump } from "@/services/dump-service";
 import { data } from "react-router";
+import { toSlug } from "@/services/lesson-path-service";
+import { buildSectionPath } from "@/services/section-path-service";
 
 const createSectionSchema = Schema.Struct({
   repoVersionId: Schema.String.pipe(
@@ -25,12 +27,16 @@ export const action = async (args: Route.ActionArgs) => {
 
     const db = yield* DBFunctionsService;
 
+    const sectionNumber = maxOrder + 1;
     const [newSection] = yield* db.createSections({
       repoVersionId,
       sections: [
         {
-          sectionPathWithNumber: title,
-          sectionNumber: maxOrder + 1,
+          sectionPathWithNumber: buildSectionPath(
+            sectionNumber,
+            toSlug(title) || "untitled"
+          ),
+          sectionNumber,
         },
       ],
     });

@@ -9,6 +9,7 @@ EXCLUDE_PATTERNS=(
   "package-lock.json"
   "docs/*"
   "progress.txt"
+  "public/*"
 )
 
 should_skip() {

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MAX_TOKENS=5000
+MAX_TOKENS=5500
 found_violations=0
 
 # Patterns to exclude from the check

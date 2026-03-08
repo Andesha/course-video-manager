@@ -24,18 +24,10 @@ import { Link, useFetcher, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import type { LoaderData } from "./course-view-types";
 
-export function FilterBar({
+export function StatsBar({
   selectedRepo,
-  priorityFilter,
-  iconFilter,
-  fsStatusFilter,
-  dispatch,
 }: {
   selectedRepo: LoaderData["selectedRepo"];
-  priorityFilter: number[];
-  iconFilter: string[];
-  fsStatusFilter: string | null;
-  dispatch: (action: courseViewReducer.Action) => void;
 }) {
   const totalLessonsWithVideos =
     selectedRepo?.sections.reduce((acc, section) => {
@@ -100,133 +92,138 @@ export function FilterBar({
       : 0;
 
   return (
-    <>
-      <div className="flex items-center gap-2 mb-3">
+    <div className="flex items-center gap-2">
+      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+        {totalLessonsWithVideos} / {totalLessons} lessons ({percentageComplete}
+        %)
+      </span>
+      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+        {totalVideos} videos
+      </span>
+      {totalDurationSeconds > 0 && (
         <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-          {totalLessonsWithVideos} / {totalLessons} lessons (
-          {percentageComplete}%)
+          {totalDurationFormatted}
         </span>
-        <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-          {totalVideos} videos
-        </span>
-        {totalDurationSeconds > 0 && (
-          <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-            {totalDurationFormatted}
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Filter:</span>
-        {([1, 2, 3] as const).map((priority) => {
-          const isSelected = priorityFilter.includes(priority);
-          const showAsActive = priorityFilter.length === 0 || isSelected;
-          return (
-            <button
-              key={priority}
-              className={`text-xs px-2 py-0.5 rounded-sm font-medium transition-colors ${
-                showAsActive
-                  ? priority === 1
-                    ? "bg-red-500/20 text-red-600"
-                    : priority === 2
-                      ? "bg-yellow-500/20 text-yellow-600"
-                      : "bg-sky-500/20 text-sky-500"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              } ${isSelected ? "ring-1 ring-current" : ""}`}
-              onClick={() =>
-                dispatch({
-                  type: "toggle-priority-filter",
-                  priority,
-                })
-              }
-            >
-              P{priority}
-            </button>
-          );
-        })}
+      )}
+    </div>
+  );
+}
 
-        <span className="text-muted-foreground mx-1">|</span>
-        {(["code", "discussion", "watch"] as const).map((icon) => {
-          const isSelected = iconFilter.includes(icon);
-          const showAsActive = iconFilter.length === 0 || isSelected;
-          return (
-            <button
-              key={icon}
-              className={`flex items-center justify-center w-6 h-6 rounded-full transition-colors ${
-                icon === "code"
-                  ? showAsActive
+export function FilterBar({
+  priorityFilter,
+  iconFilter,
+  fsStatusFilter,
+  dispatch,
+}: {
+  priorityFilter: number[];
+  iconFilter: string[];
+  fsStatusFilter: string | null;
+  dispatch: (action: courseViewReducer.Action) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">Filter:</span>
+      {([1, 2, 3] as const).map((priority) => {
+        const isSelected = priorityFilter.includes(priority);
+        const showAsActive = priorityFilter.length === 0 || isSelected;
+        return (
+          <button
+            key={priority}
+            className={`text-xs px-2 py-0.5 rounded-sm font-medium transition-colors ${
+              showAsActive
+                ? priority === 1
+                  ? "bg-red-500/20 text-red-600"
+                  : priority === 2
                     ? "bg-yellow-500/20 text-yellow-600"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  : icon === "discussion"
-                    ? showAsActive
-                      ? "bg-green-500/20 text-green-600"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    : showAsActive
-                      ? "bg-purple-500/20 text-purple-600"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-              } ${isSelected ? "ring-1 ring-current" : ""}`}
-              onClick={() => dispatch({ type: "toggle-icon-filter", icon })}
-              title={
-                icon === "code"
-                  ? "Interactive"
-                  : icon === "discussion"
-                    ? "Discussion"
-                    : "Watch"
-              }
-            >
-              {icon === "code" ? (
-                <Code className="w-3 h-3" />
-              ) : icon === "discussion" ? (
-                <MessageCircle className="w-3 h-3" />
-              ) : (
-                <Play className="w-3 h-3" />
-              )}
-            </button>
-          );
-        })}
+                    : "bg-sky-500/20 text-sky-500"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            } ${isSelected ? "ring-1 ring-current" : ""}`}
+            onClick={() =>
+              dispatch({
+                type: "toggle-priority-filter",
+                priority,
+              })
+            }
+          >
+            P{priority}
+          </button>
+        );
+      })}
 
-        <span className="text-muted-foreground mx-1">|</span>
-        {(["ghost", "real", "todo"] as const).map((status) => {
-          const isSelected = fsStatusFilter === status;
-          const showAsActive = fsStatusFilter === null || isSelected;
-          return (
-            <button
-              key={status}
-              className={`text-xs px-2 py-0.5 rounded-sm font-medium transition-colors flex items-center gap-1 ${
-                showAsActive
-                  ? "bg-muted text-muted-foreground"
+      <span className="text-muted-foreground mx-1">|</span>
+      {(["code", "discussion", "watch"] as const).map((icon) => {
+        const isSelected = iconFilter.includes(icon);
+        const showAsActive = iconFilter.length === 0 || isSelected;
+        return (
+          <button
+            key={icon}
+            className={`flex items-center justify-center w-6 h-6 rounded-full transition-colors ${
+              icon === "code"
+                ? showAsActive
+                  ? "bg-yellow-500/20 text-yellow-600"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
-              } ${isSelected ? "ring-1 ring-current" : ""}`}
-              onClick={() =>
-                dispatch({
-                  type: "toggle-fs-status-filter",
-                  status,
-                })
-              }
-              title={
-                status === "ghost"
-                  ? "Ghost"
-                  : status === "real"
-                    ? "Real"
-                    : "Todo"
-              }
-            >
-              {status === "ghost" ? (
-                <Ghost className="w-3 h-3" />
-              ) : status === "real" ? (
-                <FileVideo className="w-3 h-3" />
-              ) : (
-                <ListChecks className="w-3 h-3" />
-              )}
-              {status === "ghost"
-                ? "Ghost"
-                : status === "real"
-                  ? "Real"
-                  : "Todo"}
-            </button>
-          );
-        })}
-      </div>
-    </>
+                : icon === "discussion"
+                  ? showAsActive
+                    ? "bg-green-500/20 text-green-600"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  : showAsActive
+                    ? "bg-purple-500/20 text-purple-600"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+            } ${isSelected ? "ring-1 ring-current" : ""}`}
+            onClick={() => dispatch({ type: "toggle-icon-filter", icon })}
+            title={
+              icon === "code"
+                ? "Interactive"
+                : icon === "discussion"
+                  ? "Discussion"
+                  : "Watch"
+            }
+          >
+            {icon === "code" ? (
+              <Code className="w-3 h-3" />
+            ) : icon === "discussion" ? (
+              <MessageCircle className="w-3 h-3" />
+            ) : (
+              <Play className="w-3 h-3" />
+            )}
+          </button>
+        );
+      })}
+
+      <span className="text-muted-foreground mx-1">|</span>
+      {(["ghost", "real", "todo"] as const).map((status) => {
+        const isSelected = fsStatusFilter === status;
+        const showAsActive = fsStatusFilter === null || isSelected;
+        return (
+          <button
+            key={status}
+            className={`text-xs px-2 py-0.5 rounded-sm font-medium transition-colors flex items-center gap-1 ${
+              showAsActive
+                ? "bg-muted text-muted-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            } ${isSelected ? "ring-1 ring-current" : ""}`}
+            onClick={() =>
+              dispatch({
+                type: "toggle-fs-status-filter",
+                status,
+              })
+            }
+            title={
+              status === "ghost" ? "Ghost" : status === "real" ? "Real" : "Todo"
+            }
+          >
+            {status === "ghost" ? (
+              <Ghost className="w-3 h-3" />
+            ) : status === "real" ? (
+              <FileVideo className="w-3 h-3" />
+            ) : (
+              <ListChecks className="w-3 h-3" />
+            )}
+            {status === "ghost" ? "Ghost" : status === "real" ? "Real" : "Todo"}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

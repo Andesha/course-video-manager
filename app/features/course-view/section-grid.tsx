@@ -176,7 +176,7 @@ export function SectionGrid({
         items={displaySections.map((s) => s.id)}
         strategy={rectSortingStrategy}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {displaySections.map((section) => {
             // Optimistic lesson reordering
             let lessons = section.lessons;

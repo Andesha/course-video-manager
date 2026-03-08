@@ -34,6 +34,7 @@ import { ActionsDropdown } from "@/features/course-view/actions-menu";
 import { SectionGrid } from "@/features/course-view/section-grid";
 import {
   FilterBar,
+  StatsBar,
   NoRepoView,
   RouteModals,
 } from "@/features/course-view/course-view-components";
@@ -391,64 +392,72 @@ export default function Component(props: Route.ComponentProps) {
         <div className="p-6">
           {currentRepo ? (
             <>
-              <div className="mb-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                      {currentRepo.name}
-                      {loaderData.selectedVersion &&
-                        loaderData.versions.length > 1 && (
-                          <button
-                            onClick={() =>
-                              dispatch({
-                                type: "set-version-selector-modal-open",
-                                open: true,
-                              })
-                            }
-                            className="text-muted-foreground hover:text-foreground transition-colors text-lg font-normal"
-                          >
-                            [{loaderData.selectedVersion.name}]
-                          </button>
-                        )}
-                    </h1>
-                    <ActionsDropdown
-                      currentRepo={currentRepo}
-                      data={loaderData}
-                      dispatch={dispatch}
-                      publishRepoFetcher={publishRepoFetcher}
-                      archiveRepoFetcher={archiveRepoFetcher}
-                      handleBatchExport={handleBatchExport}
-                    />
-                  </div>
-                </div>
+              {/* Title + version + actions */}
+              <div className="flex items-center gap-2 mb-6">
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  {currentRepo.name}
+                  {loaderData.selectedVersion &&
+                    loaderData.versions.length > 1 && (
+                      <button
+                        onClick={() =>
+                          dispatch({
+                            type: "set-version-selector-modal-open",
+                            open: true,
+                          })
+                        }
+                        className="text-muted-foreground hover:text-foreground transition-colors text-lg font-normal"
+                      >
+                        [{loaderData.selectedVersion.name}]
+                      </button>
+                    )}
+                </h1>
+                <ActionsDropdown
+                  currentRepo={currentRepo}
+                  data={loaderData}
+                  dispatch={dispatch}
+                  publishRepoFetcher={publishRepoFetcher}
+                  archiveRepoFetcher={archiveRepoFetcher}
+                  handleBatchExport={handleBatchExport}
+                />
               </div>
 
-              <NextTodoCard
-                sections={currentRepo.sections}
-                data={loaderData}
-                navigate={navigate}
-                addVideoToLessonId={addVideoToLessonId}
-                editLessonId={editLessonId}
-                convertToGhostLessonId={convertToGhostLessonId}
-                dispatch={dispatch}
-                startExportUpload={startExportUpload}
-                revealVideoFetcher={revealVideoFetcher}
-                deleteVideoFileFetcher={deleteVideoFileFetcher}
-                deleteVideoFetcher={deleteVideoFetcher}
-                deleteLessonFetcher={deleteLessonFetcher}
-                allFlatLessons={allFlatLessons}
-                dependencyMap={dependencyMap}
-                dismissed={nextUpDismissed}
-                onDismiss={() => setNextUpDismissed(true)}
-              />
+              {/* Stats */}
+              <div className="mb-8">
+                <StatsBar selectedRepo={loaderData.selectedRepo} />
+              </div>
 
-              <FilterBar
-                selectedRepo={loaderData.selectedRepo}
-                priorityFilter={priorityFilter}
-                iconFilter={iconFilter}
-                fsStatusFilter={fsStatusFilter}
-                dispatch={dispatch}
-              />
+              {/* Next Up */}
+              <div className="mb-8">
+                <NextTodoCard
+                  sections={currentRepo.sections}
+                  data={loaderData}
+                  navigate={navigate}
+                  addVideoToLessonId={addVideoToLessonId}
+                  editLessonId={editLessonId}
+                  convertToGhostLessonId={convertToGhostLessonId}
+                  dispatch={dispatch}
+                  startExportUpload={startExportUpload}
+                  revealVideoFetcher={revealVideoFetcher}
+                  deleteVideoFileFetcher={deleteVideoFileFetcher}
+                  deleteVideoFetcher={deleteVideoFetcher}
+                  deleteLessonFetcher={deleteLessonFetcher}
+                  allFlatLessons={allFlatLessons}
+                  dependencyMap={dependencyMap}
+                  dismissed={nextUpDismissed}
+                  onDismiss={() => setNextUpDismissed(true)}
+                />
+              </div>
+
+              {/* All Lessons */}
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold mb-3">All Lessons</h2>
+                <FilterBar
+                  priorityFilter={priorityFilter}
+                  iconFilter={iconFilter}
+                  fsStatusFilter={fsStatusFilter}
+                  dispatch={dispatch}
+                />
+              </div>
 
               <SectionGrid
                 currentRepo={currentRepo}
@@ -479,7 +488,7 @@ export default function Component(props: Route.ComponentProps) {
               />
 
               {loaderData.selectedVersion && (
-                <div className="mt-6 flex justify-center">
+                <div className="mt-8 flex justify-center">
                   <Button
                     variant="outline"
                     className="border-dashed"

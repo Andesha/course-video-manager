@@ -72,7 +72,7 @@ export function NextTodoCard({
   if (!bestLesson || !bestSection || dismissed) return null;
 
   return (
-    <div className="mb-4 lg:w-[calc(50%-0.75rem)]">
+    <div className="lg:w-[calc(50%-0.75rem)]">
       <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
         Next Up
       </h3>

@@ -227,7 +227,12 @@ export const loader = async (args: Route.LoaderArgs) => {
           currentLessonPath: lesson.path,
           sections: matchingVersion.sections.map((s) => ({
             path: s.path,
-            lessons: s.lessons.map((l) => ({ path: l.path })),
+            lessons: s.lessons
+              .filter((l) => l.fsStatus === "real")
+              .map((l) => ({
+                path: l.path,
+                description: l.description || undefined,
+              })),
           })),
         }
       : null;

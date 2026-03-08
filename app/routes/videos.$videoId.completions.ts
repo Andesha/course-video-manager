@@ -39,7 +39,12 @@ const courseStructureSchema = Schema.Struct({
   sections: Schema.Array(
     Schema.Struct({
       path: Schema.String,
-      lessons: Schema.Array(Schema.Struct({ path: Schema.String })),
+      lessons: Schema.Array(
+        Schema.Struct({
+          path: Schema.String,
+          description: Schema.optional(Schema.String),
+        })
+      ),
     })
   ),
 });
@@ -97,9 +102,9 @@ export const action = async (args: Route.ActionArgs) => {
         for (const lesson of section.lessons) {
           const isCurrentLesson =
             isCurrent && lesson.path === cs.currentLessonPath;
-          lines.push(
-            `    ${lesson.path}/${isCurrentLesson ? "  <-- current lesson" : ""}`
-          );
+          const marker = isCurrentLesson ? "  <-- current lesson" : "";
+          const desc = lesson.description ? ` - ${lesson.description}` : "";
+          lines.push(`    ${lesson.path}/${marker}${desc}`);
         }
       }
       courseStructureText = lines.join("\n");

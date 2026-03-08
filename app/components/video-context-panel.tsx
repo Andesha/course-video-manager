@@ -37,7 +37,7 @@ export type CourseStructure = {
   currentLessonPath: string;
   sections: {
     path: string;
-    lessons: { path: string }[];
+    lessons: { path: string; description?: string }[];
   }[];
 };
 

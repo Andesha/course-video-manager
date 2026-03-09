@@ -1,4 +1,17 @@
-import type { Lesson } from "./course-view-types";
+import type { Lesson, Section } from "./course-view-types";
+
+export function buildCourseTranscript(coursePath: string, sections: Section[]) {
+  const lines: string[] = [`<course title="${escapeAttr(coursePath)}">`];
+  for (const section of sections) {
+    const sectionLines = buildSectionTranscript(section.path, section.lessons);
+    // Indent each line of the section transcript by 2 spaces
+    for (const line of sectionLines.split("\n")) {
+      lines.push(`  ${line}`);
+    }
+  }
+  lines.push("</course>");
+  return lines.join("\n");
+}
 
 export function buildSectionTranscript(sectionPath: string, lessons: Lesson[]) {
   const realLessons = lessons.filter((l) => l.fsStatus !== "ghost");

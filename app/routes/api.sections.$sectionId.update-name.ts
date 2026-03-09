@@ -3,6 +3,7 @@ import type { Route } from "./+types/api.sections.$sectionId.update-name";
 import { CourseWriteService } from "@/services/course-write-service";
 import { runtimeLive } from "@/services/layer.server";
 import { withDatabaseDump } from "@/services/dump-service";
+import { withSyncValidation } from "@/services/repo-sync-validation";
 import { toSlug } from "@/services/lesson-path-service";
 import { data } from "react-router";
 
@@ -26,8 +27,12 @@ export const action = async (args: Route.ActionArgs) => {
     const service = yield* CourseWriteService;
     return yield* service.renameSection(args.params.sectionId, newSlug);
   }).pipe(
+    withSyncValidation,
     withDatabaseDump,
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
+    Effect.catchTag("RepoSyncError", (e) => {
+      return Effect.die(data(e.message, { status: 409 }));
+    }),
     Effect.catchTag("ParseError", () => {
       return Effect.die(data("Invalid request", { status: 400 }));
     }),

@@ -13,6 +13,7 @@ import { CloudinaryService } from "./cloudinary-service";
 import { CloudinaryMarkdownService } from "./cloudinary-markdown-service";
 import { RepoWriteService } from "./repo-write-service";
 import { CourseWriteService } from "./course-write-service";
+import { RepoSyncValidationService } from "./repo-sync-validation";
 
 const CloudinaryMarkdownLayer = CloudinaryMarkdownService.Default.pipe(
   Layer.provide(CloudinaryService.Default)
@@ -31,6 +32,7 @@ export const layerLive = Layer.mergeAll(
   CloudinaryMarkdownLayer,
   RepoWriteService.Default,
   CourseWriteService.Default,
+  RepoSyncValidationService.Default,
   NodeContext.layer
 ).pipe(Layer.provideMerge(DrizzleService.Default));
 

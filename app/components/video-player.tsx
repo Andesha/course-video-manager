@@ -5,6 +5,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useRef } from "react";
+import { useAudioBoost } from "@/features/video-editor/use-audio-boost";
+import { PREVIEW_AUDIO_BOOST_DB } from "@/features/video-editor/constants";
 
 interface VideoPlayerProps {
   videoId: string;
@@ -20,6 +22,7 @@ export function VideoModal({
   onClose,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  useAudioBoost(videoRef, PREVIEW_AUDIO_BOOST_DB);
 
   const handleClose = () => {
     if (videoRef.current) {

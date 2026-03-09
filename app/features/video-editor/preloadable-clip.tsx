@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { ClipOnDatabase, FrontendId } from "./clip-state-reducer";
 import { cn } from "@/lib/utils";
-import { BEAT_DURATION, FINAL_VIDEO_PADDING } from "./constants";
+import {
+  BEAT_DURATION,
+  FINAL_VIDEO_PADDING,
+  PREVIEW_AUDIO_BOOST_DB,
+} from "./constants";
+import { useAudioBoost } from "./use-audio-boost";
 import type { RunningState } from "./video-state-reducer";
 
 const PRELOAD_PLAY_AMOUNT = 0.1;
@@ -21,6 +26,7 @@ export const PreloadableClip = (props: {
     "preloading"
   );
   const ref = useRef<HTMLVideoElement>(null);
+  useAudioBoost(ref, PREVIEW_AUDIO_BOOST_DB);
 
   const preloadFrom = props.clip.sourceStartTime - PRELOAD_PLAY_AMOUNT;
   const preloadTo = props.clip.sourceStartTime;

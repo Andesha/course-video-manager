@@ -53,7 +53,7 @@ function VideoThumbnailItem({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <button
-          className="flex flex-col text-left group/thumb w-full bg-gray-700 rounded overflow-hidden max-w-36"
+          className="flex flex-col text-left group/thumb w-full bg-gray-700 rounded overflow-hidden max-w-30"
           onMouseDown={(e) => {
             if (!isLeftClick(e)) return;
             navigate(`/videos/${video.id}/edit`);
@@ -212,7 +212,7 @@ export function VideoThumbnailGrid({
   if (videos.length === 0) return null;
 
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-4">
       {videos.map((video) => (
         <VideoThumbnailItem
           key={video.id}

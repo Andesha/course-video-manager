@@ -205,9 +205,21 @@ function ModelSelector(props: {
       onValueChange={(value) => onModelChange(value as Model)}
     >
       <SelectTrigger>
-        {model === "claude-sonnet-4-5" ? "Sonnet 4.5" : "Haiku 4.5"}
+        {model === "auto"
+          ? "Auto"
+          : model === "claude-sonnet-4-5"
+            ? "Sonnet 4.5"
+            : "Haiku 4.5"}
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value="auto">
+          <div>
+            <div>Auto</div>
+            <div className="text-xs text-muted-foreground">
+              Haiku for generation, Sonnet for editing
+            </div>
+          </div>
+        </SelectItem>
         <SelectItem value="claude-haiku-4-5">
           <div>
             <div>Haiku 4.5</div>

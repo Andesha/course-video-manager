@@ -36,7 +36,7 @@ export type Mode = TextWritingAgentMode;
 /**
  * AI model selection for article generation.
  */
-export type Model = "claude-sonnet-4-5" | "claude-haiku-4-5";
+export type Model = "claude-sonnet-4-5" | "claude-haiku-4-5" | "auto";
 
 /**
  * Indexed clip data passed to the client for ChooseScreenshot component.

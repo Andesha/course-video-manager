@@ -9,6 +9,7 @@ import {
   stepCountIs,
 } from "ai";
 import { z } from "zod";
+import { jsonrepair } from "jsonrepair";
 import type {
   TextWritingAgentCodeFile,
   TextWritingAgentImageFile,
@@ -133,12 +134,24 @@ After calling writeDocument, you may add a brief conversational message explaini
     ? `\n\n## Course Memory\n\nThe following is course-level context provided by the author. Use it to inform your response:\n\n<memory>\n${props.memory}\n</memory>`
     : "";
 
+  const repairToolCall: ConstructorParameters<
+    typeof Agent
+  >[0]["experimental_repairToolCall"] = async ({ toolCall }) => {
+    try {
+      const repairedInput = jsonrepair(toolCall.input);
+      return { ...toolCall, input: repairedInput };
+    } catch {
+      return null;
+    }
+  };
+
   if (props.document) {
     return new Agent({
       model: props.model,
       instructions: systemPrompt + memorySection,
       tools: { editDocument: editDocumentTool },
       stopWhen: stepCountIs(5),
+      experimental_repairToolCall: repairToolCall,
     });
   }
 
@@ -147,5 +160,6 @@ After calling writeDocument, you may add a brief conversational message explaini
     instructions: systemPrompt + memorySection,
     tools: { writeDocument: writeDocumentTool },
     stopWhen: stepCountIs(5),
+    experimental_repairToolCall: repairToolCall,
   });
 };

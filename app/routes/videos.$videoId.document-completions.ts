@@ -61,7 +61,12 @@ export const action = async (args: Route.ActionArgs) => {
     const parsed = yield* Schema.decodeUnknown(chatSchema)(body);
     const messages: UIMessage[] = parsed.messages;
     const enabledFiles: string[] = [...parsed.enabledFiles];
-    const model: string = parsed.model;
+    const model: string =
+      parsed.model === "auto"
+        ? parsed.document
+          ? "claude-sonnet-4-5"
+          : "claude-haiku-4-5"
+        : parsed.model;
     const includeTranscript = parsed.includeTranscript;
     const enabledSections: string[] = [...parsed.enabledSections];
 

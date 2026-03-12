@@ -116,7 +116,7 @@ export function WriteToolbar(props: WriteToolbarProps) {
           Go Live
         </Button>
       )}
-      {violations.length > 0 && (
+      {!isDocumentMode && violations.length > 0 && (
         <LintFixButton
           violations={violations}
           status={status}

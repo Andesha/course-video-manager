@@ -24,7 +24,9 @@ import {
   PlusIcon,
   PencilIcon,
   EyeIcon,
+  AlertTriangleIcon,
 } from "lucide-react";
+import type { LintViolation } from "./lint-rules";
 import type { Options } from "react-markdown";
 import type { OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
@@ -47,6 +49,9 @@ export interface DocumentPanelProps {
   onWriteToReadme?: (mode: "write" | "append") => void;
   isUploadingImages?: boolean;
   onUploadImages?: () => void;
+  violations?: LintViolation[];
+  onFixLintViolations?: () => void;
+  isStreaming?: boolean;
 }
 
 export const DocumentPanel = memo(function DocumentPanel({
@@ -65,6 +70,9 @@ export const DocumentPanel = memo(function DocumentPanel({
   onWriteToReadme,
   isUploadingImages,
   onUploadImages,
+  violations,
+  onFixLintViolations,
+  isStreaming,
 }: DocumentPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const onDocumentChangeRef = useRef(onDocumentChange);
@@ -232,6 +240,37 @@ export const DocumentPanel = memo(function DocumentPanel({
                     ? "Uploading images..."
                     : "Upload images to Cloudinary"}
                 </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
+        {/* Lint violations */}
+        {violations && violations.length > 0 && onFixLintViolations && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8"
+                  onClick={onFixLintViolations}
+                  disabled={isStreaming}
+                >
+                  <AlertTriangleIcon className="h-4 w-4 mr-1 text-orange-500" />
+                  Fix ({violations.reduce((sum, v) => sum + v.count, 0)})
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="space-y-1">
+                  <p className="font-semibold">Lint Violations:</p>
+                  {violations.map((v) => (
+                    <p key={v.rule.id} className="text-sm">
+                      • {v.rule.name}: {v.count} issue
+                      {v.count > 1 ? "s" : ""}
+                    </p>
+                  ))}
+                </div>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

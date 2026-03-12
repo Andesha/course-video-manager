@@ -423,13 +423,15 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     dispatch,
   });
 
+  const lastAssistantMessageText = partsToText(
+    messages
+      .slice()
+      .reverse()
+      .find((m) => m.role === "assistant")?.parts ?? []
+  );
+
   const { violations, composeFixMessage } = useLint(
-    partsToText(
-      messages
-        .slice()
-        .reverse()
-        .find((m) => m.role === "assistant")?.parts ?? []
-    ),
+    isDocumentMode && document ? document : lastAssistantMessageText,
     mode,
     bannedPhrases
   );
@@ -596,6 +598,9 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
                 onWriteToReadme={handleDocWriteToReadme}
                 isUploadingImages={isUploadingImages}
                 onUploadImages={handleUploadImages}
+                violations={violations}
+                onFixLintViolations={toolbarProps.onFixLintViolations}
+                isStreaming={status === "streaming"}
               />
             </div>
           </>

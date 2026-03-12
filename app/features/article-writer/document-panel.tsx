@@ -96,7 +96,7 @@ export const DocumentPanel = memo(function DocumentPanel({
               lineNumbers: "off",
               fontSize: 14,
               padding: { top: 16, bottom: 16 },
-              scrollBeyondLastLine: false,
+              scrollBeyondLastLine: true,
             }}
           />
         </Suspense>

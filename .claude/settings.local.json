@@ -79,7 +79,9 @@
       "WebFetch(domain:waleedk.medium.com)",
       "WebFetch(domain:tiptap.dev)",
       "WebFetch(domain:baoyu.io)",
-      "WebFetch(domain:hyperdev.matsuoka.com)"
+      "WebFetch(domain:hyperdev.matsuoka.com)",
+      "WebFetch(domain:www.digitalapplied.com)",
+      "Bash(npx @ai-sdk/codemod v6 2>&1 | head -100)"
     ],
     "deny": [],
     "ask": []

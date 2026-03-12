@@ -9,9 +9,18 @@ import type {
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { marked } from "marked";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type HTMLAttributes,
+} from "react";
 import { useFetcher, useRevalidator } from "react-router";
 import { toast } from "sonner";
+import type { Options } from "react-markdown";
 import { VideoContextPanel } from "@/components/video-context-panel";
 import { useLint } from "@/hooks/use-lint";
 import { useBannedPhrases } from "@/hooks/use-banned-phrases";
@@ -26,7 +35,13 @@ import {
   saveMessagesToStorage,
   formatConversationAsQA,
 } from "./write-utils";
-import { hasUnresolvedScreenshots } from "./choose-screenshot-mutations";
+import {
+  hasUnresolvedScreenshots,
+  replaceChooseScreenshotWithImage,
+  updateChooseScreenshotClipIndex,
+} from "./choose-screenshot-mutations";
+import { preprocessChooseScreenshotMarkdown } from "./choose-screenshot-markdown";
+import { ChooseScreenshot } from "./choose-screenshot";
 import { WriteChat } from "./write-chat";
 import { WriteModals } from "./write-modals";
 import { DocumentPanel } from "./document-panel";
@@ -189,6 +204,97 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
       status,
       addToolOutput,
     });
+
+  // ChooseScreenshot support for document panel
+  const [docCapturingKey, setDocCapturingKey] = useState<string | null>(null);
+
+  const handleDocCapture = useCallback(
+    async (
+      clipIndex: number,
+      alt: string,
+      timestamp: number,
+      videoFilename: string
+    ) => {
+      const key = `doc-${clipIndex}-${alt}`;
+      setDocCapturingKey(key);
+      try {
+        const res = await fetch(`/api/videos/${videoId}/capture-screenshot`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ timestamp, videoFilename }),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || "Failed to capture screenshot");
+        }
+        const { imagePath } = await res.json();
+        if (document) {
+          updateDocument(
+            replaceChooseScreenshotWithImage(
+              document,
+              clipIndex,
+              alt,
+              imagePath
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Screenshot capture failed:", err);
+      } finally {
+        setDocCapturingKey(null);
+      }
+    },
+    [videoId, document, updateDocument]
+  );
+
+  const handleDocClipIndexChange = useCallback(
+    (currentIndex: number, newIndex: number, alt: string) => {
+      if (document) {
+        updateDocument(
+          updateChooseScreenshotClipIndex(document, currentIndex, newIndex, alt)
+        );
+      }
+    },
+    [document, updateDocument]
+  );
+
+  const docExtraComponents = useMemo((): Options["components"] | undefined => {
+    if (indexedClips.length === 0 || !isDocumentMode) return undefined;
+    return {
+      choosescreenshot: ((
+        compProps: HTMLAttributes<HTMLElement> & Record<string, unknown>
+      ) => {
+        const clipIdx = parseInt(compProps.clipindex as string, 10);
+        const altText = (compProps.alt as string) ?? "";
+        const key = `doc-${clipIdx}-${altText}`;
+        return (
+          <ChooseScreenshot
+            clipIndex={clipIdx}
+            alt={altText}
+            clips={indexedClips}
+            onClipIndexChange={(current, next) =>
+              handleDocClipIndexChange(current, next, altText)
+            }
+            onCapture={handleDocCapture}
+            isCapturing={docCapturingKey === key}
+            isStreaming={status === "streaming" || status === "submitted"}
+          />
+        );
+      }) as unknown,
+    } as Options["components"];
+  }, [
+    indexedClips,
+    isDocumentMode,
+    handleDocClipIndexChange,
+    handleDocCapture,
+    docCapturingKey,
+    status,
+  ]);
+
+  const docPreprocessMarkdown = useMemo(() => {
+    if (!docExtraComponents) return undefined;
+    return (md: string) => preprocessChooseScreenshotMarkdown(md);
+  }, [docExtraComponents]);
 
   const prevStatusRef = useRef(status);
   useEffect(() => {
@@ -409,7 +515,7 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     lastAssistantMessageText,
     writeToReadmeFetcherState: writeToReadmeFetcher.state,
     hasUnresolvedScreenshots: hasUnresolvedScreenshots(
-      lastAssistantMessageText
+      isDocumentMode && document ? document : lastAssistantMessageText
     ),
     onModeChange: handleModeChange,
     onModelChange: handleModelChange,
@@ -524,6 +630,8 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
               <DocumentPanel
                 document={document}
                 fullPath={fullPath}
+                extraComponents={docExtraComponents}
+                preprocessMarkdown={docPreprocessMarkdown}
                 onDocumentChange={updateDocument}
               />
             </div>

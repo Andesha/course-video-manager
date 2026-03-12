@@ -356,7 +356,7 @@ export const VideoPlayerPanel = () => {
             {currentClip?.type === "on-database" && (
               <input
                 type="range"
-                className="w-full mt-2 h-2 cursor-pointer accent-blue-500"
+                className="scrub-slider mt-2"
                 min={currentClip.sourceStartTime}
                 max={currentClip.sourceEndTime}
                 step={0.01}

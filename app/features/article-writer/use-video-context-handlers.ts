@@ -1,9 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { FetcherWithComponents } from "react-router";
-import {
-  COURSE_STRUCTURE_STORAGE_KEY,
-  MEMORY_ENABLED_STORAGE_KEY,
-} from "./write-utils";
+import type { WritePageAction } from "./write-page-reducer";
 
 export function useVideoContextHandlers({
   videoId,
@@ -11,30 +8,14 @@ export function useVideoContextHandlers({
   isStandalone,
   openFolderFetcher,
   deleteLinkFetcher,
-  setIncludeCourseStructure,
-  setPreviewFilePath,
-  setIsPreviewModalOpen,
-  setIsPasteModalOpen,
-  setIsLessonPasteModalOpen,
-  setFileToDelete,
-  setIsDeleteModalOpen,
-  setIsAddLinkModalOpen,
-  setMemoryEnabled,
+  dispatch,
 }: {
   videoId: string;
   transcript: string;
   isStandalone: boolean;
   openFolderFetcher: FetcherWithComponents<unknown>;
   deleteLinkFetcher: FetcherWithComponents<unknown>;
-  setIncludeCourseStructure: (v: boolean) => void;
-  setPreviewFilePath: (v: string) => void;
-  setIsPreviewModalOpen: (v: boolean) => void;
-  setIsPasteModalOpen: (v: boolean) => void;
-  setIsLessonPasteModalOpen: (v: boolean) => void;
-  setFileToDelete: (v: string) => void;
-  setIsDeleteModalOpen: (v: boolean) => void;
-  setIsAddLinkModalOpen: (v: boolean) => void;
-  setMemoryEnabled: (v: boolean) => void;
+  dispatch: React.Dispatch<WritePageAction>;
 }) {
   const handleCopyTranscript = useCallback(
     () => navigator.clipboard.writeText(transcript),
@@ -43,20 +24,16 @@ export function useVideoContextHandlers({
 
   const handleIncludeCourseStructureChange = useCallback(
     (checked: boolean) => {
-      setIncludeCourseStructure(checked);
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem(COURSE_STRUCTURE_STORAGE_KEY, String(checked));
-      }
+      dispatch({ type: "set-include-course-structure", value: checked });
     },
-    [setIncludeCourseStructure]
+    [dispatch]
   );
 
   const handleFileClick = useCallback(
     (filePath: string) => {
-      setPreviewFilePath(filePath);
-      setIsPreviewModalOpen(true);
+      dispatch({ type: "open-preview-modal", filePath });
     },
-    [setPreviewFilePath, setIsPreviewModalOpen]
+    [dispatch]
   );
 
   const handleOpenFolderClick = useCallback(() => {
@@ -69,17 +46,16 @@ export function useVideoContextHandlers({
   const handleAddFromClipboardClick = useMemo(
     () =>
       isStandalone
-        ? () => setIsPasteModalOpen(true)
-        : () => setIsLessonPasteModalOpen(true),
-    [isStandalone, setIsPasteModalOpen, setIsLessonPasteModalOpen]
+        ? () => dispatch({ type: "set-paste-modal-open", value: true })
+        : () => dispatch({ type: "set-lesson-paste-modal-open", value: true }),
+    [isStandalone, dispatch]
   );
 
   const handleDeleteFile = useCallback(
     (filename: string) => {
-      setFileToDelete(filename);
-      setIsDeleteModalOpen(true);
+      dispatch({ type: "open-delete-modal", filename });
     },
-    [setFileToDelete, setIsDeleteModalOpen]
+    [dispatch]
   );
 
   const handleDeleteLink = useCallback(
@@ -93,18 +69,15 @@ export function useVideoContextHandlers({
   );
 
   const handleAddLinkClick = useCallback(
-    () => setIsAddLinkModalOpen(true),
-    [setIsAddLinkModalOpen]
+    () => dispatch({ type: "set-add-link-modal-open", value: true }),
+    [dispatch]
   );
 
   const handleMemoryEnabledChange = useCallback(
     (enabled: boolean) => {
-      setMemoryEnabled(enabled);
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem(MEMORY_ENABLED_STORAGE_KEY, String(enabled));
-      }
+      dispatch({ type: "set-memory-enabled", value: enabled });
     },
-    [setMemoryEnabled]
+    [dispatch]
   );
 
   return {

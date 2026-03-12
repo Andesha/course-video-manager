@@ -12,6 +12,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   type HTMLAttributes,
@@ -25,10 +26,6 @@ import { useBannedPhrases } from "@/hooks/use-banned-phrases";
 
 import {
   partsToText,
-  MODE_STORAGE_KEY,
-  MODEL_STORAGE_KEY,
-  COURSE_STRUCTURE_STORAGE_KEY,
-  MEMORY_ENABLED_STORAGE_KEY,
   loadMessagesFromStorage,
   saveMessagesToStorage,
 } from "./write-utils";
@@ -44,6 +41,7 @@ import { DocumentPanel } from "./document-panel";
 import { useDocumentFlow } from "./use-document-flow";
 import { useVideoContextHandlers } from "./use-video-context-handlers";
 import { useToolbarProps } from "./use-toolbar-props";
+import { writePageReducer, createInitialState } from "./write-page-reducer";
 
 export interface WritePageProps {
   videoId: string;
@@ -93,51 +91,38 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     repoId,
     memory: initialMemory,
   } = loaderData;
-  const [mode, setMode] = useState<Mode>(() => {
-    if (typeof localStorage !== "undefined") {
-      const saved = localStorage.getItem(MODE_STORAGE_KEY);
-      return (saved as Mode) || "article";
-    }
-    return "article";
-  });
-  const [model, setModel] = useState<Model>(() => {
-    if (typeof localStorage !== "undefined") {
-      const saved = localStorage.getItem(MODEL_STORAGE_KEY);
-      return (saved as Model) || "claude-haiku-4-5";
-    }
-    return "claude-haiku-4-5";
-  });
-  const [enabledFiles, setEnabledFiles] = useState<Set<string>>(() => {
-    if (mode === "style-guide-skill-building") {
-      return new Set(
-        files
-          .filter((f) => f.path.toLowerCase().endsWith("readme.md"))
-          .map((f) => f.path)
-      );
-    }
-    return new Set(files.filter((f) => f.defaultEnabled).map((f) => f.path));
-  });
-  const [includeTranscript, setIncludeTranscript] = useState(true);
-  const [enabledSections, setEnabledSections] = useState<Set<string>>(() => {
-    return new Set(clipSections.map((s) => s.id));
-  });
 
-  const [isAddVideoToNextLessonModalOpen, setIsAddVideoToNextLessonModalOpen] =
-    useState(false);
-  const [includeCourseStructure, setIncludeCourseStructure] = useState(() => {
-    if (typeof localStorage !== "undefined") {
-      return localStorage.getItem(COURSE_STRUCTURE_STORAGE_KEY) === "true";
-    }
-    return false;
-  });
+  const [state, dispatch] = useReducer(
+    writePageReducer,
+    { files, clipSections, initialMemory },
+    createInitialState
+  );
 
-  const [memory, setMemory] = useState(initialMemory);
-  const [memoryEnabled, setMemoryEnabled] = useState(() => {
-    if (typeof localStorage !== "undefined") {
-      return localStorage.getItem(MEMORY_ENABLED_STORAGE_KEY) === "true";
-    }
-    return false;
-  });
+  const {
+    mode,
+    model,
+    enabledFiles,
+    includeTranscript,
+    enabledSections,
+    includeCourseStructure,
+    memory,
+    memoryEnabled,
+    docCapturingKey,
+    isCopied,
+    isAddVideoToNextLessonModalOpen,
+    isFileModalOpen,
+    selectedFilename,
+    selectedFileContent,
+    isPasteModalOpen,
+    isDeleteModalOpen,
+    fileToDelete,
+    isLessonPasteModalOpen,
+    isPreviewModalOpen,
+    previewFilePath,
+    isBannedPhrasesModalOpen,
+    isAddLinkModalOpen,
+  } = state;
+
   const memorySaveTimeoutRef = useRef<
     ReturnType<typeof setTimeout> | undefined
   >(undefined);
@@ -203,8 +188,6 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     });
 
   // ChooseScreenshot support for document panel
-  const [docCapturingKey, setDocCapturingKey] = useState<string | null>(null);
-
   const handleDocCapture = useCallback(
     async (
       clipIndex: number,
@@ -213,7 +196,7 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
       videoFilename: string
     ) => {
       const key = `doc-${clipIndex}-${alt}`;
-      setDocCapturingKey(key);
+      dispatch({ type: "set-doc-capturing-key", key });
       try {
         const res = await fetch(`/api/videos/${videoId}/capture-screenshot`, {
           method: "POST",
@@ -239,7 +222,7 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
       } catch (err) {
         console.error("Screenshot capture failed:", err);
       } finally {
-        setDocCapturingKey(null);
+        dispatch({ type: "set-doc-capturing-key", key: null });
       }
     },
     [videoId, documentRef, updateDocument]
@@ -324,36 +307,28 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     if (messages.length > 0) {
       saveMessagesToStorage(videoId, mode, messages);
     }
-    setMode(newMode);
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(MODE_STORAGE_KEY, newMode);
-    }
+    dispatch({ type: "set-mode", mode: newMode });
     setMessages(loadMessagesFromStorage(videoId, newMode));
     if (newMode === "style-guide-skill-building") {
-      setEnabledFiles(
-        new Set(
+      dispatch({
+        type: "set-enabled-files",
+        files: new Set(
           files
             .filter((f) => f.path.toLowerCase().endsWith("readme.md"))
             .map((f) => f.path)
-        )
-      );
+        ),
+      });
     }
     if (
       (newMode === "scoping-discussion" || newMode === "scoping-document") &&
       courseStructure
     ) {
-      setIncludeCourseStructure(true);
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem(COURSE_STRUCTURE_STORAGE_KEY, "true");
-      }
+      dispatch({ type: "set-include-course-structure", value: true });
     }
   };
 
   const handleModelChange = (newModel: Model) => {
-    setModel(newModel);
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(MODEL_STORAGE_KEY, newModel);
-    }
+    dispatch({ type: "set-model", model: newModel });
   };
 
   const handleClearChat = () => {
@@ -401,20 +376,8 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     }
   }, [openFolderFetcher.state, openFolderFetcher.data]);
 
-  const [isCopied, setIsCopied] = useState(false);
   const revalidator = useRevalidator();
 
-  const [isFileModalOpen, setIsFileModalOpen] = useState(false);
-  const [selectedFilename, setSelectedFilename] = useState<string>("");
-  const [selectedFileContent, setSelectedFileContent] = useState<string>("");
-  const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [fileToDelete, setFileToDelete] = useState<string>("");
-  const [isLessonPasteModalOpen, setIsLessonPasteModalOpen] = useState(false);
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const [previewFilePath, setPreviewFilePath] = useState<string>("");
-  const [isBannedPhrasesModalOpen, setIsBannedPhrasesModalOpen] =
-    useState(false);
   const {
     phrases: bannedPhrases,
     addPhrase: addBannedPhrase,
@@ -422,7 +385,6 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     updatePhrase: updateBannedPhrase,
     resetToDefaults: resetBannedPhrases,
   } = useBannedPhrases();
-  const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
 
   const {
     handleCopyTranscript,
@@ -440,15 +402,7 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     isStandalone,
     openFolderFetcher,
     deleteLinkFetcher,
-    setIncludeCourseStructure,
-    setPreviewFilePath,
-    setIsPreviewModalOpen,
-    setIsPasteModalOpen,
-    setIsLessonPasteModalOpen,
-    setFileToDelete,
-    setIsDeleteModalOpen,
-    setIsAddLinkModalOpen,
-    setMemoryEnabled,
+    dispatch,
   });
 
   const { violations, composeFixMessage } = useLint(
@@ -470,10 +424,7 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
   );
 
   const handleGoLive = () => {
-    setMode("interview");
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(MODE_STORAGE_KEY, "interview");
-    }
+    dispatch({ type: "set-mode", mode: "interview" });
     const transcriptEnabled =
       clipSections.length > 0 ? enabledSections.size > 0 : includeTranscript;
     sendMessage(
@@ -503,18 +454,11 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
       );
       if (response.ok) {
         const content = await response.text();
-        setSelectedFilename(filename);
-        setSelectedFileContent(content);
-        setIsFileModalOpen(true);
+        dispatch({ type: "open-file-modal", filename, content });
       }
     } catch (error) {
       console.error("Failed to read file:", error);
     }
-  };
-
-  const handleModalClose = (setter: (open: boolean) => void, open: boolean) => {
-    setter(open);
-    if (!open) revalidator.revalidate();
   };
 
   const toolbarProps = useToolbarProps({
@@ -523,7 +467,7 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     model,
     status,
     isCopied,
-    setIsCopied,
+    setIsCopied: (v: boolean) => dispatch({ type: "set-is-copied", value: v }),
     violations,
     hasExplainerOrProblem,
     isStandalone,
@@ -539,7 +483,8 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     onModelChange: handleModelChange,
     onGoLive: handleGoLive,
     onClearChat: handleClearChat,
-    onOpenBannedPhrases: () => setIsBannedPhrasesModalOpen(true),
+    onOpenBannedPhrases: () =>
+      dispatch({ type: "set-banned-phrases-modal-open", value: true }),
   });
 
   const chatProps = useMemo(
@@ -578,16 +523,22 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
           onCopyTranscript={handleCopyTranscript}
           clipSections={clipSections}
           enabledSections={enabledSections}
-          onEnabledSectionsChange={setEnabledSections}
+          onEnabledSectionsChange={(sections: Set<string>) =>
+            dispatch({ type: "set-enabled-sections", sections })
+          }
           includeTranscript={includeTranscript}
-          onIncludeTranscriptChange={setIncludeTranscript}
+          onIncludeTranscriptChange={(value: boolean) =>
+            dispatch({ type: "set-include-transcript", value })
+          }
           courseStructure={courseStructure}
           includeCourseStructure={includeCourseStructure}
           onIncludeCourseStructureChange={handleIncludeCourseStructureChange}
           files={files}
           isStandalone={isStandalone}
           enabledFiles={enabledFiles}
-          onEnabledFilesChange={setEnabledFiles}
+          onEnabledFilesChange={(files: Set<string>) =>
+            dispatch({ type: "set-enabled-files", files })
+          }
           onFileClick={handleFileClick}
           onOpenFolderClick={handleOpenFolderClick}
           onAddFromClipboardClick={handleAddFromClipboardClick}
@@ -597,7 +548,11 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
           onAddLinkClick={handleAddLinkClick}
           onDeleteLink={handleDeleteLink}
           memory={repoId ? memory : undefined}
-          onMemoryChange={repoId ? setMemory : undefined}
+          onMemoryChange={
+            repoId
+              ? (m: string) => dispatch({ type: "set-memory", memory: m })
+              : undefined
+          }
           memoryEnabled={memoryEnabled}
           onMemoryEnabledChange={handleMemoryEnabledChange}
         />
@@ -626,45 +581,64 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
         selectedFilename={selectedFilename}
         selectedFileContent={selectedFileContent}
         isFileModalOpen={isFileModalOpen}
-        onFileModalClose={(open) => handleModalClose(setIsFileModalOpen, open)}
+        onFileModalClose={(open) => {
+          dispatch(
+            open
+              ? {
+                  type: "open-file-modal",
+                  filename: selectedFilename,
+                  content: selectedFileContent,
+                }
+              : { type: "close-file-modal" }
+          );
+          if (!open) revalidator.revalidate();
+        }}
         isPasteModalOpen={isPasteModalOpen}
-        onPasteModalClose={(open) =>
-          handleModalClose(setIsPasteModalOpen, open)
-        }
+        onPasteModalClose={(open) => {
+          dispatch({ type: "set-paste-modal-open", value: open });
+          if (!open) revalidator.revalidate();
+        }}
         onStandaloneFileCreated={(filename) =>
-          setEnabledFiles((prev) => new Set([...prev, filename]))
+          dispatch({ type: "add-enabled-file", filename })
         }
         isDeleteModalOpen={isDeleteModalOpen}
         fileToDelete={fileToDelete}
-        onDeleteModalClose={(open) =>
-          handleModalClose(setIsDeleteModalOpen, open)
-        }
+        onDeleteModalClose={(open) => {
+          dispatch(
+            open
+              ? { type: "open-delete-modal", filename: fileToDelete }
+              : { type: "close-delete-modal" }
+          );
+          if (!open) revalidator.revalidate();
+        }}
         isLessonPasteModalOpen={isLessonPasteModalOpen}
-        onLessonPasteModalClose={(open) =>
-          handleModalClose(setIsLessonPasteModalOpen, open)
-        }
+        onLessonPasteModalClose={(open) => {
+          dispatch({ type: "set-lesson-paste-modal-open", value: open });
+          if (!open) revalidator.revalidate();
+        }}
         onLessonFileCreated={(filename) =>
-          setEnabledFiles((prev) => new Set([...prev, filename]))
+          dispatch({ type: "add-enabled-file", filename })
         }
         isPreviewModalOpen={isPreviewModalOpen}
         previewFilePath={previewFilePath}
-        onPreviewModalClose={() => {
-          setIsPreviewModalOpen(false);
-          setPreviewFilePath("");
-        }}
+        onPreviewModalClose={() => dispatch({ type: "close-preview-modal" })}
         isBannedPhrasesModalOpen={isBannedPhrasesModalOpen}
-        onBannedPhrasesModalOpenChange={setIsBannedPhrasesModalOpen}
+        onBannedPhrasesModalOpenChange={(open) =>
+          dispatch({ type: "set-banned-phrases-modal-open", value: open })
+        }
         bannedPhrases={bannedPhrases}
         onAddBannedPhrase={addBannedPhrase}
         onRemoveBannedPhrase={removeBannedPhrase}
         onUpdateBannedPhrase={updateBannedPhrase}
         onResetBannedPhrases={resetBannedPhrases}
         isAddLinkModalOpen={isAddLinkModalOpen}
-        onAddLinkModalOpenChange={setIsAddLinkModalOpen}
+        onAddLinkModalOpenChange={(open) =>
+          dispatch({ type: "set-add-link-modal-open", value: open })
+        }
         nextLessonWithoutVideo={nextLessonWithoutVideo}
         isAddVideoToNextLessonModalOpen={isAddVideoToNextLessonModalOpen}
-        onAddVideoToNextLessonModalOpenChange={
-          setIsAddVideoToNextLessonModalOpen
+        onAddVideoToNextLessonModalOpenChange={(open) =>
+          dispatch({ type: "set-add-video-modal-open", value: open })
         }
       />
     </>

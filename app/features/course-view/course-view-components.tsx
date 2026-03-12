@@ -118,12 +118,6 @@ export function StatsBar({
           {gitStatus.total} change{gitStatus.total !== 1 ? "s" : ""}
         </span>
       )}
-      {gitStatus && gitStatus.total === 0 && (
-        <span className="inline-flex items-center gap-1 rounded-md bg-green-500/20 px-2 py-1 text-xs font-medium text-green-600">
-          <GitBranch className="w-3 h-3" />
-          clean
-        </span>
-      )}
     </div>
   );
 }

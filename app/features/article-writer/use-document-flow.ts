@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DocumentAgentMessage } from "./types";
 import { loadDocumentFromStorage, saveDocumentToStorage } from "./write-utils";
 import { applyEdits, type DocumentEdit } from "./document-editing-engine";
@@ -24,6 +24,10 @@ export function useDocumentFlow(opts: {
   const [document, setDocument] = useState<string | undefined>(() =>
     loadDocumentFromStorage(videoId)
   );
+
+  // Ref tracks latest document for use in async callbacks (avoids stale closures)
+  const documentRef = useRef(document);
+  documentRef.current = document;
 
   const processedToolCallsRef = useRef<Set<string>>(new Set());
 
@@ -67,7 +71,7 @@ export function useDocumentFlow(opts: {
         ) {
           processedToolCallsRef.current.add(part.toolCallId);
           const edits = part.input.edits as DocumentEdit[];
-          const currentDoc = document ?? "";
+          const currentDoc = documentRef.current ?? "";
           const result = applyEdits(currentDoc, edits);
           if ("error" in result) {
             addToolOutput({
@@ -87,7 +91,7 @@ export function useDocumentFlow(opts: {
         }
       }
     }
-  }, [messages, isDocumentMode, videoId, addToolOutput, document]);
+  }, [messages, isDocumentMode, videoId, addToolOutput]);
 
   // Stream document content live during writeDocument tool call
   useEffect(() => {
@@ -119,10 +123,13 @@ export function useDocumentFlow(opts: {
     }
   };
 
-  const updateDocument = (content: string) => {
-    setDocument(content);
-    saveDocumentToStorage(videoId, content);
-  };
+  const updateDocument = useCallback(
+    (content: string) => {
+      setDocument(content);
+      saveDocumentToStorage(videoId, content);
+    },
+    [videoId]
+  );
 
-  return { document, clearDocument, saveDocument, updateDocument };
+  return { document, documentRef, clearDocument, saveDocument, updateDocument };
 }

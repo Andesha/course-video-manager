@@ -3,9 +3,6 @@
  * These operate on the raw message text to replace or update ChooseScreenshot tags.
  */
 
-const CHOOSE_SCREENSHOT_REGEX =
-  /<ChooseScreenshot\s+clipIndex=\{(\d+)\}\s+alt="([^"]*)"\s*\/>/g;
-
 /**
  * Replace a specific ChooseScreenshot tag with a markdown image link.
  * Matches by clipIndex and alt text to identify the correct tag when
@@ -46,9 +43,12 @@ export function updateChooseScreenshotClipIndex(
 
 /**
  * Check if a message contains any unresolved ChooseScreenshot tags.
+ * Uses a fresh regex (no /g flag) to avoid stateful lastIndex issues.
  */
 export function hasUnresolvedScreenshots(message: string): boolean {
-  return CHOOSE_SCREENSHOT_REGEX.test(message);
+  return /<ChooseScreenshot\s+clipIndex=\{(\d+)\}\s+alt="([^"]*)"\s*\/>/.test(
+    message
+  );
 }
 
 function escapeRegex(str: string): string {

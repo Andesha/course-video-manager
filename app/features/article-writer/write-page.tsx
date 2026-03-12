@@ -193,7 +193,7 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     messages: initialMessages,
   });
 
-  const { document, clearDocument, saveDocument, updateDocument } =
+  const { document, documentRef, clearDocument, saveDocument, updateDocument } =
     useDocumentFlow({
       videoId,
       isDocumentMode,
@@ -225,10 +225,11 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
           throw new Error(text || "Failed to capture screenshot");
         }
         const { imagePath } = await res.json();
-        if (document) {
+        const currentDoc = documentRef.current;
+        if (currentDoc) {
           updateDocument(
             replaceChooseScreenshotWithImage(
-              document,
+              currentDoc,
               clipIndex,
               alt,
               imagePath
@@ -241,18 +242,24 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
         setDocCapturingKey(null);
       }
     },
-    [videoId, document, updateDocument]
+    [videoId, documentRef, updateDocument]
   );
 
   const handleDocClipIndexChange = useCallback(
     (currentIndex: number, newIndex: number, alt: string) => {
-      if (document) {
+      const currentDoc = documentRef.current;
+      if (currentDoc) {
         updateDocument(
-          updateChooseScreenshotClipIndex(document, currentIndex, newIndex, alt)
+          updateChooseScreenshotClipIndex(
+            currentDoc,
+            currentIndex,
+            newIndex,
+            alt
+          )
         );
       }
     },
-    [document, updateDocument]
+    [documentRef, updateDocument]
   );
 
   const docExtraComponents = useMemo((): Options["components"] | undefined => {

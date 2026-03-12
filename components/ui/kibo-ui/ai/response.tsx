@@ -176,13 +176,13 @@ const getComponents = (imageBasePath: string): Options["components"] => ({
     );
   },
   img: ({ node, children, className, ...props }) => {
-    const fullImagePath = `${imageBasePath}/${props.src}`;
+    const isExternalUrl =
+      props.src?.startsWith("http://") || props.src?.startsWith("https://");
+    const src = isExternalUrl
+      ? props.src
+      : `/view-image?imagePath=${imageBasePath}/${props.src}`;
     return (
-      <img
-        {...props}
-        className={cn("max-w-full my-6", className)}
-        src={`/view-image?imagePath=${fullImagePath}`}
-      />
+      <img {...props} className={cn("max-w-full my-6", className)} src={src} />
     );
   },
 });

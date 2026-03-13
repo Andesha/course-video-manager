@@ -147,6 +147,64 @@ describe("buildTranscript", () => {
     ]);
   });
 
+  it("handles clips before the first section correctly", () => {
+    const clips = [
+      makeClip("a0", "Before section one"),
+      makeClip("a1", "Also before section"),
+      makeClip("a3", "After section"),
+      makeClip("a4", "Also after section"),
+    ];
+    const sections = [makeSection("s1", "a2", "First Section")];
+    const result = buildTranscript(clips, sections);
+
+    expect(result.transcript).toBe(
+      "[1] Before section one [2] Also before section\n\n## First Section\n\n[3] After section [4] Also after section"
+    );
+    expect(result.indexedClips).toHaveLength(4);
+    // "After section" (2) + "Also after section" (3) = 5
+    expect(result.sections).toEqual([
+      { id: "s1", name: "First Section", order: "a2", wordCount: 5 },
+    ]);
+  });
+
+  it("handles clips before the first section with multiple sections", () => {
+    const clips = [
+      makeClip("a0", "Preamble text"),
+      makeClip("a2", "In first section"),
+      makeClip("a4", "In second section"),
+    ];
+    const sections = [
+      makeSection("s1", "a1", "Section One"),
+      makeSection("s2", "a3", "Section Two"),
+    ];
+    const result = buildTranscript(clips, sections);
+
+    expect(result.transcript).toBe(
+      "[1] Preamble text\n\n## Section One\n\n[2] In first section\n\n## Section Two\n\n[3] In second section"
+    );
+    expect(result.sections).toEqual([
+      { id: "s1", name: "Section One", order: "a1", wordCount: 3 },
+      { id: "s2", name: "Section Two", order: "a3", wordCount: 3 },
+    ]);
+  });
+
+  it("handles null text clips before the first section", () => {
+    const clips = [
+      makeClip("a0", null),
+      makeClip("a1", "Before section"),
+      makeClip("a3", "After section"),
+    ];
+    const sections = [makeSection("s1", "a2", "My Section")];
+    const result = buildTranscript(clips, sections);
+
+    expect(result.transcript).toBe(
+      "[2] Before section\n\n## My Section\n\n[3] After section"
+    );
+    expect(result.indexedClips).toHaveLength(3);
+    expect(result.indexedClips[0]!.index).toBe(1);
+    expect(result.indexedClips[0]!.text).toBeNull();
+  });
+
   it("preserves clip metadata in indexedClips", () => {
     const clips = [
       makeClip("a0", "Test", {

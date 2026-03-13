@@ -121,6 +121,10 @@ You can include multiple edits in a single editDocument call. Edits are applied 
 
 If an edit fails (e.g. text not found), you will receive an error message. Read it carefully and retry with corrected text.
 
+## Adding Screenshots
+
+When the user asks you to add a screenshot or image from the video, you MUST use the \`<ChooseScreenshot clipIndex={N} alt="description" />\` component — do NOT insert a raw markdown image like \`![alt](url)\`. The ChooseScreenshot component lets the user interactively select the exact frame from the video clip. The clipIndex must reference a valid clip index from the transcript.
+
 After calling editDocument, you may add a brief conversational message explaining what you changed.`
     : `
 

@@ -141,6 +141,15 @@ export const BASE_LINT_RULES: LintRule[] = [
     fixInstruction: `The newsletter must start with exactly: ${NEWSLETTER_GREETING_SIGIL}`,
     required: true,
   },
+  {
+    id: "no-leading-heading",
+    name: "No Leading Heading",
+    description: "Content must not start with a markdown heading",
+    modes: ["article", "skill-building"],
+    pattern: /^#+ /,
+    fixInstruction:
+      "Remove the markdown heading from the start of the content. Do not start with a heading - begin directly with the content.",
+  },
 ];
 
 /**

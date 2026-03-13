@@ -16,10 +16,11 @@ export class CloudinaryMarkdownService extends Effect.Service<CloudinaryMarkdown
           const matches = Array.from(body.matchAll(IMAGE_REGEX));
 
           if (matches.length === 0) {
-            return body;
+            return { body, uploadedFilePaths: [] as string[] };
           }
 
           let updatedBody = body;
+          const uploadedFilePaths: string[] = [];
 
           for (const match of matches) {
             const [fullMatch, altText, imagePath] = match;
@@ -54,9 +55,11 @@ export class CloudinaryMarkdownService extends Effect.Service<CloudinaryMarkdown
               fullMatch!,
               `![${altText}](${secureUrl})`
             );
+
+            uploadedFilePaths.push(resolvedPath);
           }
 
-          return updatedBody;
+          return { body: updatedBody, uploadedFilePaths };
         }
       );
 

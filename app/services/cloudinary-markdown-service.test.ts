@@ -54,7 +54,8 @@ describe("CloudinaryMarkdownService", () => {
     Effect.gen(function* () {
       const body = "# Hello World\n\nThis is a paragraph with no images.";
       const result = yield* uploadImagesInMarkdown(body, "/base");
-      expect(result).toBe(body);
+      expect(result.body).toBe(body);
+      expect(result.uploadedFilePaths).toEqual([]);
     }).pipe(Effect.provide(testLayer))
   );
 
@@ -62,9 +63,12 @@ describe("CloudinaryMarkdownService", () => {
     Effect.gen(function* () {
       const body = "Check this out:\n\n![diagram](diagram.png)\n\nNice!";
       const result = yield* uploadImagesInMarkdown(body, "/base");
-      expect(result).toBe(
+      expect(result.body).toBe(
         "Check this out:\n\n![diagram](https://res.cloudinary.com/test/ai-hero-images/diagram_1)\n\nNice!"
       );
+      expect(result.uploadedFilePaths).toEqual([
+        path.resolve("/base", "diagram.png"),
+      ]);
     }).pipe(Effect.provide(testLayer))
   );
 
@@ -73,7 +77,8 @@ describe("CloudinaryMarkdownService", () => {
       const body =
         "![hosted](https://example.com/image.png)\n![also](http://example.com/other.jpg)";
       const result = yield* uploadImagesInMarkdown(body, "/base");
-      expect(result).toBe(body);
+      expect(result.body).toBe(body);
+      expect(result.uploadedFilePaths).toEqual([]);
       expect(uploadCounter).toBe(0);
     }).pipe(Effect.provide(testLayer))
   );
@@ -86,13 +91,17 @@ describe("CloudinaryMarkdownService", () => {
         "![another-local](images/chart.png)",
       ].join("\n");
       const result = yield* uploadImagesInMarkdown(body, "/base");
-      expect(result).toBe(
+      expect(result.body).toBe(
         [
           "![local](https://res.cloudinary.com/test/ai-hero-images/screenshot_1)",
           "![remote](https://cdn.example.com/photo.jpg)",
           "![another-local](https://res.cloudinary.com/test/ai-hero-images/chart_2)",
         ].join("\n")
       );
+      expect(result.uploadedFilePaths).toEqual([
+        path.resolve("/base", "screenshot.png"),
+        path.resolve("/base", "images/chart.png"),
+      ]);
     }).pipe(Effect.provide(testLayer))
   );
 
@@ -100,7 +109,7 @@ describe("CloudinaryMarkdownService", () => {
     Effect.gen(function* () {
       const body = "![A detailed diagram of the architecture](arch.png)";
       const result = yield* uploadImagesInMarkdown(body, "/base");
-      expect(result).toContain(
+      expect(result.body).toContain(
         "![A detailed diagram of the architecture](https://res.cloudinary.com/test/ai-hero-images/arch_1)"
       );
     }).pipe(Effect.provide(testLayer))
@@ -110,7 +119,7 @@ describe("CloudinaryMarkdownService", () => {
     Effect.gen(function* () {
       const body = "![](image.png)";
       const result = yield* uploadImagesInMarkdown(body, "/base");
-      expect(result).toBe(
+      expect(result.body).toBe(
         "![](https://res.cloudinary.com/test/ai-hero-images/image_1)"
       );
     }).pipe(Effect.provide(testLayer))
@@ -121,13 +130,13 @@ describe("CloudinaryMarkdownService", () => {
       const body =
         "![first](a.png)\n\nSome text\n\n![second](b.png)\n\n![third](c.png)";
       const result = yield* uploadImagesInMarkdown(body, "/base");
-      expect(result).toContain(
+      expect(result.body).toContain(
         "![first](https://res.cloudinary.com/test/ai-hero-images/a_1)"
       );
-      expect(result).toContain(
+      expect(result.body).toContain(
         "![second](https://res.cloudinary.com/test/ai-hero-images/b_2)"
       );
-      expect(result).toContain(
+      expect(result.body).toContain(
         "![third](https://res.cloudinary.com/test/ai-hero-images/c_3)"
       );
       expect(uploadCounter).toBe(3);

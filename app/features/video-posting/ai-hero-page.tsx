@@ -8,6 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -22,6 +28,7 @@ import {
   Loader2Icon,
   SendIcon,
   SparklesIcon,
+  Trash2Icon,
 } from "lucide-react";
 import type { CourseStructure } from "@/components/video-context-panel";
 import type { SectionWithWordCount } from "@/features/article-writer/types";
@@ -221,14 +228,14 @@ export function AiHeroPage({
   // Cloudinary image upload state
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
-  const handleUploadImages = async () => {
+  const handleUploadImages = async (deleteLocalFiles: boolean) => {
     if (!body.trim()) return;
     setIsUploadingImages(true);
     try {
       const response = await fetch(`/api/videos/${videoId}/upload-images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, deleteLocalFiles }),
       });
       if (!response.ok) {
         const errorText = await response.text();
@@ -237,7 +244,11 @@ export function AiHeroPage({
       const result = await response.json();
       if (result.body !== body) {
         setBody(result.body);
-        toast.success("Images uploaded to Cloudinary");
+        toast.success(
+          deleteLocalFiles
+            ? "Images uploaded to Cloudinary and local files deleted"
+            : "Images uploaded to Cloudinary"
+        );
       } else {
         toast("No local images found to upload");
       }
@@ -383,24 +394,50 @@ export function AiHeroPage({
         </div>
 
         {/* Upload Images to Cloudinary */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleUploadImages}
-          disabled={isUploadingImages || !body.trim()}
-        >
-          {isUploadingImages ? (
-            <>
-              <Loader2Icon className="h-4 w-4 animate-spin" />
-              Uploading images...
-            </>
-          ) : (
-            <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isUploadingImages || !body.trim()}
+            >
+              {isUploadingImages ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 animate-spin" />
+                  Uploading images...
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="h-4 w-4" />
+                  Upload Images to Cloudinary
+                </>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={() => handleUploadImages(false)}>
               <ImageIcon className="h-4 w-4" />
-              Upload Images to Cloudinary
-            </>
-          )}
-        </Button>
+              <div>
+                <div>Upload</div>
+                <p className="text-muted-foreground text-xs">
+                  Upload local images to Cloudinary and update references
+                </p>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => handleUploadImages(true)}
+            >
+              <Trash2Icon className="h-4 w-4" />
+              <div>
+                <div>Upload and delete local files</div>
+                <p className="text-xs opacity-70">
+                  Upload to Cloudinary, then remove the local image files
+                </p>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* SEO Description */}
         <div className="space-y-2">

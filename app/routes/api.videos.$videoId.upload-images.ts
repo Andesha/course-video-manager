@@ -5,10 +5,12 @@ import { CloudinaryMarkdownService } from "@/services/cloudinary-markdown-servic
 import { runtimeLive } from "@/services/layer.server";
 import { data } from "react-router";
 import { getStandaloneVideoFilePath } from "@/services/standalone-video-files";
+import fs from "node:fs";
 import path from "node:path";
 
 const RequestSchema = Schema.Struct({
   body: Schema.String,
+  deleteLocalFiles: Schema.optional(Schema.Boolean),
 });
 
 export const action = async (args: Route.ActionArgs) => {
@@ -16,7 +18,8 @@ export const action = async (args: Route.ActionArgs) => {
   const json = await args.request.json();
 
   return Effect.gen(function* () {
-    const { body } = yield* Schema.decodeUnknown(RequestSchema)(json);
+    const { body, deleteLocalFiles } =
+      yield* Schema.decodeUnknown(RequestSchema)(json);
 
     const db = yield* DBFunctionsService;
     const cloudinaryMarkdown = yield* CloudinaryMarkdownService;
@@ -35,12 +38,21 @@ export const action = async (args: Route.ActionArgs) => {
       baseDir = path.join(repo.filePath, section.path, video.lesson.path);
     }
 
-    const updatedBody = yield* cloudinaryMarkdown.uploadImagesInMarkdown(
+    const result = yield* cloudinaryMarkdown.uploadImagesInMarkdown(
       body,
       baseDir
     );
 
-    return { body: updatedBody };
+    // Delete local files if requested and upload succeeded
+    if (deleteLocalFiles && result.uploadedFilePaths.length > 0) {
+      for (const filePath of result.uploadedFilePaths) {
+        yield* Effect.try(() => fs.unlinkSync(filePath)).pipe(
+          Effect.catchAll(() => Effect.void)
+        );
+      }
+    }
+
+    return { body: result.body };
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
     Effect.catchTag("ParseError", () => {

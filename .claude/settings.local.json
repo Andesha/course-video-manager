@@ -48,7 +48,7 @@
       "Bash(npx vitest:*)",
       "Bash(npm test:*)",
       "Bash(gh repo view:*)",
-      "Bash(gh issue create:*)",
+      "Bash(gh issue create *)",
       "mcp__ide__getDiagnostics",
       "Bash(git -C /home/mattpocock/repos/matt/course-video-manager add app/features/video-editor/clip-state-reducer.ts app/features/video-editor/clip-state-reducer.test.ts)",
       "Bash(git -C:*)",

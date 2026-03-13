@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 if [ -z "$1" ]; then
   echo "Usage: $0 <iterations>"

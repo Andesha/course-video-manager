@@ -18,6 +18,8 @@ export interface LintRule {
   fixInstruction: string | ((matches: string[]) => string);
   /** If true, the pattern must be present (violation if missing). Default: false (violation if present) */
   required?: boolean;
+  /** Optional filter to exclude false-positive matches. Return true to keep the match. */
+  matchFilter?: (match: string) => boolean;
 }
 
 /**
@@ -159,6 +161,12 @@ export const BASE_LINT_RULES: LintRule[] = [
       "A markdown heading must have at least 2 paragraphs after it before the next heading",
     modes: ["article", "skill-building"],
     pattern: /^#{1,6} .+\n\n(?:(?!#{1,6} |\n)[^\n]+\n)*\n(?=#{1,6} )/gm,
+    matchFilter: (match: string) => {
+      // Exclude matches where the content is a table (lines starting with |)
+      const lines = match.split("\n").filter((l) => l.trim() !== "");
+      const contentLines = lines.slice(1); // Skip the heading line
+      return !contentLines.every((l) => l.trimStart().startsWith("|"));
+    },
     fixInstruction: (matches: string[]) => {
       const sections = matches.map((m) => {
         const heading = m.split("\n")[0];

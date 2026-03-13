@@ -49,7 +49,13 @@ export function useLint(
       }
 
       // Check for matches
-      const matches = text.match(rule.pattern);
+      let matches = text.match(rule.pattern);
+
+      // Apply optional match filter to remove false positives
+      if (matches && rule.matchFilter) {
+        const filtered = matches.filter(rule.matchFilter);
+        matches = filtered.length > 0 ? (filtered as RegExpMatchArray) : null;
+      }
 
       if (rule.required) {
         // Required rules: violation if pattern is NOT present

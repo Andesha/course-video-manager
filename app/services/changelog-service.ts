@@ -144,7 +144,14 @@ function detectChanges(
       } else {
         // Check for renames and content changes
         const prevLesson = prevLessonLookup.get(lesson.previousVersionLessonId);
-        if (prevLesson) {
+        if (!prevLesson) {
+          // Previous lesson not found (e.g. it was a ghost lesson that is now real)
+          // Treat as a new lesson
+          changes.newLessons.push({
+            sectionPath: section.path,
+            lessonPath: lesson.path,
+          });
+        } else if (prevLesson) {
           // Check for path rename (only count if actual name changed, not just number)
           if (hasNameChanged(prevLesson.lessonPath, lesson.path)) {
             changes.renamedLessons.push({

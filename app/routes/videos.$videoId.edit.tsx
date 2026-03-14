@@ -180,6 +180,13 @@ export const loader = async (args: Route.LoaderArgs) => {
       }).pipe(Effect.map(EffectArray.filter((f) => f !== null)));
     }
 
+    const whiteNoiseAssetPath = path.join(
+      process.cwd(),
+      "assets",
+      "effects",
+      "white-noise.mp4"
+    );
+
     return {
       video,
       items: sortedItems,
@@ -188,6 +195,7 @@ export const loader = async (args: Route.LoaderArgs) => {
       videoCount: lesson?.videos.length ?? 1,
       standaloneFiles,
       files,
+      whiteNoiseAssetPath,
     };
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
@@ -285,6 +293,7 @@ export const ComponentInner = (props: Route.ComponentProps) => {
         clipService,
         clipStateRef,
         revalidate: () => revalidator.revalidate(),
+        whiteNoiseAssetPath: props.loaderData.whiteNoiseAssetPath,
       }),
     [props.loaderData.video.id]
   );
@@ -403,6 +412,9 @@ export const ComponentInner = (props: Route.ComponentProps) => {
       }}
       onAddClipSectionAt={(name, position, itemId) => {
         dispatch({ type: "add-clip-section-at", name, position, itemId });
+      }}
+      onAddEffectClipAt={(effectType, position, itemId) => {
+        dispatch({ type: "add-effect-clip-at", effectType, position, itemId });
       }}
       onRestoreClip={(clipId) => {
         dispatch({ type: "restore-clip", clipId });

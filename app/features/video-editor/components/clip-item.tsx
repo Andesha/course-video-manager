@@ -3,6 +3,9 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
@@ -90,6 +93,10 @@ export const ClipItem = (props: ClipItemProps) => {
   const selectedClipsSet = useContextSelector(
     VideoEditorContext,
     (ctx) => ctx.selectedClipsSet
+  );
+  const onAddEffectClipAt = useContextSelector(
+    VideoEditorContext,
+    (ctx) => ctx.onAddEffectClipAt
   );
   const setIsCreateVideoModalOpen = useContextSelector(
     VideoEditorContext,
@@ -229,6 +236,37 @@ export const ClipItem = (props: ClipItemProps) => {
           <PlusIcon />
           Add Section After
         </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <PlusIcon />
+            Add Effect Before
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            <ContextMenuItem
+              onSelect={() => {
+                onAddEffectClipAt("white-noise", "before", clip.frontendId);
+              }}
+            >
+              White Noise
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <PlusIcon />
+            Add Effect After
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            <ContextMenuItem
+              onSelect={() => {
+                onAddEffectClipAt("white-noise", "after", clip.frontendId);
+              }}
+            >
+              White Noise
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
         <ContextMenuSeparator />
         <ContextMenuItem
           disabled={isFirstItem}

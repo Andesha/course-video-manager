@@ -97,7 +97,8 @@ export type FrontendTimelineItem =
       frontendId: FrontendId;
       databaseId: DatabaseId;
     }
-  | { type: "clip-section-optimistically-added"; frontendId: FrontendId };
+  | { type: "clip-section-optimistically-added"; frontendId: FrontendId }
+  | { type: "effect-clip-optimistically-added"; frontendId: FrontendId };
 
 /**
  * Converts a frontend insertion point to a database insertion point.

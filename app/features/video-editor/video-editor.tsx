@@ -149,6 +149,11 @@ export const VideoEditor = (props: {
     position: "before" | "after",
     itemId: FrontendId
   ) => void;
+  onAddEffectClipAt: (
+    effectType: "white-noise",
+    position: "before" | "after",
+    itemId: FrontendId
+  ) => void;
   onRestoreClip: (clipId: FrontendId) => void;
   onPermanentlyRemoveArchived: (sessionId: SessionId) => void;
   onClearAllArchived: () => void;
@@ -435,6 +440,7 @@ export const VideoEditor = (props: {
       onAddClipSection: props.onAddClipSection,
       onUpdateClipSection: props.onUpdateClipSection,
       onAddClipSectionAt: props.onAddClipSectionAt,
+      onAddEffectClipAt: props.onAddEffectClipAt,
       onRestoreClip: props.onRestoreClip,
       onPermanentlyRemoveArchived: props.onPermanentlyRemoveArchived,
       onClipFinished: () => {
@@ -528,6 +534,7 @@ export const VideoEditor = (props: {
       props.onAddClipSection,
       props.onUpdateClipSection,
       props.onAddClipSectionAt,
+      props.onAddEffectClipAt,
       props.onRestoreClip,
       props.onPermanentlyRemoveArchived,
       copyTranscriptToClipboard,

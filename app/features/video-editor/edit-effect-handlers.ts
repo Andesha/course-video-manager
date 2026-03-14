@@ -18,12 +18,19 @@ export interface EditEffectHandlersDeps {
   clipService: ClipService;
   clipStateRef: React.RefObject<ClipReducerState>;
   revalidate: () => void;
+  whiteNoiseAssetPath: string;
 }
 
 export function createEditEffectHandlers(
   deps: EditEffectHandlersDeps
 ): EffectsMap<ClipReducerState, ClipReducerAction, ClipReducerEffect> {
-  const { videoId, clipService, clipStateRef, revalidate } = deps;
+  const {
+    videoId,
+    clipService,
+    clipStateRef,
+    revalidate,
+    whiteNoiseAssetPath,
+  } = deps;
 
   return {
     "archive-clips": (_state, effect, dispatch) => {
@@ -279,6 +286,39 @@ export function createEditEffectHandlers(
               error instanceof Error
                 ? error.message
                 : "Failed to create clip section at position",
+          });
+        });
+    },
+    "create-effect-clip-at": (_state, effect, dispatch) => {
+      clipService
+        .createEffectClipAtPosition({
+          videoId,
+          position: effect.position,
+          targetItemId: effect.targetItemId,
+          targetItemType: effect.targetItemType,
+          videoFilename: whiteNoiseAssetPath,
+          sourceStartTime: effect.sourceStartTime,
+          sourceEndTime: effect.sourceEndTime,
+          text: effect.text,
+          scene: effect.scene,
+          profile: effect.profile,
+          beatType: effect.beatType,
+        })
+        .then((clip) => {
+          dispatch({
+            type: "effect-clip-created",
+            frontendId: effect.frontendId,
+            databaseId: clip.id as DatabaseId,
+          });
+        })
+        .catch((error) => {
+          dispatch({
+            type: "effect-failed",
+            effectType: "create-effect-clip-at",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to create effect clip",
           });
         });
     },

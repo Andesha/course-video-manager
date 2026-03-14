@@ -85,7 +85,23 @@ export const createFrontendId = (): FrontendId => {
   return crypto.randomUUID() as FrontendId;
 };
 
-export type Clip = ClipOnDatabase | ClipOptimisticallyAdded;
+export type ClipEffectOptimisticallyAdded = {
+  type: "effect-clip-optimistically-added";
+  frontendId: FrontendId;
+  videoFilename: string;
+  sourceStartTime: number;
+  sourceEndTime: number;
+  text: string;
+  scene: string;
+  profile: string;
+  beatType: BeatType;
+  insertionOrder: number;
+};
+
+export type Clip =
+  | ClipOnDatabase
+  | ClipOptimisticallyAdded
+  | ClipEffectOptimisticallyAdded;
 
 export type ClipSectionOnDatabase = {
   type: "clip-section-on-database";
@@ -241,6 +257,17 @@ export type ClipReducerAction =
       type: "permanently-remove-all-archived";
     }
   | {
+      type: "add-effect-clip-at";
+      effectType: "white-noise";
+      position: "before" | "after";
+      itemId: FrontendId;
+    }
+  | {
+      type: "effect-clip-created";
+      frontendId: FrontendId;
+      databaseId: DatabaseId;
+    }
+  | {
       type: "effect-failed";
       effectType: string;
       message: string;
@@ -302,6 +329,20 @@ export type ClipReducerEffect =
       position: "before" | "after";
       targetItemId: DatabaseId;
       targetItemType: "clip" | "clip-section";
+    }
+  | {
+      type: "create-effect-clip-at";
+      frontendId: FrontendId;
+      position: "before" | "after";
+      targetItemId: DatabaseId;
+      targetItemType: "clip" | "clip-section";
+      videoFilename: string;
+      sourceStartTime: number;
+      sourceEndTime: number;
+      text: string;
+      scene: string;
+      profile: string;
+      beatType: string;
     }
   | {
       type: "start-session-timeout";

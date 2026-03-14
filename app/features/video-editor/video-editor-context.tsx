@@ -86,6 +86,11 @@ export type VideoEditorContextType = {
     position: "before" | "after",
     itemId: FrontendId
   ) => void;
+  onAddEffectClipAt: (
+    effectType: "white-noise",
+    position: "before" | "after",
+    itemId: FrontendId
+  ) => void;
   onClipFinished: () => void;
   onUpdateCurrentTime: (time: number) => void;
   onSectionClick: (sectionId: FrontendId, index: number) => void;

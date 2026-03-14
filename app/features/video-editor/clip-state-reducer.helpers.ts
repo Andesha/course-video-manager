@@ -532,6 +532,9 @@ export const archiveClips = (
       } else {
         itemToReplace.shouldArchive = true;
       }
+    } else if (itemToReplace.type === "effect-clip-optimistically-added") {
+      // Effect clips that haven't been persisted yet can just be removed
+      items[index] = undefined;
     } else if (itemToReplace.type === "on-database") {
       clipsToArchive.add(itemToReplace.databaseId);
       items[index] = undefined;

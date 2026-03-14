@@ -22,6 +22,7 @@ import {
   handleNewDatabaseClips,
   handleNewOptimisticClipDetected,
 } from "./clip-state-reducer.helpers";
+import { handleAddEffectClipAt } from "./clip-state-reducer-effect-clip-helpers";
 
 export namespace clipStateReducer {
   export type State = ClipReducerState;
@@ -559,6 +560,36 @@ export const clipStateReducer: EffectReducer<
     }
     case "add-clip-section-at":
       return handleAddClipSectionAt(state, action, exec);
+    case "add-effect-clip-at":
+      return handleAddEffectClipAt(state, action, exec);
+    case "effect-clip-created": {
+      return {
+        ...state,
+        items: state.items.map((item) => {
+          if (
+            item.frontendId === action.frontendId &&
+            item.type === "effect-clip-optimistically-added"
+          ) {
+            const onDatabase: ClipOnDatabase = {
+              type: "on-database",
+              frontendId: item.frontendId,
+              databaseId: action.databaseId,
+              videoFilename: item.videoFilename,
+              sourceStartTime: item.sourceStartTime,
+              sourceEndTime: item.sourceEndTime,
+              text: item.text,
+              transcribedAt: new Date(),
+              scene: item.scene,
+              profile: item.profile,
+              insertionOrder: item.insertionOrder,
+              beatType: item.beatType,
+            };
+            return onDatabase;
+          }
+          return item;
+        }),
+      };
+    }
     case "clip-section-created": {
       return {
         ...state,

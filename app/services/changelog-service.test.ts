@@ -29,6 +29,25 @@ function makeLesson(
   };
 }
 
+function makeLessonWithEmptyVideo(
+  id: string,
+  path: string,
+  previousVersionLessonId: string | null = null
+): VersionWithStructure["sections"][number]["lessons"][number] {
+  return {
+    id,
+    path,
+    previousVersionLessonId,
+    videos: [
+      {
+        id: `video-${id}`,
+        path: `${path}.mp4`,
+        clips: [],
+      },
+    ],
+  };
+}
+
 function makeSection(
   id: string,
   path: string,
@@ -315,6 +334,114 @@ describe("changelog-service", () => {
       expect(changelog).toContain("+ New clip");
       expect(changelog).not.toContain("  Hello  ");
       expect(changelog).not.toContain("  New clip  ");
+    });
+  });
+
+  describe("lesson existence based on clips", () => {
+    it("does not report a lesson with no clips as new", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, ["Hello"]),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l2", "01.01-welcome", "l1", ["Hello"]),
+            // New lesson entity but no clips — should not appear
+            makeLesson("l3", "01.02-setup"),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      expect(changelog).toContain("No significant changes");
+      expect(changelog).not.toContain("01.02-setup");
+    });
+
+    it("reports a lesson as new when it gains its first clip", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, ["Hello"]),
+          // Lesson exists but has no clips
+          makeLessonWithEmptyVideo("l2", "01.02-setup"),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l3", "01.01-welcome", "l1", ["Hello"]),
+            // Now has clips — should be treated as new
+            makeLesson("l4", "01.02-setup", "l2", ["Setup guide"]),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      expect(changelog).toContain("01.02-setup");
+      expect(changelog).toContain("New Lessons");
+    });
+
+    it("reports a lesson as deleted when it loses all clips", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, ["Hello"]),
+          makeLesson("l2", "01.02-setup", null, ["Setup guide"]),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l3", "01.01-welcome", "l1", ["Hello"]),
+            // Lesson still exists but lost all clips
+            makeLessonWithEmptyVideo("l4", "01.02-setup", "l2"),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      expect(changelog).toContain("Deleted");
+      expect(changelog).toContain("01.02-setup");
+    });
+
+    it("does not report changes when lesson had no clips and still has none", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, ["Hello"]),
+          makeLessonWithEmptyVideo("l2", "01.02-setup"),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l3", "01.01-welcome", "l1", ["Hello"]),
+            makeLessonWithEmptyVideo("l4", "01.02-setup", "l2"),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      expect(changelog).toContain("No significant changes");
     });
 
     it("shows no significant changes when nothing changed", () => {

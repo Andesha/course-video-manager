@@ -42,6 +42,16 @@ type VersionChanges = {
 };
 
 /**
+ * A lesson "exists" for changelog purposes if it has at least one video
+ * with at least one clip.
+ */
+function lessonHasContent(
+  lesson: VersionWithStructure["sections"][number]["lessons"][number]
+): boolean {
+  return lesson.videos.some((v) => v.clips.length > 0);
+}
+
+/**
  * Get the transcript text for a lesson by combining all clip texts.
  */
 function getLessonTranscript(
@@ -153,42 +163,64 @@ function detectChanges(
     }
 
     for (const lesson of section.lessons) {
+      const currentHasContent = lessonHasContent(lesson);
+
       if (!lesson.previousVersionLessonId) {
         // New lesson (no previous version reference)
-        changes.newLessons.push({
-          sectionPath: section.path,
-          lessonPath: lesson.path,
-        });
+        if (currentHasContent) {
+          changes.newLessons.push({
+            sectionPath: section.path,
+            lessonPath: lesson.path,
+          });
+        }
       } else {
         // Check for renames and content changes
         const prevLesson = prevLessonLookup.get(lesson.previousVersionLessonId);
         if (!prevLesson) {
           // Previous lesson not found (e.g. it was a ghost lesson that is now real)
-          // Treat as a new lesson
-          changes.newLessons.push({
-            sectionPath: section.path,
-            lessonPath: lesson.path,
-          });
-        } else if (prevLesson) {
-          // Check for path rename (only count if actual name changed, not just number)
-          if (hasNameChanged(prevLesson.lessonPath, lesson.path)) {
-            changes.renamedLessons.push({
-              sectionPath: section.path,
-              oldPath: prevLesson.lessonPath,
-              newPath: lesson.path,
-            });
-          }
-
-          // Check for content changes via transcript comparison
-          const currentTranscript = getLessonTranscript(lesson);
-          if (prevLesson.transcript !== currentTranscript) {
-            changes.contentChanges.push({
+          // Treat as a new lesson only if it has content
+          if (currentHasContent) {
+            changes.newLessons.push({
               sectionPath: section.path,
               lessonPath: lesson.path,
-              oldClips: prevLesson.clips,
-              newClips: getLessonClips(lesson),
             });
           }
+        } else {
+          const prevHadContent = prevLesson.clips.length > 0;
+
+          if (!prevHadContent && currentHasContent) {
+            // Lesson gained content — treat as new
+            changes.newLessons.push({
+              sectionPath: section.path,
+              lessonPath: lesson.path,
+            });
+          } else if (prevHadContent && !currentHasContent) {
+            // Lesson lost all content — treat as deleted
+            changes.deletedLessons.push({
+              sectionPath: section.path,
+              lessonPath: prevLesson.lessonPath,
+            });
+          } else if (prevHadContent && currentHasContent) {
+            // Both have content — check for renames and content changes
+            if (hasNameChanged(prevLesson.lessonPath, lesson.path)) {
+              changes.renamedLessons.push({
+                sectionPath: section.path,
+                oldPath: prevLesson.lessonPath,
+                newPath: lesson.path,
+              });
+            }
+
+            const currentTranscript = getLessonTranscript(lesson);
+            if (prevLesson.transcript !== currentTranscript) {
+              changes.contentChanges.push({
+                sectionPath: section.path,
+                lessonPath: lesson.path,
+                oldClips: prevLesson.clips,
+                newClips: getLessonClips(lesson),
+              });
+            }
+          }
+          // else: neither had content — no change
         }
       }
     }
@@ -217,7 +249,10 @@ function detectChanges(
     } else {
       // Section still exists, check for deleted lessons within it
       for (const prevLesson of prevSection.lessons) {
-        if (!referencedLessonIds.has(prevLesson.id)) {
+        if (
+          !referencedLessonIds.has(prevLesson.id) &&
+          lessonHasContent(prevLesson)
+        ) {
           changes.deletedLessons.push({
             sectionPath: prevSection.path,
             lessonPath: prevLesson.path,

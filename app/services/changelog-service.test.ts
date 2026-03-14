@@ -111,6 +111,212 @@ describe("changelog-service", () => {
       expect(changelog).toContain("01.02-setup");
     });
 
+    it("shows transcript diff in details/summary when content changes", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, [
+            "Hello and welcome.",
+            "Let's get started.",
+          ]),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l2", "01.01-welcome", "l1", [
+              "Hello and welcome.",
+              "Let's get started.",
+              "Here is a new section.",
+            ]),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      expect(changelog).toContain("<details>");
+      expect(changelog).toContain("<summary>");
+      expect(changelog).toContain("</details>");
+      expect(changelog).toContain("+ Here is a new section.");
+    });
+
+    it("shows removed clips with minus prefix", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, [
+            "Hello and welcome.",
+            "This will be removed.",
+            "Let's get started.",
+          ]),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l2", "01.01-welcome", "l1", [
+              "Hello and welcome.",
+              "Let's get started.",
+            ]),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      expect(changelog).toContain("- This will be removed.");
+    });
+
+    it("shows only context lines around changes, not the full transcript", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, [
+            "Line one.",
+            "Line two.",
+            "Line three.",
+            "Line four.",
+            "Line five.",
+            "Line six.",
+            "Line seven.",
+            "Line eight.",
+            "Line nine.",
+            "Line ten.",
+          ]),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l2", "01.01-welcome", "l1", [
+              "Line one.",
+              "Line two.",
+              "Line three.",
+              "Line four.",
+              "Line five CHANGED.",
+              "Line six.",
+              "Line seven.",
+              "Line eight.",
+              "Line nine.",
+              "Line ten.",
+            ]),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      // Should show context around the change
+      expect(changelog).toContain("Line three.");
+      expect(changelog).toContain("Line four.");
+      expect(changelog).toContain("- Line five.");
+      expect(changelog).toContain("+ Line five CHANGED.");
+      expect(changelog).toContain("Line six.");
+      expect(changelog).toContain("Line seven.");
+      expect(changelog).toContain("Line eight.");
+      // Should NOT show lines far from the change
+      expect(changelog).not.toContain("Line one.");
+      expect(changelog).not.toContain("Line ten.");
+    });
+
+    it("separates non-contiguous hunks with ellipsis", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, [
+            "A1.",
+            "A2.",
+            "A3.",
+            "A4.",
+            "A5.",
+            "A6.",
+            "A7.",
+            "A8.",
+            "A9.",
+            "A10.",
+            "A11.",
+            "A12.",
+            "A13.",
+            "A14.",
+            "A15.",
+          ]),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l2", "01.01-welcome", "l1", [
+              "A1.",
+              "A2 CHANGED.",
+              "A3.",
+              "A4.",
+              "A5.",
+              "A6.",
+              "A7.",
+              "A8.",
+              "A9.",
+              "A10.",
+              "A11.",
+              "A12.",
+              "A13.",
+              "A14 CHANGED.",
+              "A15.",
+            ]),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      expect(changelog).toContain("...");
+      expect(changelog).toContain("- A2.");
+      expect(changelog).toContain("+ A2 CHANGED.");
+      expect(changelog).toContain("- A14.");
+      expect(changelog).toContain("+ A14 CHANGED.");
+    });
+
+    it("trims clip text in diffs", () => {
+      const prevVersion = makeVersion("v1", "v1.0", [
+        makeSection("s1", "01-intro", [
+          makeLesson("l1", "01.01-welcome", null, ["  Hello  "]),
+        ]),
+      ]);
+
+      const currentVersion = makeVersion("v2", "v2.0", [
+        makeSection(
+          "s2",
+          "01-intro",
+          [
+            makeLesson("l2", "01.01-welcome", "l1", [
+              "  Hello  ",
+              "  New clip  ",
+            ]),
+          ],
+          "s1"
+        ),
+      ]);
+
+      const changelog = generateChangelog([currentVersion, prevVersion]);
+
+      expect(changelog).toContain("Hello");
+      expect(changelog).toContain("+ New clip");
+      expect(changelog).not.toContain("  Hello  ");
+      expect(changelog).not.toContain("  New clip  ");
+    });
+
     it("shows no significant changes when nothing changed", () => {
       const prevVersion = makeVersion("v1", "v1.0", [
         makeSection("s1", "01-intro", [

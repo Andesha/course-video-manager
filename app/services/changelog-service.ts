@@ -31,7 +31,12 @@ type VersionChanges = {
     oldPath: string;
     newPath: string;
   }>;
-  contentChanges: Array<{ sectionPath: string; lessonPath: string }>;
+  contentChanges: Array<{
+    sectionPath: string;
+    lessonPath: string;
+    oldClips: string[];
+    newClips: string[];
+  }>;
   deletedSections: Array<{ sectionPath: string }>;
   deletedLessons: Array<{ sectionPath: string; lessonPath: string }>;
 };
@@ -51,17 +56,29 @@ function getLessonTranscript(
 /**
  * Build a lookup map from lesson ID to its data for a given version.
  */
+function getLessonClips(
+  lesson: VersionWithStructure["sections"][number]["lessons"][number]
+): string[] {
+  return lesson.videos.flatMap((v) => v.clips.map((c) => c.text.trim()));
+}
+
 function buildLessonLookup(version: VersionWithStructure): Map<
   string,
   {
     sectionPath: string;
     lessonPath: string;
     transcript: string;
+    clips: string[];
   }
 > {
   const lookup = new Map<
     string,
-    { sectionPath: string; lessonPath: string; transcript: string }
+    {
+      sectionPath: string;
+      lessonPath: string;
+      transcript: string;
+      clips: string[];
+    }
   >();
 
   for (const section of version.sections) {
@@ -70,6 +87,7 @@ function buildLessonLookup(version: VersionWithStructure): Map<
         sectionPath: section.path,
         lessonPath: lesson.path,
         transcript: getLessonTranscript(lesson),
+        clips: getLessonClips(lesson),
       });
     }
   }
@@ -167,6 +185,8 @@ function detectChanges(
             changes.contentChanges.push({
               sectionPath: section.path,
               lessonPath: lesson.path,
+              oldClips: prevLesson.clips,
+              newClips: getLessonClips(lesson),
             });
           }
         }
@@ -242,12 +262,123 @@ function formatPathHumanReadable(path: string): string {
 }
 
 /**
+ * Compute the longest common subsequence table for two arrays of strings.
+ */
+function lcsTable(a: string[], b: string[]): number[][] {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () =>
+    Array(n + 1).fill(0)
+  );
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        dp[i]![j] = dp[i - 1]![j - 1]! + 1;
+      } else {
+        dp[i]![j] = Math.max(dp[i - 1]![j]!, dp[i]![j - 1]!);
+      }
+    }
+  }
+  return dp;
+}
+
+type DiffLine = { type: "keep" | "add" | "remove"; text: string };
+
+/**
+ * Produce a list of diff lines from two arrays of clip texts.
+ */
+function diffClips(oldClips: string[], newClips: string[]): DiffLine[] {
+  const dp = lcsTable(oldClips, newClips);
+  const result: DiffLine[] = [];
+  let i = oldClips.length;
+  let j = newClips.length;
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldClips[i - 1] === newClips[j - 1]) {
+      result.push({ type: "keep", text: oldClips[i - 1]! });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i]![j - 1]! >= dp[i - 1]![j]!)) {
+      result.push({ type: "add", text: newClips[j - 1]! });
+      j--;
+    } else {
+      result.push({ type: "remove", text: oldClips[i - 1]! });
+      i--;
+    }
+  }
+
+  return result.reverse();
+}
+
+/**
+ * Format diff lines into hunks with context lines around changes.
+ */
+function formatDiffWithContext(
+  diffLines: DiffLine[],
+  contextLines: number = 3
+): string[] {
+  // Find indices of changed lines
+  const changedIndices = new Set<number>();
+  for (let i = 0; i < diffLines.length; i++) {
+    if (diffLines[i]!.type !== "keep") {
+      changedIndices.add(i);
+    }
+  }
+
+  if (changedIndices.size === 0) return [];
+
+  // Determine which lines to include (changed + context)
+  const includedIndices = new Set<number>();
+  for (const idx of changedIndices) {
+    for (
+      let c = Math.max(0, idx - contextLines);
+      c <= Math.min(diffLines.length - 1, idx + contextLines);
+      c++
+    ) {
+      includedIndices.add(c);
+    }
+  }
+
+  const lines: string[] = [];
+  let lastIncluded = -2;
+
+  for (let i = 0; i < diffLines.length; i++) {
+    if (!includedIndices.has(i)) continue;
+
+    // Add separator between non-contiguous hunks
+    if (lastIncluded >= 0 && i > lastIncluded + 1) {
+      lines.push("  ...");
+    }
+    lastIncluded = i;
+
+    const line = diffLines[i]!;
+    switch (line.type) {
+      case "add":
+        lines.push(`+ ${line.text}`);
+        break;
+      case "remove":
+        lines.push(`- ${line.text}`);
+        break;
+      case "keep":
+        lines.push(`  ${line.text}`);
+        break;
+    }
+  }
+
+  return lines;
+}
+
+/**
  * Organize changes by section for hierarchical display.
  */
 type SectionChanges = {
   newLessons: string[];
   renamedLessons: Array<{ oldPath: string; newPath: string }>;
-  updatedLessons: string[];
+  updatedLessons: Array<{
+    lessonPath: string;
+    oldClips: string[];
+    newClips: string[];
+  }>;
   deletedLessons: string[];
   sectionRenamed?: { oldPath: string; newPath: string };
 };
@@ -292,7 +423,11 @@ function organizeChangesBySection(
 
   // Add updated lessons (content changes)
   for (const lesson of changes.contentChanges) {
-    getSection(lesson.sectionPath).updatedLessons.push(lesson.lessonPath);
+    getSection(lesson.sectionPath).updatedLessons.push({
+      lessonPath: lesson.lessonPath,
+      oldClips: lesson.oldClips,
+      newClips: lesson.newClips,
+    });
   }
 
   // Add deleted lessons (map old section path to new if section was renamed)
@@ -469,8 +604,23 @@ export function generateChangelog(versions: VersionWithStructure[]): string {
       if (sectionChange.updatedLessons.length > 0) {
         lines.push("#### Updated");
         lines.push("");
-        for (const lessonPath of sectionChange.updatedLessons) {
-          lines.push(`- ${formatCodePath(lessonPath)}`);
+        for (const lesson of sectionChange.updatedLessons) {
+          lines.push(`- ${formatCodePath(lesson.lessonPath)}`);
+          const diff = diffClips(lesson.oldClips, lesson.newClips);
+          const diffOutput = formatDiffWithContext(diff);
+          if (diffOutput.length > 0) {
+            lines.push("");
+            lines.push("  <details>");
+            lines.push("  <summary>Transcript changes</summary>");
+            lines.push("");
+            lines.push("  ```diff");
+            for (const diffLine of diffOutput) {
+              lines.push(`  ${diffLine}`);
+            }
+            lines.push("  ```");
+            lines.push("");
+            lines.push("  </details>");
+          }
         }
         lines.push("");
       }

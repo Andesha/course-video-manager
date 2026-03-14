@@ -39,7 +39,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useFetcher } from "react-router";
 
 type Fetcher = ReturnType<typeof useFetcher>;
@@ -124,11 +124,20 @@ export function SectionGrid({
   deleteVideoFileFetcher: Fetcher;
   deleteVideoFetcher: Fetcher;
 }) {
+  const COLLAPSED_SECTIONS_KEY = "collapsed-sections";
+
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set()
+    () => {
+      if (typeof localStorage === "undefined") return new Set();
+      try {
+        const stored = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
+        if (stored) return new Set(JSON.parse(stored) as string[]);
+      } catch {}
+      return new Set();
+    }
   );
 
-  const toggleSection = (sectionId: string) => {
+  const toggleSection = useCallback((sectionId: string) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
       if (next.has(sectionId)) {
@@ -136,9 +145,17 @@ export function SectionGrid({
       } else {
         next.add(sectionId);
       }
+      if (typeof localStorage !== "undefined") {
+        try {
+          localStorage.setItem(
+            COLLAPSED_SECTIONS_KEY,
+            JSON.stringify([...next])
+          );
+        } catch {}
+      }
       return next;
     });
-  };
+  }, []);
 
   // Optimistic section reordering
   let displaySections = currentRepo.sections;
@@ -356,7 +373,8 @@ export function SectionGrid({
                                   <ChevronRight
                                     className={cn(
                                       "w-4 h-4 transition-transform",
-                                      !collapsedSections.has(section.id) &&
+                                      (!collapsedSections.has(section.id) ||
+                                        searchQuery) &&
                                         "rotate-90"
                                     )}
                                   />
@@ -364,7 +382,8 @@ export function SectionGrid({
                               </div>
                             </div>
                           </div>
-                          {!collapsedSections.has(section.id) && (
+                          {(!collapsedSections.has(section.id) ||
+                            searchQuery) && (
                             <div className="p-2">
                               <DndContext
                                 sensors={sensors}

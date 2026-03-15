@@ -60,7 +60,7 @@ export default function Component(props: Route.ComponentProps) {
           </Link>
         </div>
 
-        <div className="prose prose-invert max-w-none">
+        <div className="prose dark:prose-invert max-w-none">
           <Markdown rehypePlugins={[rehypeRaw]}>{changelog}</Markdown>
         </div>
       </div>

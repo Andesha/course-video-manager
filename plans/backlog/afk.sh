@@ -1,10 +1,13 @@
 #!/bin/bash
 set -eo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 if [ -z "$1" ]; then
   echo "Usage: $0 <iterations>"
   exit 1
 fi
+
+require_sandbox
 
 # jq filter to extract streaming text from assistant messages
 stream_text='select(.type == "assistant").message.content[]? | select(.type == "text").text // empty | gsub("\n"; "\r\n") | . + "\r\n\n"'

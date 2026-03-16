@@ -25,15 +25,13 @@ import {
   FileX,
   GitBranch,
   PencilIcon,
-  Send,
   Trash2,
   FolderPen,
   ClipboardCopy,
+  Upload,
 } from "lucide-react";
 import { Link, useFetcher } from "react-router";
 import { toast } from "sonner";
-import { useContext } from "react";
-import { UploadContext } from "@/features/upload-manager/upload-context";
 
 export function ActionsDropdown({
   currentCourse,
@@ -50,8 +48,6 @@ export function ActionsDropdown({
   gitPushFetcher: ReturnType<typeof useFetcher>;
   handleBatchExport: () => void;
 }) {
-  const { startDropboxPublish } = useContext(UploadContext);
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -75,18 +71,16 @@ export function ActionsDropdown({
             </span>
           </div>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => {
-            startDropboxPublish(currentCourse.id, currentCourse.name);
-          }}
-        >
-          <Send className="w-4 h-4 mr-2" />
-          <div className="flex flex-col">
-            <span className="font-medium">Publish</span>
-            <span className="text-xs text-muted-foreground">
-              Copy all files to Dropbox
-            </span>
-          </div>
+        <DropdownMenuItem asChild>
+          <Link to={`/courses/${currentCourse.id}/publish`}>
+            <Upload className="w-4 h-4 mr-2" />
+            <div className="flex flex-col">
+              <span className="font-medium">Publish</span>
+              <span className="text-xs text-muted-foreground">
+                Review changes and publish to Dropbox
+              </span>
+            </div>
+          </Link>
         </DropdownMenuItem>
 
         {data.gitStatus && data.gitStatus.total > 0 && (

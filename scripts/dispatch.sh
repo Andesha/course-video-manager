@@ -15,15 +15,60 @@ if [ "$ISSUE_COUNT" -eq 0 ]; then
   exit 0
 fi
 
+echo "Fetching open RALPH PRs..."
+OPEN_PRS=$(gh pr list --state open --json number,title,body,headRefName --limit 100 | jq '[.[] | select(.headRefName | startswith("claude/"))]')
+OPEN_PR_COUNT=$(echo "$OPEN_PRS" | jq 'length')
+echo "Found $OPEN_PR_COUNT open RALPH PRs."
+
+echo "Fetching in-progress workflow runs..."
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+IN_PROGRESS_RUNS=$(gh run list --workflow=claude-work.yml --status=in_progress --json databaseId -q '.[].databaseId')
+QUEUED_RUNS=$(gh run list --workflow=claude-work.yml --status=queued --json databaseId -q '.[].databaseId')
+ALL_RUN_IDS=$(echo -e "${IN_PROGRESS_RUNS}\n${QUEUED_RUNS}" | grep -v '^$' || true)
+
+IN_PROGRESS_TASKS="[]"
+if [ -n "$ALL_RUN_IDS" ]; then
+  IN_PROGRESS_TASKS="["
+  FIRST=true
+  while read -r run_id; do
+    INPUTS=$(gh api "repos/$REPO/actions/runs/$run_id" --jq '.inputs // empty')
+    if [ -n "$INPUTS" ]; then
+      if [ "$FIRST" = true ]; then
+        FIRST=false
+      else
+        IN_PROGRESS_TASKS="${IN_PROGRESS_TASKS},"
+      fi
+      IN_PROGRESS_TASKS="${IN_PROGRESS_TASKS}${INPUTS}"
+    fi
+  done <<< "$ALL_RUN_IDS"
+  IN_PROGRESS_TASKS="${IN_PROGRESS_TASKS}]"
+fi
+
+IN_PROGRESS_COUNT=$(echo "$IN_PROGRESS_TASKS" | jq 'length')
+echo "Found $IN_PROGRESS_COUNT in-progress/queued tasks."
+
 echo "Asking orchestrator to analyze issues and plan tasks..."
 
 PROMPT="$(cat "$REPO_ROOT/scripts/dispatch-prompt.md")
 
 ## Open Issues
 
-$ISSUES"
+$ISSUES
+
+## Currently In-Progress Tasks
+
+These tasks are already running or queued on GitHub Actions. Do NOT dispatch work that conflicts with or duplicates these.
+
+$IN_PROGRESS_TASKS
+
+## Open RALPH PRs
+
+These PRs were created by previous RALPH runs and are still open (awaiting review/merge). Do NOT dispatch work that duplicates or conflicts with these.
+
+$OPEN_PRS"
 
 RESULT=$(echo "$PROMPT" | claude -p \
+  --model sonnet \
   --allowedTools "Read,Grep,Glob")
 
 # Extract JSON from <task_json> tags in the result

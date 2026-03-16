@@ -22,11 +22,11 @@ export const InsertionPointWithSession = () => {
     <div id={INSERTION_POINT_ID}>
       {/* Insertion point line */}
       <div className="flex items-center justify-center gap-4">
-        <div className="border-t-2 w-full border-blue-200 border-dashed flex-1" />
+        <div className="border-t-2 w-full border-blue-400 dark:border-blue-200 border-dashed flex-1" />
         <div className="flex items-center justify-center">
-          <PlusIcon className="size-5 text-blue-200" />
+          <PlusIcon className="size-5 text-blue-400 dark:text-blue-200" />
         </div>
-        <div className="border-t-2 w-full border-blue-200 border-dashed flex-1" />
+        <div className="border-t-2 w-full border-blue-400 dark:border-blue-200 border-dashed flex-1" />
       </div>
 
       {/* Session panels with animated height reveal */}

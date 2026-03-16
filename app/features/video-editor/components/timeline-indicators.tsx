@@ -11,12 +11,12 @@ export const InsertionPointIndicator = () => {
       id={INSERTION_POINT_ID}
       className="flex items-center justify-center gap-4"
     >
-      <div className="border-t-2 w-full border-blue-200 border-dashed flex-1" />
+      <div className="border-t-2 w-full border-blue-400 dark:border-blue-200 border-dashed flex-1" />
       <div className="flex items-center justify-center">
-        <PlusIcon className="size-5 text-blue-200" />
-        {/* <span className="text-blue-200 text-sm">New Clips</span> */}
+        <PlusIcon className="size-5 text-blue-400 dark:text-blue-200" />
+        {/* <span className="text-blue-400 dark:text-blue-200 text-sm">New Clips</span> */}
       </div>
-      <div className="border-t-2 w-full border-blue-200 border-dashed flex-1" />
+      <div className="border-t-2 w-full border-blue-400 dark:border-blue-200 border-dashed flex-1" />
     </div>
   );
 };

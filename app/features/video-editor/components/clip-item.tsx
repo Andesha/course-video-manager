@@ -114,7 +114,7 @@ export const ClipItem = (props: ClipItemProps) => {
           className={cn(
             "bg-card rounded-md text-left relative overflow-hidden allow-keydown flex w-full",
             isSelected && "outline-2 outline-ring bg-muted",
-            isCurrentClip && "bg-blue-900"
+            isCurrentClip && "bg-blue-100 dark:bg-blue-900"
           )}
           onClick={(e) => {
             dispatch({
@@ -147,9 +147,7 @@ export const ClipItem = (props: ClipItemProps) => {
               {/* Timecode overlay on image */}
               <div
                 className={cn(
-                  "absolute top-1 right-1 text-xs px-1.5 py-0.5 rounded bg-black/60 text-card-foreground flex items-center gap-1",
-                  isCurrentClip && "text-blue-100",
-                  isSelected && "text-white"
+                  "absolute top-1 right-1 text-xs px-1.5 py-0.5 rounded bg-black/60 text-white flex items-center gap-1"
                 )}
               >
                 {timecode}
@@ -166,7 +164,7 @@ export const ClipItem = (props: ClipItemProps) => {
             {/* Progress bar overlay on text */}
             {isCurrentClip && (
               <div
-                className="absolute top-0 left-0 h-full bg-blue-700 z-0 rounded"
+                className="absolute top-0 left-0 h-full bg-blue-300/50 dark:bg-blue-700 z-0 rounded"
                 style={{
                   width: `${percentComplete * 100}%`,
                 }}
@@ -197,7 +195,7 @@ export const ClipItem = (props: ClipItemProps) => {
                   <span
                     className={cn(
                       "text-card-foreground",
-                      isCurrentClip && "text-white"
+                      isCurrentClip && "text-blue-900 dark:text-white"
                     )}
                   >
                     {clip.text}

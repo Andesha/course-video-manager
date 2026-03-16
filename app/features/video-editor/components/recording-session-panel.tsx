@@ -40,7 +40,7 @@ const PendingClipRow = ({
     <div
       className={cn(
         "flex items-center gap-3 px-3 py-2 rounded text-sm",
-        isOrphaned ? "bg-amber-950/30" : "bg-card/50"
+        isOrphaned ? "bg-amber-100 dark:bg-amber-950/30" : "bg-card/50"
       )}
     >
       {isOrphaned ? (
@@ -51,7 +51,9 @@ const PendingClipRow = ({
       <span
         className={cn(
           "flex-1",
-          isOrphaned ? "text-amber-300" : "text-muted-foreground"
+          isOrphaned
+            ? "text-amber-700 dark:text-amber-300"
+            : "text-muted-foreground"
         )}
       >
         {isOrphaned
@@ -94,7 +96,9 @@ const ArchivedClipRow = ({
     <div
       className={cn(
         "flex items-center gap-3 px-3 py-2 rounded text-sm",
-        isOrphaned ? "bg-amber-950/20" : "bg-red-950/10"
+        isOrphaned
+          ? "bg-amber-50 dark:bg-amber-950/20"
+          : "bg-red-50 dark:bg-red-950/10"
       )}
     >
       {isOrphaned ? (
@@ -106,7 +110,7 @@ const ArchivedClipRow = ({
         className={cn(
           "flex-1",
           isOrphaned
-            ? "text-amber-300/70"
+            ? "text-amber-700 dark:text-amber-300/70"
             : "line-through " +
                 (isResolved
                   ? "text-muted-foreground"
@@ -214,13 +218,13 @@ export const SessionPanel = ({ panel }: { panel: SessionPanelData }) => {
       {/* Archived sub-section — always visible when items exist */}
       {hasArchived && (
         <div className="border-t border-border/50">
-          <div className="px-4 py-2 bg-red-950/20 flex items-center justify-between">
-            <span className="text-xs text-red-300/70">
+          <div className="px-4 py-2 bg-red-50 dark:bg-red-950/20 flex items-center justify-between">
+            <span className="text-xs text-red-600 dark:text-red-300/70">
               {panel.archivedClips.length} to clear
             </span>
             <button
               onClick={() => onPermanentlyRemoveArchived(panel.sessionId)}
-              className="text-xs text-red-400/70 hover:text-red-300 transition-colors"
+              className="text-xs text-red-500 hover:text-red-600 dark:text-red-400/70 dark:hover:text-red-300 transition-colors"
             >
               Clear all
             </button>

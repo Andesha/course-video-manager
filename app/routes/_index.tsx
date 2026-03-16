@@ -36,7 +36,7 @@ import { SectionGrid } from "@/features/course-view/section-grid";
 import {
   FilterBar,
   StatsBar,
-  NoRepoView,
+  NoCourseView,
   RouteModals,
 } from "@/features/course-view/course-view-components";
 import { NextTodoCard } from "@/features/course-view/next-todo-card";
@@ -243,7 +243,7 @@ export default function Component(props: Route.ComponentProps) {
   const selectedRepoId = searchParams.get("courseId");
   const { state: viewState, dispatch } = useCourseViewReducer();
   const {
-    isAddRepoModalOpen,
+    isAddCourseModalOpen,
     isCreateSectionModalOpen,
     isAddStandaloneVideoModalOpen,
     addGhostLessonSectionId,
@@ -457,10 +457,10 @@ export default function Component(props: Route.ComponentProps) {
       <AppSidebar
         repos={repos}
         standaloneVideos={loaderData.standaloneVideos}
-        selectedRepoId={selectedRepoId}
-        isAddRepoModalOpen={isAddRepoModalOpen}
-        setIsAddRepoModalOpen={(open) =>
-          dispatch({ type: "set-add-repo-modal-open", open })
+        selectedCourseId={selectedRepoId}
+        isAddCourseModalOpen={isAddCourseModalOpen}
+        setIsAddCourseModalOpen={(open) =>
+          dispatch({ type: "set-add-course-modal-open", open })
         }
         isAddStandaloneVideoModalOpen={isAddStandaloneVideoModalOpen}
         setIsAddStandaloneVideoModalOpen={(open) =>
@@ -610,7 +610,7 @@ export default function Component(props: Route.ComponentProps) {
               )}
             </>
           ) : (
-            <NoRepoView
+            <NoCourseView
               repos={repos}
               standaloneVideos={loaderData.standaloneVideos}
               dispatch={dispatch}
@@ -632,7 +632,7 @@ export default function Component(props: Route.ComponentProps) {
       <RouteModals
         currentRepo={currentRepo}
         data={loaderData}
-        selectedRepoId={selectedRepoId}
+        selectedCourseId={selectedRepoId}
         viewState={viewState}
         dispatch={dispatch}
         navigate={navigate}

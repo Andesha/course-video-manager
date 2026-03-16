@@ -26,15 +26,15 @@ export namespace courseViewReducer {
 
   export type State = {
     // Boolean modal toggles
-    isAddRepoModalOpen: boolean;
+    isAddCourseModalOpen: boolean;
     isCreateSectionModalOpen: boolean;
     isCreateVersionModalOpen: boolean;
     isVersionSelectorModalOpen: boolean;
     isEditVersionModalOpen: boolean;
-    isRenameRepoModalOpen: boolean;
+    isRenameCourseModalOpen: boolean;
     isDeleteVersionModalOpen: boolean;
     isClearVideoFilesModalOpen: boolean;
-    isRewriteRepoPathModalOpen: boolean;
+    isRewriteCoursePathModalOpen: boolean;
     isAddStandaloneVideoModalOpen: boolean;
     isCopyTranscriptModalOpen: boolean;
     copySectionTranscriptState: {
@@ -67,15 +67,15 @@ export namespace courseViewReducer {
 
   export type Action =
     // Boolean modal toggles
-    | { type: "set-add-repo-modal-open"; open: boolean }
+    | { type: "set-add-course-modal-open"; open: boolean }
     | { type: "set-create-section-modal-open"; open: boolean }
     | { type: "set-create-version-modal-open"; open: boolean }
     | { type: "set-version-selector-modal-open"; open: boolean }
     | { type: "set-edit-version-modal-open"; open: boolean }
-    | { type: "set-rename-repo-modal-open"; open: boolean }
+    | { type: "set-rename-course-modal-open"; open: boolean }
     | { type: "set-delete-version-modal-open"; open: boolean }
     | { type: "set-clear-video-files-modal-open"; open: boolean }
-    | { type: "set-rewrite-repo-path-modal-open"; open: boolean }
+    | { type: "set-rewrite-course-path-modal-open"; open: boolean }
     | { type: "set-add-standalone-video-modal-open"; open: boolean }
     | { type: "set-copy-transcript-modal-open"; open: boolean }
     | {
@@ -134,15 +134,15 @@ export namespace courseViewReducer {
 
 export function createInitialCourseViewState(): courseViewReducer.State {
   return {
-    isAddRepoModalOpen: false,
+    isAddCourseModalOpen: false,
     isCreateSectionModalOpen: false,
     isCreateVersionModalOpen: false,
     isVersionSelectorModalOpen: false,
     isEditVersionModalOpen: false,
-    isRenameRepoModalOpen: false,
+    isRenameCourseModalOpen: false,
     isDeleteVersionModalOpen: false,
     isClearVideoFilesModalOpen: false,
-    isRewriteRepoPathModalOpen: false,
+    isRewriteCoursePathModalOpen: false,
     isAddStandaloneVideoModalOpen: false,
     isCopyTranscriptModalOpen: false,
     copySectionTranscriptState: null,
@@ -172,8 +172,8 @@ export const courseViewReducer: EffectReducer<
 > = (state, action) => {
   switch (action.type) {
     // Boolean modal toggles
-    case "set-add-repo-modal-open":
-      return { ...state, isAddRepoModalOpen: action.open };
+    case "set-add-course-modal-open":
+      return { ...state, isAddCourseModalOpen: action.open };
     case "set-create-section-modal-open":
       return { ...state, isCreateSectionModalOpen: action.open };
     case "set-create-version-modal-open":
@@ -182,14 +182,14 @@ export const courseViewReducer: EffectReducer<
       return { ...state, isVersionSelectorModalOpen: action.open };
     case "set-edit-version-modal-open":
       return { ...state, isEditVersionModalOpen: action.open };
-    case "set-rename-repo-modal-open":
-      return { ...state, isRenameRepoModalOpen: action.open };
+    case "set-rename-course-modal-open":
+      return { ...state, isRenameCourseModalOpen: action.open };
     case "set-delete-version-modal-open":
       return { ...state, isDeleteVersionModalOpen: action.open };
     case "set-clear-video-files-modal-open":
       return { ...state, isClearVideoFilesModalOpen: action.open };
-    case "set-rewrite-repo-path-modal-open":
-      return { ...state, isRewriteRepoPathModalOpen: action.open };
+    case "set-rewrite-course-path-modal-open":
+      return { ...state, isRewriteCoursePathModalOpen: action.open };
     case "set-add-standalone-video-modal-open":
       return { ...state, isAddStandaloneVideoModalOpen: action.open };
     case "set-copy-transcript-modal-open":

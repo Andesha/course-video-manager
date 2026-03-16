@@ -12,7 +12,7 @@ import type { Route } from "./+types/archived-courses";
 export const meta: Route.MetaFunction = () => {
   return [
     {
-      title: "CVM - Archived Repos",
+      title: "CVM - Archived Courses",
     },
   ];
 };
@@ -42,8 +42,8 @@ export default function ArchivedRepos(props: Route.ComponentProps) {
   const data = props.loaderData;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const selectedRepoId = searchParams.get("courseId");
-  const [isAddRepoModalOpen, setIsAddRepoModalOpen] = useState(false);
+  const selectedCourseId = searchParams.get("courseId");
+  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
   const [isAddStandaloneVideoModalOpen, setIsAddStandaloneVideoModalOpen] =
     useState(false);
 
@@ -52,9 +52,9 @@ export default function ArchivedRepos(props: Route.ComponentProps) {
       <AppSidebar
         repos={data.repos}
         standaloneVideos={data.standaloneVideos}
-        selectedRepoId={selectedRepoId}
-        isAddRepoModalOpen={isAddRepoModalOpen}
-        setIsAddRepoModalOpen={setIsAddRepoModalOpen}
+        selectedCourseId={selectedCourseId}
+        isAddCourseModalOpen={isAddCourseModalOpen}
+        setIsAddCourseModalOpen={setIsAddCourseModalOpen}
         isAddStandaloneVideoModalOpen={isAddStandaloneVideoModalOpen}
         setIsAddStandaloneVideoModalOpen={setIsAddStandaloneVideoModalOpen}
         plans={data.plans}
@@ -63,10 +63,10 @@ export default function ArchivedRepos(props: Route.ComponentProps) {
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-8">
-          <h1 className="text-3xl font-bold mb-6">Archived Repos</h1>
+          <h1 className="text-3xl font-bold mb-6">Archived Courses</h1>
 
           {data.archivedRepos.length === 0 ? (
-            <p className="text-muted-foreground">No archived repos.</p>
+            <p className="text-muted-foreground">No archived courses.</p>
           ) : (
             <div className="space-y-2">
               {data.archivedRepos.map((repo) => (

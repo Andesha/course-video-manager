@@ -5,9 +5,9 @@ import { DeleteVersionModal } from "@/components/delete-version-modal";
 import { EditVersionModal } from "@/components/edit-version-modal";
 import { MoveLessonModal } from "@/components/move-lesson-modal";
 import { MoveVideoModal } from "@/components/move-video-modal";
-import { RenameRepoModal } from "@/components/rename-repo-modal";
+import { RenameCourseModal } from "@/components/rename-course-modal";
 import { RenameVideoModal } from "@/components/rename-video-modal";
-import { RewriteRepoPathModal } from "@/components/rewrite-repo-path-modal";
+import { RewriteCoursePathModal } from "@/components/rewrite-course-path-modal";
 import { VersionSelectorModal } from "@/components/version-selector-modal";
 import { courseViewReducer } from "@/features/course-view/course-view-reducer";
 import { formatSecondsToTimeCode } from "@/services/utils";
@@ -309,7 +309,7 @@ export function FilterBar({
   );
 }
 
-export function NoRepoView({
+export function NoCourseView({
   repos,
   standaloneVideos,
   dispatch,
@@ -324,7 +324,7 @@ export function NoRepoView({
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-2">Course Video Manager</h1>
-        <p className="text-sm text-muted-foreground">Select a repository</p>
+        <p className="text-sm text-muted-foreground">Select a course</p>
       </div>
 
       {standaloneVideos.length > 0 && (
@@ -389,18 +389,18 @@ export function NoRepoView({
           <div className="mb-4">
             <VideoIcon className="w-16 h-16 mx-auto text-muted-foreground/50" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No repositories found</h3>
+          <h3 className="text-xl font-semibold mb-2">No courses found</h3>
           <p className="text-muted-foreground mb-6">
-            Get started by adding your first repository
+            Get started by adding your first course
           </p>
           <Button
             onClick={() =>
-              dispatch({ type: "set-add-repo-modal-open", open: true })
+              dispatch({ type: "set-add-course-modal-open", open: true })
             }
             className="mx-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Repository
+            Add Course
           </Button>
         </div>
       )}
@@ -411,7 +411,7 @@ export function NoRepoView({
 export function RouteModals({
   currentRepo,
   data,
-  selectedRepoId,
+  selectedCourseId,
   viewState,
   dispatch,
   navigate,
@@ -419,15 +419,15 @@ export function RouteModals({
 }: {
   currentRepo: NonNullable<LoaderData["selectedRepo"]> | undefined;
   data: LoaderData;
-  selectedRepoId: string | null;
+  selectedCourseId: string | null;
   viewState: {
     isCreateVersionModalOpen: boolean;
     isEditVersionModalOpen: boolean;
-    isRenameRepoModalOpen: boolean;
+    isRenameCourseModalOpen: boolean;
     isVersionSelectorModalOpen: boolean;
     isDeleteVersionModalOpen: boolean;
     isClearVideoFilesModalOpen: boolean;
-    isRewriteRepoPathModalOpen: boolean;
+    isRewriteCoursePathModalOpen: boolean;
     isCopyTranscriptModalOpen: boolean;
     copySectionTranscriptState: {
       sectionPath: string;
@@ -479,17 +479,17 @@ export function RouteModals({
       )}
 
       {currentRepo && (
-        <RenameRepoModal
-          repoId={currentRepo.id}
+        <RenameCourseModal
+          courseId={currentRepo.id}
           currentName={currentRepo.name}
-          open={viewState.isRenameRepoModalOpen}
+          open={viewState.isRenameCourseModalOpen}
           onOpenChange={(open) =>
-            dispatch({ type: "set-rename-repo-modal-open", open })
+            dispatch({ type: "set-rename-course-modal-open", open })
           }
         />
       )}
 
-      {selectedRepoId && data.versions.length > 0 && (
+      {selectedCourseId && data.versions.length > 0 && (
         <VersionSelectorModal
           versions={data.versions}
           selectedVersionId={data.selectedVersion?.id}
@@ -498,7 +498,7 @@ export function RouteModals({
             dispatch({ type: "set-version-selector-modal-open", open })
           }
           onSelectVersion={(versionId) => {
-            navigate(`?courseId=${selectedRepoId}&versionId=${versionId}`, {
+            navigate(`?courseId=${selectedCourseId}&versionId=${versionId}`, {
               preventScrollReset: true,
             });
           }}
@@ -530,12 +530,12 @@ export function RouteModals({
       )}
 
       {currentRepo && (
-        <RewriteRepoPathModal
-          repoId={currentRepo.id}
+        <RewriteCoursePathModal
+          courseId={currentRepo.id}
           currentPath={currentRepo.filePath}
-          open={viewState.isRewriteRepoPathModalOpen}
+          open={viewState.isRewriteCoursePathModalOpen}
           onOpenChange={(open) =>
-            dispatch({ type: "set-rewrite-repo-path-modal-open", open })
+            dispatch({ type: "set-rewrite-course-path-modal-open", open })
           }
         />
       )}

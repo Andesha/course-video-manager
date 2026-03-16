@@ -127,7 +127,7 @@ export function ActionsDropdown({
           <DropdownMenuItem
             onSelect={() =>
               dispatch({
-                type: "set-rename-repo-modal-open",
+                type: "set-rename-course-modal-open",
                 open: true,
               })
             }
@@ -143,16 +143,16 @@ export function ActionsDropdown({
           <DropdownMenuItem
             onSelect={() =>
               dispatch({
-                type: "set-rewrite-repo-path-modal-open",
+                type: "set-rewrite-course-path-modal-open",
                 open: true,
               })
             }
           >
             <FolderPen className="w-4 h-4 mr-2" />
             <div className="flex flex-col">
-              <span className="font-medium">Rewrite Repo Path</span>
+              <span className="font-medium">Rewrite Course Repo Path</span>
               <span className="text-xs text-muted-foreground">
-                Change repository file path
+                Change course repo file path
               </span>
             </div>
           </DropdownMenuItem>
@@ -245,7 +245,7 @@ export function ActionsDropdown({
               {data.showMediaFilesList && (
                 <DropdownMenuItem asChild>
                   <Link
-                    to={`/repos/${currentRepo.id}/versions/${data.selectedVersion.id}/media-files`}
+                    to={`/courses/${currentRepo.id}/versions/${data.selectedVersion.id}/media-files`}
                   >
                     <Film className="w-4 h-4 mr-2" />
                     <div className="flex flex-col">
@@ -259,7 +259,7 @@ export function ActionsDropdown({
               )}
               {data.versions.length > 1 && (
                 <DropdownMenuItem asChild>
-                  <Link to={`/repos/${currentRepo.id}/changelog`}>
+                  <Link to={`/courses/${currentRepo.id}/changelog`}>
                     <FileText className="w-4 h-4 mr-2" />
                     <div className="flex flex-col">
                       <span className="font-medium">Preview Changelog</span>

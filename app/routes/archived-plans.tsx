@@ -42,8 +42,8 @@ export default function ArchivedPlans(props: Route.ComponentProps) {
   const data = props.loaderData;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const selectedRepoId = searchParams.get("courseId");
-  const [isAddRepoModalOpen, setIsAddRepoModalOpen] = useState(false);
+  const selectedCourseId = searchParams.get("courseId");
+  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
   const [isAddStandaloneVideoModalOpen, setIsAddStandaloneVideoModalOpen] =
     useState(false);
 
@@ -52,9 +52,9 @@ export default function ArchivedPlans(props: Route.ComponentProps) {
       <AppSidebar
         repos={data.repos}
         standaloneVideos={data.standaloneVideos}
-        selectedRepoId={selectedRepoId}
-        isAddRepoModalOpen={isAddRepoModalOpen}
-        setIsAddRepoModalOpen={setIsAddRepoModalOpen}
+        selectedCourseId={selectedCourseId}
+        isAddCourseModalOpen={isAddCourseModalOpen}
+        setIsAddCourseModalOpen={setIsAddCourseModalOpen}
         isAddStandaloneVideoModalOpen={isAddStandaloneVideoModalOpen}
         setIsAddStandaloneVideoModalOpen={setIsAddStandaloneVideoModalOpen}
         plans={data.plans}

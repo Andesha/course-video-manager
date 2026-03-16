@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { useFetcher } from "react-router";
 
-export function RenameRepoModal(props: {
-  repoId: string;
+export function RenameCourseModal(props: {
+  courseId: string;
   currentName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,7 +26,7 @@ export function RenameRepoModal(props: {
         </DialogHeader>
         <fetcher.Form
           method="post"
-          action={`/api/courses/${props.repoId}/rename-repo`}
+          action={`/api/courses/${props.courseId}/rename-course`}
           className="space-y-4 py-4"
           onSubmit={async (e) => {
             e.preventDefault();
@@ -35,9 +35,9 @@ export function RenameRepoModal(props: {
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="repo-name">Course Name</Label>
+            <Label htmlFor="course-name">Course Name</Label>
             <Input
-              id="repo-name"
+              id="course-name"
               name="name"
               defaultValue={props.currentName}
               required

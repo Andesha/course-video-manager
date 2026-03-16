@@ -12,15 +12,15 @@ describe("courseViewReducer", () => {
   describe("Initial state", () => {
     it("1. all modals are closed initially", () => {
       const state = createTester().getState();
-      expect(state.isAddRepoModalOpen).toBe(false);
+      expect(state.isAddCourseModalOpen).toBe(false);
       expect(state.isCreateSectionModalOpen).toBe(false);
       expect(state.isCreateVersionModalOpen).toBe(false);
       expect(state.isVersionSelectorModalOpen).toBe(false);
       expect(state.isEditVersionModalOpen).toBe(false);
-      expect(state.isRenameRepoModalOpen).toBe(false);
+      expect(state.isRenameCourseModalOpen).toBe(false);
       expect(state.isDeleteVersionModalOpen).toBe(false);
       expect(state.isClearVideoFilesModalOpen).toBe(false);
-      expect(state.isRewriteRepoPathModalOpen).toBe(false);
+      expect(state.isRewriteCoursePathModalOpen).toBe(false);
       expect(state.isAddStandaloneVideoModalOpen).toBe(false);
     });
 
@@ -57,19 +57,19 @@ describe("courseViewReducer", () => {
   });
 
   describe("Boolean modal toggles", () => {
-    it("6. set-add-repo-modal-open: opens the modal", () => {
+    it("6. set-add-course-modal-open: opens the modal", () => {
       const state = createTester()
-        .send({ type: "set-add-repo-modal-open", open: true })
+        .send({ type: "set-add-course-modal-open", open: true })
         .getState();
-      expect(state.isAddRepoModalOpen).toBe(true);
+      expect(state.isAddCourseModalOpen).toBe(true);
     });
 
-    it("7. set-add-repo-modal-open: closes the modal", () => {
+    it("7. set-add-course-modal-open: closes the modal", () => {
       const state = createTester()
-        .send({ type: "set-add-repo-modal-open", open: true })
-        .send({ type: "set-add-repo-modal-open", open: false })
+        .send({ type: "set-add-course-modal-open", open: true })
+        .send({ type: "set-add-course-modal-open", open: false })
         .getState();
-      expect(state.isAddRepoModalOpen).toBe(false);
+      expect(state.isAddCourseModalOpen).toBe(false);
     });
 
     it("8. set-create-section-modal-open: toggles", () => {
@@ -100,11 +100,11 @@ describe("courseViewReducer", () => {
       expect(state.isEditVersionModalOpen).toBe(true);
     });
 
-    it("12. set-rename-repo-modal-open: toggles", () => {
+    it("12. set-rename-course-modal-open: toggles", () => {
       const state = createTester()
-        .send({ type: "set-rename-repo-modal-open", open: true })
+        .send({ type: "set-rename-course-modal-open", open: true })
         .getState();
-      expect(state.isRenameRepoModalOpen).toBe(true);
+      expect(state.isRenameCourseModalOpen).toBe(true);
     });
 
     it("13. set-delete-version-modal-open: toggles", () => {
@@ -121,11 +121,11 @@ describe("courseViewReducer", () => {
       expect(state.isClearVideoFilesModalOpen).toBe(true);
     });
 
-    it("15. set-rewrite-repo-path-modal-open: toggles", () => {
+    it("15. set-rewrite-course-path-modal-open: toggles", () => {
       const state = createTester()
-        .send({ type: "set-rewrite-repo-path-modal-open", open: true })
+        .send({ type: "set-rewrite-course-path-modal-open", open: true })
         .getState();
-      expect(state.isRewriteRepoPathModalOpen).toBe(true);
+      expect(state.isRewriteCoursePathModalOpen).toBe(true);
     });
 
     it("16. set-add-standalone-video-modal-open: toggles", () => {
@@ -137,9 +137,9 @@ describe("courseViewReducer", () => {
 
     it("17. opening one modal does not affect others", () => {
       const state = createTester()
-        .send({ type: "set-add-repo-modal-open", open: true })
+        .send({ type: "set-add-course-modal-open", open: true })
         .getState();
-      expect(state.isAddRepoModalOpen).toBe(true);
+      expect(state.isAddCourseModalOpen).toBe(true);
       expect(state.isCreateSectionModalOpen).toBe(false);
       expect(state.isCreateVersionModalOpen).toBe(false);
     });
@@ -430,22 +430,22 @@ describe("courseViewReducer", () => {
     it("44. modal toggle does not affect filters", () => {
       const state = createTester()
         .send({ type: "toggle-priority-filter", priority: 1 })
-        .send({ type: "set-add-repo-modal-open", open: true })
+        .send({ type: "set-add-course-modal-open", open: true })
         .getState();
       expect(state.priorityFilter).toEqual([1]);
-      expect(state.isAddRepoModalOpen).toBe(true);
+      expect(state.isAddCourseModalOpen).toBe(true);
     });
 
     it("45. opening video player does not affect modals", () => {
       const state = createTester()
-        .send({ type: "set-add-repo-modal-open", open: true })
+        .send({ type: "set-add-course-modal-open", open: true })
         .send({
           type: "open-video-player",
           videoId: "vid-1",
           videoPath: "path",
         })
         .getState();
-      expect(state.isAddRepoModalOpen).toBe(true);
+      expect(state.isAddCourseModalOpen).toBe(true);
       expect(state.videoPlayerState.isOpen).toBe(true);
     });
   });

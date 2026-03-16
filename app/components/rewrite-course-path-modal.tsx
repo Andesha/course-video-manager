@@ -11,8 +11,8 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 
-export function RewriteRepoPathModal(props: {
-  repoId: string;
+export function RewriteCoursePathModal(props: {
+  courseId: string;
   currentPath: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,18 +38,18 @@ export function RewriteRepoPathModal(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Rewrite Repo Path</DialogTitle>
+          <DialogTitle>Rewrite Course Repo Path</DialogTitle>
         </DialogHeader>
         <fetcher.Form
           method="post"
-          action={`/api/courses/${props.repoId}/rewrite-path`}
+          action={`/api/courses/${props.courseId}/rewrite-path`}
           className="space-y-4 py-4"
           onSubmit={() => {
             setError(null);
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="file-path">File Path</Label>
+            <Label htmlFor="file-path">Repo Path</Label>
             <Input
               id="file-path"
               name="filePath"

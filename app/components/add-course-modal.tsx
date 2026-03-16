@@ -10,44 +10,44 @@ import { Label } from "@/components/ui/label";
 import { useEffect } from "react";
 import { useFetcher } from "react-router";
 
-interface AddRepoModalProps {
+interface AddCourseModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function AddRepoModal({ isOpen, onOpenChange }: AddRepoModalProps) {
-  const addRepoFetcher = useFetcher();
+export function AddCourseModal({ isOpen, onOpenChange }: AddCourseModalProps) {
+  const addCourseFetcher = useFetcher();
 
   useEffect(() => {
-    if (addRepoFetcher.state === "idle" && addRepoFetcher.data) {
+    if (addCourseFetcher.state === "idle" && addCourseFetcher.data) {
       onOpenChange(false);
     }
-  }, [addRepoFetcher.state, addRepoFetcher.data, onOpenChange]);
+  }, [addCourseFetcher.state, addCourseFetcher.data, onOpenChange]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Repository</DialogTitle>
+          <DialogTitle>Add New Course</DialogTitle>
         </DialogHeader>
-        <addRepoFetcher.Form
+        <addCourseFetcher.Form
           method="post"
           action="/api/courses/add"
           className="space-y-4 py-4"
         >
           <div className="space-y-2">
-            <Label htmlFor="repo-name">Repository Name</Label>
+            <Label htmlFor="course-name">Course Name</Label>
             <Input
-              id="repo-name"
+              id="course-name"
               placeholder="e.g., Total TypeScript"
               name="name"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="repo-path">Repository File Path</Label>
+            <Label htmlFor="course-path">Course Repo Path</Label>
             <Input
-              id="repo-path"
+              id="course-path"
               placeholder="Enter local file path..."
               name="repoPath"
               required
@@ -61,9 +61,9 @@ export function AddRepoModal({ isOpen, onOpenChange }: AddRepoModalProps) {
             >
               Cancel
             </Button>
-            <Button type="submit">Add Repository</Button>
+            <Button type="submit">Add Course</Button>
           </div>
-        </addRepoFetcher.Form>
+        </addCourseFetcher.Form>
       </DialogContent>
     </Dialog>
   );

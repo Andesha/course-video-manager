@@ -1,4 +1,4 @@
-import { AddRepoModal } from "@/components/add-repo-modal";
+import { AddCourseModal } from "@/components/add-course-modal";
 import { AddStandaloneVideoModal } from "@/components/add-standalone-video-modal";
 import { CreatePlanModal } from "@/components/create-plan-modal";
 import { RenameVideoModal } from "@/components/rename-video-modal";
@@ -44,9 +44,9 @@ export interface AppSidebarProps {
   }>;
   plans: Plan[];
   showPlansSection?: boolean;
-  selectedRepoId?: string | null;
-  isAddRepoModalOpen?: boolean;
-  setIsAddRepoModalOpen?: (open: boolean) => void;
+  selectedCourseId?: string | null;
+  isAddCourseModalOpen?: boolean;
+  setIsAddCourseModalOpen?: (open: boolean) => void;
   isAddStandaloneVideoModalOpen?: boolean;
   setIsAddStandaloneVideoModalOpen?: (open: boolean) => void;
 }
@@ -56,9 +56,9 @@ export function AppSidebar({
   standaloneVideos,
   plans,
   showPlansSection = false,
-  selectedRepoId = null,
-  isAddRepoModalOpen = false,
-  setIsAddRepoModalOpen,
+  selectedCourseId = null,
+  isAddCourseModalOpen = false,
+  setIsAddCourseModalOpen,
   isAddStandaloneVideoModalOpen = false,
   setIsAddStandaloneVideoModalOpen,
 }: AppSidebarProps) {
@@ -125,7 +125,7 @@ export function AppSidebar({
             variant="ghost"
             size="icon"
             className="h-6 w-6"
-            onClick={() => setIsAddRepoModalOpen?.(true)}
+            onClick={() => setIsAddCourseModalOpen?.(true)}
           >
             <Plus className="w-3.5 h-3.5" />
           </Button>
@@ -137,7 +137,8 @@ export function AppSidebar({
                 <button
                   className={cn(
                     "w-full text-left text-sm px-2 py-1.5 rounded-md hover:bg-accent transition-colors",
-                    selectedRepoId === repo.id && "bg-muted text-foreground/90"
+                    selectedCourseId === repo.id &&
+                      "bg-muted text-foreground/90"
                   )}
                   onMouseDown={(e) => {
                     if (!isLeftClick(e)) return;
@@ -169,11 +170,11 @@ export function AppSidebar({
           ))}
         </div>
         <Link
-          to="/archived-repos"
+          to="/archived-courses"
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mt-2 px-2 transition-colors"
           onClick={(e) => e.preventDefault()}
           onMouseDown={(e) => {
-            if (e.button === 0) navigate("/archived-repos");
+            if (e.button === 0) navigate("/archived-courses");
           }}
         >
           <Archive className="w-3 h-3" />
@@ -418,10 +419,10 @@ export function AppSidebar({
       </Sheet>
 
       {/* Modals */}
-      {setIsAddRepoModalOpen && (
-        <AddRepoModal
-          isOpen={isAddRepoModalOpen}
-          onOpenChange={setIsAddRepoModalOpen}
+      {setIsAddCourseModalOpen && (
+        <AddCourseModal
+          isOpen={isAddCourseModalOpen}
+          onOpenChange={setIsAddCourseModalOpen}
         />
       )}
       {setIsAddStandaloneVideoModalOpen ? (

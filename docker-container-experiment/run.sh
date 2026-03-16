@@ -41,33 +41,41 @@ echo ""
 sync_to_sandbox() {
   local bundle_host
   bundle_host=$(mktemp --suffix=.bundle)
-  trap "rm -f $bundle_host" RETURN
 
   # Bundle the entire local repo
-  git bundle create "$bundle_host" --all 2>/dev/null
+  git bundle create "$bundle_host" --all
 
   # Copy bundle into container
   docker cp "$bundle_host" "${CONTAINER_NAME}:/tmp/repo.bundle"
 
+  # Clean up host bundle
+  rm -f "$bundle_host"
+
   # Clone or fetch inside sandbox
-  if docker exec "$CONTAINER_NAME" test -d "$SANDBOX_REPO_DIR/.git" 2>/dev/null; then
-    # Fetch from bundle and reset to match local branch
+  if docker exec "$CONTAINER_NAME" test -d "$SANDBOX_REPO_DIR/.git"; then
+    # Fetch from bundle to a temp ref, then reset the checked-out branch
     docker exec -w "$SANDBOX_REPO_DIR" "$CONTAINER_NAME" \
-      git fetch /tmp/repo.bundle "${BRANCH}:${BRANCH}" --force 2>/dev/null
+      git fetch /tmp/repo.bundle "${BRANCH}:refs/ralph/sync" --force
     docker exec -w "$SANDBOX_REPO_DIR" "$CONTAINER_NAME" \
-      git checkout "$BRANCH" 2>/dev/null
+      git checkout "$BRANCH"
     docker exec -w "$SANDBOX_REPO_DIR" "$CONTAINER_NAME" \
-      git reset --hard "$BRANCH" 2>/dev/null
+      git reset --hard refs/ralph/sync
   else
     # First time: clone from bundle
     docker exec "$CONTAINER_NAME" \
-      git clone /tmp/repo.bundle "$SANDBOX_REPO_DIR" 2>/dev/null
+      git clone /tmp/repo.bundle "$SANDBOX_REPO_DIR"
     docker exec -w "$SANDBOX_REPO_DIR" "$CONTAINER_NAME" \
-      git checkout "$BRANCH" 2>/dev/null
+      git checkout "$BRANCH"
   fi
 
-  # Clean up bundle inside container
-  docker exec "$CONTAINER_NAME" rm -f /tmp/repo.bundle
+  # Install dependencies if a package.json exists
+  if docker exec "$CONTAINER_NAME" test -f "$SANDBOX_REPO_DIR/package.json"; then
+    echo "Installing dependencies..."
+    docker exec -w "$SANDBOX_REPO_DIR" "$CONTAINER_NAME" npm install
+  fi
+
+  # Clean up bundle inside container (docker cp copies as root, so remove as root)
+  docker exec -u root "$CONTAINER_NAME" rm -f /tmp/repo.bundle
 }
 
 # --- Extract patch from sandbox and apply locally ---
@@ -75,7 +83,6 @@ sync_to_sandbox() {
 extract_and_apply_patch() {
   local patch_dir
   patch_dir=$(mktemp -d)
-  trap "rm -rf $patch_dir" RETURN
 
   # Generate patch for the latest commit
   docker exec -w "$SANDBOX_REPO_DIR" "$CONTAINER_NAME" \
@@ -92,8 +99,9 @@ extract_and_apply_patch() {
     patch_count=$((patch_count + 1))
   done
 
-  # Clean up patches inside container
-  docker exec "$CONTAINER_NAME" rm -rf /tmp/patches
+  # Clean up
+  rm -rf "$patch_dir"
+  docker exec -u root "$CONTAINER_NAME" rm -rf /tmp/patches
 
   echo "Applied ${patch_count} patch(es) locally."
 }
@@ -133,7 +141,6 @@ for ((i=1; i<=ITERATIONS; i++)); do
   echo ""
 
   tmpfile=$(mktemp)
-  trap "rm -f $tmpfile" EXIT
 
   # Record HEAD before Claude runs
   head_before=$(get_sandbox_head)
@@ -149,8 +156,10 @@ for ((i=1; i<=ITERATIONS; i++)); do
   docker exec -w "$SANDBOX_REPO_DIR" "$CONTAINER_NAME" \
     claude \
       --print \
+      --verbose \
       --dangerously-skip-permissions \
       --output-format stream-json \
+      --model claude-opus-4-6 \
       -p "ISSUES: ${issues}
 
 Previous RALPH commits: ${ralph_commits}

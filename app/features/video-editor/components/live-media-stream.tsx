@@ -57,7 +57,7 @@ export const LiveMediaStream = (props: LiveMediaStreamProps) => {
       )}
       {props.showCenterLine && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="border-l-2 border-dashed border-border/50 h-full"></div>
+          <div className="border-l-2 border-dashed border-muted-foreground/50 h-full"></div>
         </div>
       )}
 

@@ -29,7 +29,9 @@ You are given a JSON array of open GitHub issues with their number, title, body,
 
 ## Output
 
-Return ONLY a JSON array (no markdown fences, no explanation). Each element:
+First, explain your reasoning: classify each issue, note blocking relationships, and justify your selections.
+
+Then, wrap your final JSON array in `<task_json>` XML tags. Each element:
 
 ```
 {
@@ -40,6 +42,19 @@ Return ONLY a JSON array (no markdown fences, no explanation). Each element:
 }
 ```
 
+For example:
+
+<task_json>
+[
+{
+"branch_name": "claude/fix-auth-middleware-1773659506",
+"target_branch": "main",
+"issue_numbers": [42],
+"prompt": "Fix the auth middleware..."
+}
+]
+</task_json>
+
 Rules for the output:
 
 - `branch_name`: Use format `claude/<short-descriptive-slug>-<unix-timestamp>`. The slug should describe the task, not just the issue number.
@@ -47,7 +62,7 @@ Rules for the output:
 - `issue_numbers`: Array of issue numbers this task addresses. Usually one, but can be multiple if closely related non-conflicting issues are combined.
 - `prompt`: A clear, specific instruction for the worker. Reference issue numbers so the worker can fetch full details.
 
-If there are NO actionable tasks, return an empty array: `[]`
+If there are NO actionable tasks, return an empty `<task_json>` tag: `<task_json>[]</task_json>`
 
 ## Priority Order
 

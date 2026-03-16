@@ -17,17 +17,17 @@ fi
 
 echo "Asking orchestrator to analyze issues and plan tasks..."
 
-RESULT=$(claude -p \
-  --output-format json \
-  --allowedTools "Read,Grep,Glob" \
-  "$(cat "$REPO_ROOT/scripts/dispatch-prompt.md")
+PROMPT="$(cat "$REPO_ROOT/scripts/dispatch-prompt.md")
 
 ## Open Issues
 
-$ISSUES")
+$ISSUES"
 
-# Extract the result field from Claude's JSON output
-TASKS=$(echo "$RESULT" | jq -r '.result')
+RESULT=$(echo "$PROMPT" | claude -p \
+  --allowedTools "Read,Grep,Glob")
+
+# Extract JSON from <task_json> tags in the result
+TASKS=$(echo "$RESULT" | sed -n '/<task_json>/,/<\/task_json>/p' | sed '1d;$d')
 
 # Validate we got valid JSON array
 if ! echo "$TASKS" | jq -e 'type == "array"' > /dev/null 2>&1; then

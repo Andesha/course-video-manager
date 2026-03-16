@@ -16,6 +16,8 @@ Explore the repo and fill your context window with relevant information that wil
 
 Complete the task.
 
+Other people may be working on the repo at the same time on other branches. Stay focused on your task. Keep changes minimal and focused.
+
 # COMMIT
 
 Make a git commit. The commit message must:
@@ -28,12 +30,30 @@ Make a git commit. The commit message must:
 
 Keep it concise.
 
-# THE ISSUE
+# PR OUTPUT
 
-Do NOT close or comment on GitHub issues. Do NOT push to remote.
+After committing, output a PR title and description wrapped in XML tags. The orchestrator that runs you will use these to create the PR.
+
+Example:
+
+<pr_title>RALPH: Fix auth middleware token validation</pr_title>
+<pr_description>
+
+## Summary
+
+- Fixed token validation ordering in auth middleware
+- Tokens are now validated before permission checks
+
+## Related Issues
+
+- Related to #42
+
+## Key Decisions
+
+- Used existing JWT validation helper rather than adding a new dependency
+
+</pr_description>
 
 # FINAL RULES
 
 ONLY WORK ON A SINGLE TASK.
-
-Other people may be working on the repo at the same time on other branches. Stay focused on your task. Keep changes minimal and focused.

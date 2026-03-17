@@ -121,6 +121,9 @@ sync_commits_from_sandbox() {
   local patch_dir
   patch_dir=$(mktemp -d)
 
+  # Clean any leftover patches from previous runs
+  docker exec -u root "$CONTAINER_NAME" rm -rf /tmp/patches
+
   docker exec -w "$SANDBOX_REPO_DIR" "$CONTAINER_NAME" \
     git format-patch "${base_head}..HEAD" -o /tmp/patches 2>/dev/null
 

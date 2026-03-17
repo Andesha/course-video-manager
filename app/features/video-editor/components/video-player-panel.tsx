@@ -265,223 +265,217 @@ export const VideoPlayerPanel = () => {
     <>
       <div className="lg:flex-1 relative order-1 lg:order-2 overflow-y-auto h-full">
         <div className="">
-            <div className="mb-4">
-              <h1 className="text-2xl font-bold mb-1 flex items-center">
-                {videoPath}
-                {" (" + formatSecondsToTimeCode(totalDuration) + ")"}
-                {areAnyClipsDangerous && (
-                  <span className="text-orange-500 ml-4 text-base font-medium inline-flex items-center">
-                    <AlertTriangleIcon className="size-6 mr-2" />
-                    Possible duplicate clips
-                  </span>
-                )}
-              </h1>
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold mb-1 flex items-center">
+              {videoPath}
+              {" (" + formatSecondsToTimeCode(totalDuration) + ")"}
+              {areAnyClipsDangerous && (
+                <span className="text-orange-500 ml-4 text-base font-medium inline-flex items-center">
+                  <AlertTriangleIcon className="size-6 mr-2" />
+                  Possible duplicate clips
+                </span>
+              )}
+            </h1>
+          </div>
+
+          {!liveMediaStream && clips.length === 0 ? (
+            <div className="w-full aspect-[16/9] bg-card rounded-lg flex flex-col items-center justify-center gap-3">
+              <VideoOffIcon className="size-10 text-muted-foreground" />
+              <p className="text-muted-foreground text-sm text-center px-4">
+                No video stream or clips yet. Connect OBS to start recording.
+              </p>
             </div>
-
-            {!liveMediaStream && clips.length === 0 ? (
-              <div className="w-full aspect-[16/9] bg-card rounded-lg flex flex-col items-center justify-center gap-3">
-                <VideoOffIcon className="size-10 text-muted-foreground" />
-                <p className="text-muted-foreground text-sm text-center px-4">
-                  No video stream or clips yet. Connect OBS to start recording.
-                </p>
-              </div>
-            ) : (
-              <>
-                {liveMediaStream && (
-                  <div
-                    className={cn(
-                      "w-full h-full relative aspect-[16/9]",
-                      isLiveStreamPortrait && "w-92 aspect-[9/16]",
-                      "hidden",
-                      !showVideoPlayer &&
-                        (showLiveStream || showLastFrame) &&
-                        "block"
-                    )}
-                  >
-                    {obsConnectorState.type === "obs-recording" && (
-                      <RecordingSignalIndicator />
-                    )}
-
-                    {isOBSActive && (
-                      <LiveMediaStream
-                        mediaStream={liveMediaStream}
-                        obsConnectorState={obsConnectorState}
-                        speechDetectorState={speechDetectorState}
-                        showCenterLine={showCenterLine}
-                      />
-                    )}
-                    {!showVideoPlayer &&
-                      shouldShowLastFrameOverlay &&
-                      databaseClipToShowLastFrameOf && (
-                        <div
-                          className={cn(
-                            "absolute top-0 left-0 rounded-lg",
-                            databaseClipToShowLastFrameOf.profile ===
-                              "TikTok" && "w-92 aspect-[9/16]"
-                          )}
-                        >
-                          <img
-                            className="w-full h-full rounded-lg opacity-50"
-                            src={`/clips/${databaseClipToShowLastFrameOf.databaseId}/last-frame`}
-                          />
-                        </div>
-                      )}
-                  </div>
-                )}
+          ) : (
+            <>
+              {liveMediaStream && (
                 <div
                   className={cn(
-                    "w-full aspect-[16/9]",
-                    !showVideoPlayer && "hidden"
+                    "w-full h-full relative aspect-[16/9]",
+                    isLiveStreamPortrait && "w-92 aspect-[9/16]",
+                    "hidden",
+                    !showVideoPlayer &&
+                      (showLiveStream || showLastFrame) &&
+                      "block"
                   )}
                 >
-                  <PreloadableClipManager
-                    clipsToAggressivelyPreload={clipsToAggressivelyPreload}
-                    clips={clips
-                      .filter((clip) => clipIdsPreloaded.has(clip.frontendId))
-                      .filter((clip) => clip.type === "on-database")}
-                    finalClipId={clips[clips.length - 1]?.frontendId}
-                    state={runningState}
-                    currentClipId={currentClipId}
-                    currentClipProfile={currentClipProfile}
-                    onClipFinished={onClipFinished}
-                    onUpdateCurrentTime={onUpdateCurrentTime}
-                    playbackRate={playbackRate}
-                    scrubSeekTime={scrubSeekTime}
-                  />
-                </div>
-              </>
-            )}
-
-            {currentClip?.type === "on-database" && (
-              <input
-                type="range"
-                className="scrub-slider mt-2"
-                min={currentClip.sourceStartTime}
-                max={currentClip.sourceEndTime}
-                step={0.01}
-                value={scrubSeekTime ?? currentClip.sourceStartTime}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                  dispatch({
-                    type: "scrub-to-time",
-                    time: parseFloat(e.target.value),
-                  });
-                }}
-              />
-            )}
-
-            <div className="flex gap-2 mt-4">
-              <ActionsDropdown
-                allClipsHaveSilenceDetected={allClipsHaveSilenceDetected}
-                allClipsHaveText={allClipsHaveText}
-                onExport={() => startExportUpload(videoId, videoPath)}
-                exportToDavinciResolveFetcher={exportToDavinciResolveFetcher}
-                videoId={videoId}
-                lessonId={lessonId}
-                isCopied={isCopied}
-                copyTranscriptToClipboard={copyTranscriptToClipboard}
-                youtubeChapters={youtubeChapters}
-                isChaptersCopied={isChaptersCopied}
-                copyYoutubeChaptersToClipboard={copyYoutubeChaptersToClipboard}
-                onAddVideoClick={() => setIsAddVideoModalOpen(true)}
-                onRenameVideoClick={() => setIsRenameVideoModalOpen(true)}
-                onRevealInFileSystem={
-                  exportFileExists
-                    ? () => {
-                        revealVideoFetcher.submit(
-                          {},
-                          {
-                            method: "post",
-                            action: `/api/videos/${videoId}/reveal`,
-                          }
-                        );
-                      }
-                    : undefined
-                }
-                onOpenInVSCode={
-                  lessonId
-                    ? () => {
-                        openInVSCodeFetcher.submit(
-                          {},
-                          {
-                            method: "post",
-                            action: `/api/videos/${videoId}/open-in-vscode`,
-                          }
-                        );
-                      }
-                    : undefined
-                }
-                isLogPathCopied={isLogPathCopied}
-                copyLogPathToClipboard={copyLogPathToClipboard}
-              />
-              <Button variant="secondary" onClick={onAddNoteFromClipboard}>
-                <ClipboardIcon className="w-4 h-4 mr-1" />
-                Add Note
-              </Button>
-            </div>
-
-            {/* Tabbed panel for Suggestions and Table of Contents */}
-            <div className="mt-6 border-t border-border pt-4">
-              <div className="flex gap-2 mb-3">
-                <button
-                  onClick={() => setActiveTab("suggestions")}
-                  className={cn(
-                    "px-3 py-1.5 text-sm font-medium rounded transition-colors",
-                    activeTab === "suggestions"
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                  {obsConnectorState.type === "obs-recording" && (
+                    <RecordingSignalIndicator />
                   )}
-                >
-                  Suggestions
-                </button>
-                {hasSections && (
-                  <button
-                    onClick={() => setActiveTab("toc")}
-                    className={cn(
-                      "px-3 py-1.5 text-sm font-medium rounded transition-colors",
-                      activeTab === "toc"
-                        ? "bg-muted text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
+
+                  {isOBSActive && (
+                    <LiveMediaStream
+                      mediaStream={liveMediaStream}
+                      obsConnectorState={obsConnectorState}
+                      speechDetectorState={speechDetectorState}
+                      showCenterLine={showCenterLine}
+                    />
+                  )}
+                  {!showVideoPlayer &&
+                    shouldShowLastFrameOverlay &&
+                    databaseClipToShowLastFrameOf && (
+                      <div className="absolute inset-0 rounded-lg">
+                        <img
+                          className="w-full h-full rounded-lg opacity-50 object-contain"
+                          src={`/clips/${databaseClipToShowLastFrameOf.databaseId}/last-frame`}
+                        />
+                      </div>
                     )}
-                  >
-                    Sections
-                  </button>
+                </div>
+              )}
+              <div
+                className={cn(
+                  "w-full aspect-[16/9]",
+                  !showVideoPlayer && "hidden"
                 )}
+              >
+                <PreloadableClipManager
+                  clipsToAggressivelyPreload={clipsToAggressivelyPreload}
+                  clips={clips
+                    .filter((clip) => clipIdsPreloaded.has(clip.frontendId))
+                    .filter((clip) => clip.type === "on-database")}
+                  finalClipId={clips[clips.length - 1]?.frontendId}
+                  state={runningState}
+                  currentClipId={currentClipId}
+                  currentClipProfile={currentClipProfile}
+                  onClipFinished={onClipFinished}
+                  onUpdateCurrentTime={onUpdateCurrentTime}
+                  playbackRate={playbackRate}
+                  scrubSeekTime={scrubSeekTime}
+                />
+              </div>
+            </>
+          )}
+
+          {currentClip?.type === "on-database" && (
+            <input
+              type="range"
+              className="scrub-slider mt-2"
+              min={currentClip.sourceStartTime}
+              max={currentClip.sourceEndTime}
+              step={0.01}
+              value={scrubSeekTime ?? currentClip.sourceStartTime}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                dispatch({
+                  type: "scrub-to-time",
+                  time: parseFloat(e.target.value),
+                });
+              }}
+            />
+          )}
+
+          <div className="flex gap-2 mt-4">
+            <ActionsDropdown
+              allClipsHaveSilenceDetected={allClipsHaveSilenceDetected}
+              allClipsHaveText={allClipsHaveText}
+              onExport={() => startExportUpload(videoId, videoPath)}
+              exportToDavinciResolveFetcher={exportToDavinciResolveFetcher}
+              videoId={videoId}
+              lessonId={lessonId}
+              isCopied={isCopied}
+              copyTranscriptToClipboard={copyTranscriptToClipboard}
+              youtubeChapters={youtubeChapters}
+              isChaptersCopied={isChaptersCopied}
+              copyYoutubeChaptersToClipboard={copyYoutubeChaptersToClipboard}
+              onAddVideoClick={() => setIsAddVideoModalOpen(true)}
+              onRenameVideoClick={() => setIsRenameVideoModalOpen(true)}
+              onRevealInFileSystem={
+                exportFileExists
+                  ? () => {
+                      revealVideoFetcher.submit(
+                        {},
+                        {
+                          method: "post",
+                          action: `/api/videos/${videoId}/reveal`,
+                        }
+                      );
+                    }
+                  : undefined
+              }
+              onOpenInVSCode={
+                lessonId
+                  ? () => {
+                      openInVSCodeFetcher.submit(
+                        {},
+                        {
+                          method: "post",
+                          action: `/api/videos/${videoId}/open-in-vscode`,
+                        }
+                      );
+                    }
+                  : undefined
+              }
+              isLogPathCopied={isLogPathCopied}
+              copyLogPathToClipboard={copyLogPathToClipboard}
+            />
+            <Button variant="secondary" onClick={onAddNoteFromClipboard}>
+              <ClipboardIcon className="w-4 h-4 mr-1" />
+              Add Note
+            </Button>
+          </div>
+
+          {/* Tabbed panel for Suggestions and Table of Contents */}
+          <div className="mt-6 border-t border-border pt-4">
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setActiveTab("suggestions")}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded transition-colors",
+                  activeTab === "suggestions"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Suggestions
+              </button>
+              {hasSections && (
                 <button
-                  onClick={() => setActiveTab("links")}
+                  onClick={() => setActiveTab("toc")}
                   className={cn(
                     "px-3 py-1.5 text-sm font-medium rounded transition-colors",
-                    activeTab === "links"
+                    activeTab === "toc"
                       ? "bg-muted text-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  Links
+                  Sections
                 </button>
-              </div>
-
-              {activeTab === "suggestions" && (
-                <SuggestionsPanel
-                  videoId={videoId}
-                  lastTranscribedClipId={lastTranscribedClipId}
-                  clips={clips}
-                  insertionPoint={insertionPoint}
-                  files={files}
-                  isStandalone={!lessonId}
-                  onSuggestionStateChange={handleSuggestionStateChange}
-                />
               )}
-
-              {activeTab === "toc" && hasSections && (
-                <TableOfContents
-                  clipSections={clipSections}
-                  selectedClipsSet={selectedClipsSet}
-                  onSectionClick={onSectionClick}
-                />
-              )}
-
-              {activeTab === "links" && <VideoPlayerLinksTab />}
+              <button
+                onClick={() => setActiveTab("links")}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded transition-colors",
+                  activeTab === "links"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Links
+              </button>
             </div>
+
+            {activeTab === "suggestions" && (
+              <SuggestionsPanel
+                videoId={videoId}
+                lastTranscribedClipId={lastTranscribedClipId}
+                clips={clips}
+                insertionPoint={insertionPoint}
+                files={files}
+                isStandalone={!lessonId}
+                onSuggestionStateChange={handleSuggestionStateChange}
+              />
+            )}
+
+            {activeTab === "toc" && hasSections && (
+              <TableOfContents
+                clipSections={clipSections}
+                selectedClipsSet={selectedClipsSet}
+                onSectionClick={onSectionClick}
+              />
+            )}
+
+            {activeTab === "links" && <VideoPlayerLinksTab />}
           </div>
+        </div>
       </div>
 
       <AddVideoModal

@@ -39,11 +39,12 @@
 
 ## Video export and hashing
 
-| Term                 | Definition                                                                                                                                          | Aliases to avoid             |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **Export Hash**      | A SHA256 hash derived from a video's clip filenames, timestamps, clip order, and the Export Version Key; determines whether a video needs re-export | Content hash, Video hash     |
-| **Exported Video**   | A rendered `.mp4` file on disk named `{courseId}-{exportHash}.mp4` in the finished videos directory                                                 | Finished video, Output video |
-| **Unexported Video** | A video whose current Export Hash does not match any file on disk; blocks publishing                                                                | Dirty video, Stale video     |
+| Term                 | Definition                                                                                                                                          | Aliases to avoid                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **Export Hash**      | A SHA256 hash derived from a video's clip filenames, timestamps, clip order, and the Export Version Key; determines whether a video needs re-export | Content hash, Video hash                 |
+| **Exported Video**   | A rendered `.mp4` file on disk named `{courseId}-{exportHash}.mp4` in the finished videos directory                                                 | Finished video, Output video             |
+| **Unexported Video** | A video whose current Export Hash does not match any file on disk; blocks publishing                                                                | Dirty video, Stale video                 |
+| **Purge**            | The deliberate deletion of an Exported Video's `.mp4` file from disk, transitioning it back to an Unexported Video; reversible via re-export        | Clear, Delete from file system, Unexport |
 
 ## Recording
 
@@ -103,9 +104,13 @@
 
 > **Domain expert:** "Every video's **Export Hash** changes, so nothing matches on disk anymore. Everything becomes an **Unexported Video** and needs re-export."
 
+> **Dev:** "What if I want to free up disk space without re-exporting everything?"
+
+> **Domain expert:** "You can **Purge** — either a single video or all exports for a version. Purging deletes the `.mp4` from disk, so the video becomes an **Unexported Video** again. You can always re-export later."
+
 > **Dev:** "After publishing, what happens to old exported files with stale hashes?"
 
-> **Domain expert:** "Cleanup happens at export time. When exporting a video, we collect all valid **Export Hashes** across every **CourseVersion**, then delete any `{courseId}-*.mp4` files whose hash isn't in that set."
+> **Domain expert:** "Automatic cleanup happens at export time — we collect all valid **Export Hashes** across every **CourseVersion**, then delete any `{courseId}-*.mp4` files whose hash isn't in that set. That's different from a manual **Purge**, which is a deliberate user action."
 
 > **Dev:** "And the **Published Version** is immutable? Can it be deleted?"
 
@@ -117,3 +122,4 @@
 - **Clips and ClipSections share an ordering space** — Both use the same `order` field with fractional indexing. The UI must treat them as a single interleaved list, not two separate collections. This is a source of complexity when inserting or reordering.
 - **"Plan" vs course structure** — A **Plan** (`plans` table) is entirely disconnected from the **Course**/Section/Lesson hierarchy. There is no enforced link between a **PlanLesson** and an actual **Lesson**. The relationship is purely semantic.
 - **"Export Version Key" vs "CourseVersion"** — These are unrelated concepts that both use the word "version." The **Export Version Key** is a build-time constant for cache-busting video exports. A **CourseVersion** is a domain snapshot of course structure. Do not confuse them.
+- **"Clear" / "Delete from file system"** (resolved) — Previously used interchangeably for removing exported video files. Now canonicalized as **Purge**. "Clear" described the mechanism (clearing files), not the domain action. **Purge** captures the intent: deliberately removing a cached render artifact to transition a video back to Unexported status.

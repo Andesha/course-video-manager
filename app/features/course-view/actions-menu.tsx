@@ -235,7 +235,7 @@ export function ActionsDropdown({
               <DropdownMenuItem
                 onSelect={() =>
                   dispatch({
-                    type: "set-clear-video-files-modal-open",
+                    type: "set-purge-exports-modal-open",
                     open: true,
                   })
                 }
@@ -243,9 +243,9 @@ export function ActionsDropdown({
               >
                 <FileX className="w-4 h-4 mr-2" />
                 <div className="flex flex-col">
-                  <span className="font-medium">Clear Video Files</span>
+                  <span className="font-medium">Purge Exports</span>
                   <span className="text-xs text-muted-foreground">
-                    Delete exported videos from file system
+                    Purge exported videos from disk
                   </span>
                 </div>
               </DropdownMenuItem>

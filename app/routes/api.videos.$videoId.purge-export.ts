@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
 import { FileSystem } from "@effect/platform";
-import type { Route } from "./+types/api.videos.$videoId.delete-file";
+import type { Route } from "./+types/api.videos.$videoId.purge-export";
 import { runtimeLive } from "@/services/layer.server";
 import { data } from "react-router";
 import { CoursePublishService } from "@/services/course-publish-service";

@@ -16,7 +16,7 @@ describe("courseViewReducer", () => {
       expect(state.isCreateSectionModalOpen).toBe(false);
       expect(state.isVersionSelectorModalOpen).toBe(false);
       expect(state.isRenameCourseModalOpen).toBe(false);
-      expect(state.isClearVideoFilesModalOpen).toBe(false);
+      expect(state.isPurgeExportsModalOpen).toBe(false);
       expect(state.isRewriteCoursePathModalOpen).toBe(false);
       expect(state.isAddStandaloneVideoModalOpen).toBe(false);
     });
@@ -90,11 +90,11 @@ describe("courseViewReducer", () => {
       expect(state.isRenameCourseModalOpen).toBe(true);
     });
 
-    it("14. set-clear-video-files-modal-open: toggles", () => {
+    it("14. set-purge-exports-modal-open: toggles", () => {
       const state = createTester()
-        .send({ type: "set-clear-video-files-modal-open", open: true })
+        .send({ type: "set-purge-exports-modal-open", open: true })
         .getState();
-      expect(state.isClearVideoFilesModalOpen).toBe(true);
+      expect(state.isPurgeExportsModalOpen).toBe(true);
     });
 
     it("15. set-rewrite-course-path-modal-open: toggles", () => {

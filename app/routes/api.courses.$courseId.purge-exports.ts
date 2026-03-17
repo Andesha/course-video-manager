@@ -1,11 +1,11 @@
 import { Effect, Schema } from "effect";
-import type { Route } from "./+types/api.courses.$courseId.clear-video-files";
+import type { Route } from "./+types/api.courses.$courseId.purge-exports";
 import { DBFunctionsService } from "@/services/db-service.server";
 import { runtimeLive } from "@/services/layer.server";
 import { FileSystem } from "@effect/platform";
 import { CoursePublishService } from "@/services/course-publish-service";
 
-const clearVideoFilesSchema = Schema.Struct({
+const purgeExportsSchema = Schema.Struct({
   versionId: Schema.String.pipe(Schema.minLength(1)),
 });
 
@@ -14,9 +14,8 @@ export const action = async (args: Route.ActionArgs) => {
   const formDataObject = Object.fromEntries(formData);
 
   return Effect.gen(function* () {
-    const { versionId } = yield* Schema.decodeUnknown(clearVideoFilesSchema)(
-      formDataObject
-    );
+    const { versionId } =
+      yield* Schema.decodeUnknown(purgeExportsSchema)(formDataObject);
 
     const db = yield* DBFunctionsService;
     const fs = yield* FileSystem.FileSystem;
@@ -40,7 +39,7 @@ export const action = async (args: Route.ActionArgs) => {
     Effect.catchAll((error) =>
       Effect.succeed({
         success: false,
-        error: `Failed to clear video files: ${error}`,
+        error: `Failed to purge exports: ${error}`,
       })
     ),
     runtimeLive.runPromise

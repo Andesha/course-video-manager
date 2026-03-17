@@ -144,13 +144,13 @@ export function VideoItem({
                 {},
                 {
                   method: "post",
-                  action: `/api/videos/${video.id}/delete-file`,
+                  action: `/api/videos/${video.id}/purge-export`,
                 }
               );
             }}
           >
             <FileX className="w-4 h-4" />
-            Delete from File System
+            Purge Export
           </ContextMenuItem>
         )}
         <ContextMenuItem

@@ -30,7 +30,7 @@ export namespace courseViewReducer {
     isCreateSectionModalOpen: boolean;
     isVersionSelectorModalOpen: boolean;
     isRenameCourseModalOpen: boolean;
-    isClearVideoFilesModalOpen: boolean;
+    isPurgeExportsModalOpen: boolean;
     isRewriteCoursePathModalOpen: boolean;
     isAddStandaloneVideoModalOpen: boolean;
     isCopyTranscriptModalOpen: boolean;
@@ -68,7 +68,7 @@ export namespace courseViewReducer {
     | { type: "set-create-section-modal-open"; open: boolean }
     | { type: "set-version-selector-modal-open"; open: boolean }
     | { type: "set-rename-course-modal-open"; open: boolean }
-    | { type: "set-clear-video-files-modal-open"; open: boolean }
+    | { type: "set-purge-exports-modal-open"; open: boolean }
     | { type: "set-rewrite-course-path-modal-open"; open: boolean }
     | { type: "set-add-standalone-video-modal-open"; open: boolean }
     | { type: "set-copy-transcript-modal-open"; open: boolean }
@@ -132,7 +132,7 @@ export function createInitialCourseViewState(): courseViewReducer.State {
     isCreateSectionModalOpen: false,
     isVersionSelectorModalOpen: false,
     isRenameCourseModalOpen: false,
-    isClearVideoFilesModalOpen: false,
+    isPurgeExportsModalOpen: false,
     isRewriteCoursePathModalOpen: false,
     isAddStandaloneVideoModalOpen: false,
     isCopyTranscriptModalOpen: false,
@@ -171,8 +171,8 @@ export const courseViewReducer: EffectReducer<
       return { ...state, isVersionSelectorModalOpen: action.open };
     case "set-rename-course-modal-open":
       return { ...state, isRenameCourseModalOpen: action.open };
-    case "set-clear-video-files-modal-open":
-      return { ...state, isClearVideoFilesModalOpen: action.open };
+    case "set-purge-exports-modal-open":
+      return { ...state, isPurgeExportsModalOpen: action.open };
     case "set-rewrite-course-path-modal-open":
       return { ...state, isRewriteCoursePathModalOpen: action.open };
     case "set-add-standalone-video-modal-open":

@@ -9,7 +9,7 @@ import {
 import { FileX, Loader2 } from "lucide-react";
 import { useFetcher } from "react-router";
 
-export function ClearVideoFilesModal(props: {
+export function PurgeExportsModal(props: {
   repoId: string;
   versionId: string;
   versionName: string;
@@ -24,25 +24,24 @@ export function ClearVideoFilesModal(props: {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileX className="w-5 h-5 text-destructive" />
-            Clear Video Files
+            Purge Exports
           </DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete all exported video files for version
-            "{props.versionName}" from the file system? This will free up disk
-            space but the videos can be re-exported later. Database entries will
-            remain intact.
+            Are you sure you want to purge all exports for version "
+            {props.versionName}"? This will free up disk space but the videos
+            can be re-exported later.
           </DialogDescription>
         </DialogHeader>
         <fetcher.Form
           method="post"
-          action={`/api/courses/${props.repoId}/clear-video-files`}
+          action={`/api/courses/${props.repoId}/purge-exports`}
           className="space-y-4 py-4"
           onSubmit={async (e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
             await fetcher.submit(formData, {
               method: "post",
-              action: `/api/courses/${props.repoId}/clear-video-files`,
+              action: `/api/courses/${props.repoId}/purge-exports`,
             });
             props.onOpenChange(false);
           }}
@@ -60,7 +59,7 @@ export function ClearVideoFilesModal(props: {
               {fetcher.state === "submitting" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Clear Video Files"
+                "Purge Exports"
               )}
             </Button>
           </div>

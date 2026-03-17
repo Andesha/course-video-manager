@@ -1,4 +1,4 @@
-import { ClearVideoFilesModal } from "@/components/clear-video-files-modal";
+import { PurgeExportsModal } from "@/components/purge-exports-modal";
 import { CopyTranscriptModal } from "@/components/copy-transcript-modal";
 import { MoveLessonModal } from "@/components/move-lesson-modal";
 import { MoveVideoModal } from "@/components/move-video-modal";
@@ -428,7 +428,7 @@ export function RouteModals({
   viewState: {
     isRenameCourseModalOpen: boolean;
     isVersionSelectorModalOpen: boolean;
-    isClearVideoFilesModalOpen: boolean;
+    isPurgeExportsModalOpen: boolean;
     isRewriteCoursePathModalOpen: boolean;
     isCopyTranscriptModalOpen: boolean;
     copySectionTranscriptState: {
@@ -484,13 +484,13 @@ export function RouteModals({
       )}
 
       {currentCourse && data.selectedVersion && (
-        <ClearVideoFilesModal
+        <PurgeExportsModal
           repoId={currentCourse.id}
           versionId={data.selectedVersion.id}
           versionName={data.selectedVersion.name}
-          open={viewState.isClearVideoFilesModalOpen}
+          open={viewState.isPurgeExportsModalOpen}
           onOpenChange={(open) =>
-            dispatch({ type: "set-clear-video-files-modal-open", open })
+            dispatch({ type: "set-purge-exports-modal-open", open })
           }
         />
       )}

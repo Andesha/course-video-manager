@@ -232,6 +232,9 @@ function StatusIcon({ upload }: { upload: uploadReducer.UploadEntry }) {
       if (upload.uploadType === "dropbox-publish") {
         return <FolderSync className="size-4 text-blue-500 shrink-0" />;
       }
+      if (upload.uploadType === "publish") {
+        return <Send className="size-4 text-blue-500 shrink-0" />;
+      }
       return <Upload className="size-4 text-blue-500 shrink-0" />;
     case "retrying":
       return (
@@ -254,6 +257,13 @@ const EXPORT_STAGE_LABELS: Record<uploadReducer.ExportStage, string> = {
   queued: "Queued",
   "concatenating-clips": "Concatenating clips",
   "normalizing-audio": "Normalizing audio",
+};
+
+const PUBLISH_STAGE_LABELS: Record<uploadReducer.PublishStage, string> = {
+  validating: "Validating",
+  uploading: "Uploading to Dropbox",
+  freezing: "Freezing version",
+  cloning: "Creating new draft",
 };
 
 function UploadStatusDetail({ upload }: { upload: uploadReducer.UploadEntry }) {
@@ -290,6 +300,14 @@ function UploadStatusDetail({ upload }: { upload: uploadReducer.UploadEntry }) {
       }
       if (upload.uploadType === "export" && upload.exportStage) {
         const stageLabel = EXPORT_STAGE_LABELS[upload.exportStage];
+        return (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {stageLabel}...
+          </p>
+        );
+      }
+      if (upload.uploadType === "publish" && upload.publishStage) {
+        const stageLabel = PUBLISH_STAGE_LABELS[upload.publishStage];
         return (
           <p className="text-xs text-muted-foreground mt-0.5">
             {stageLabel}...
@@ -403,6 +421,18 @@ function UploadStatusDetail({ upload }: { upload: uploadReducer.UploadEntry }) {
           </div>
         );
       }
+      if (upload.uploadType === "publish") {
+        return (
+          <div className="flex items-center gap-2 mt-0.5">
+            <Badge
+              variant="secondary"
+              className="text-green-500 text-[10px] px-1.5 py-0"
+            >
+              Published
+            </Badge>
+          </div>
+        );
+      }
       if (upload.uploadType === "dropbox-publish") {
         const missingCount = upload.missingVideoCount ?? 0;
         return (
@@ -434,15 +464,16 @@ function UploadStatusDetail({ upload }: { upload: uploadReducer.UploadEntry }) {
           <span className="text-xs text-destructive truncate">
             {upload.errorMessage}
           </span>
-          {upload.uploadType !== "dropbox-publish" && (
-            <Link
-              to={`/videos/${upload.videoId}/post`}
-              className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap"
-              onClick={(e) => e.stopPropagation()}
-            >
-              Go to Post
-            </Link>
-          )}
+          {upload.uploadType !== "dropbox-publish" &&
+            upload.uploadType !== "publish" && (
+              <Link
+                to={`/videos/${upload.videoId}/post`}
+                className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Go to Post
+              </Link>
+            )}
         </div>
       );
   }

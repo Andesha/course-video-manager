@@ -5,14 +5,15 @@ import {
   useReducer,
   useRef,
 } from "react";
-import { toast } from "sonner";
 import { uploadReducer, createInitialUploadState } from "./upload-reducer";
+import { showSuccessToast, showErrorToast } from "./upload-toasts";
 import { startSSEUpload } from "./sse-upload-client";
 import { startSSESocialPost } from "./sse-social-client";
 import { startSSEAiHeroPost } from "./sse-ai-hero-client";
 import { startSSEExport } from "./sse-export-client";
 import { startSSEBatchExport } from "./sse-batch-export-client";
 import { startSSEDropboxPublish } from "./sse-dropbox-publish-client";
+import { startSSEPublish } from "./sse-publish-client";
 
 export interface UploadContextType {
   uploads: uploadReducer.State["uploads"];
@@ -39,6 +40,12 @@ export interface UploadContextType {
   startExportUpload: (videoId: string, title: string) => string;
   startBatchExportUpload: (versionId: string) => void;
   startDropboxPublish: (repoId: string, repoName: string) => string;
+  startPublish: (
+    courseId: string,
+    courseName: string,
+    name: string,
+    description: string
+  ) => string;
   dismissUpload: (uploadId: string) => void;
 }
 
@@ -302,10 +309,60 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const initiateSSEPublishConnection = useCallback(
+    (uploadId: string, courseId: string, name: string, description: string) => {
+      const existing = abortControllersRef.current.get(uploadId);
+      if (existing) {
+        existing.abort();
+      }
+
+      const abortController = startSSEPublish(
+        { courseId, name, description },
+        {
+          onStageChange: (stage) => {
+            dispatch({
+              type: "UPDATE_PUBLISH_STAGE",
+              uploadId,
+              stage,
+            });
+          },
+          onComplete: (result) => {
+            dispatch({
+              type: "PUBLISH_COMPLETE",
+              uploadId,
+              newDraftVersionId: result.newDraftVersionId,
+            });
+            dispatch({
+              type: "UPLOAD_SUCCESS",
+              uploadId,
+            });
+            abortControllersRef.current.delete(uploadId);
+          },
+          onError: (message) => {
+            dispatch({
+              type: "UPLOAD_ERROR",
+              uploadId,
+              errorMessage: message,
+            });
+            abortControllersRef.current.delete(uploadId);
+          },
+        }
+      );
+
+      abortControllersRef.current.set(uploadId, abortController);
+    },
+    []
+  );
+
   // Stores repoId for Dropbox publish retries
   const dropboxPublishParamsRef = useRef<Map<string, { repoId: string }>>(
     new Map()
   );
+
+  // Stores params for publish retries
+  const publishParamsRef = useRef<
+    Map<string, { courseId: string; name: string; description: string }>
+  >(new Map());
 
   const startUpload = useCallback(
     (
@@ -509,6 +566,33 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     [initiateSSEDropboxPublishConnection]
   );
 
+  const startPublish = useCallback(
+    (
+      courseId: string,
+      courseName: string,
+      name: string,
+      description: string
+    ) => {
+      const uploadId = generateUploadId();
+
+      publishParamsRef.current.set(uploadId, { courseId, name, description });
+
+      dispatch({
+        type: "START_UPLOAD",
+        uploadId,
+        videoId: "",
+        title: courseName,
+        uploadType: "publish",
+        courseId,
+      });
+
+      initiateSSEPublishConnection(uploadId, courseId, name, description);
+
+      return uploadId;
+    },
+    [initiateSSEPublishConnection]
+  );
+
   const dismissUpload = useCallback((uploadId: string) => {
     const abortController = abortControllersRef.current.get(uploadId);
     if (abortController) {
@@ -519,6 +603,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     socialParamsRef.current.delete(uploadId);
     aiHeroParamsRef.current.delete(uploadId);
     dropboxPublishParamsRef.current.delete(uploadId);
+    publishParamsRef.current.delete(uploadId);
     dispatch({ type: "DISMISS", uploadId });
   }, []);
 
@@ -533,99 +618,11 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       if (prevUpload.status === upload.status) continue;
 
       if (upload.status === "success") {
-        if (upload.uploadType === "buffer") {
-          const postUrl = `/videos/${upload.videoId}/post`;
-
-          toast.success(`"${upload.title}" sent to Buffer`, {
-            duration: Infinity,
-            cancel: {
-              label: "Go to Post",
-              onClick: () => {
-                window.location.href = postUrl;
-              },
-            },
-          });
-        } else if (upload.uploadType === "youtube") {
-          const youtubeStudioUrl = `https://studio.youtube.com/video/${upload.youtubeVideoId}/edit`;
-          const postUrl = `/videos/${upload.videoId}/post`;
-
-          toast.success(`"${upload.title}" uploaded to YouTube`, {
-            duration: Infinity,
-            action: {
-              label: "YouTube Studio",
-              onClick: () => window.open(youtubeStudioUrl, "_blank"),
-            },
-            cancel: {
-              label: "Go to Post",
-              onClick: () => {
-                window.location.href = postUrl;
-              },
-            },
-          });
-        } else if (upload.uploadType === "ai-hero") {
-          const aiHeroPageUrl = `/videos/${upload.videoId}/ai-hero`;
-
-          toast.success(`"${upload.title}" posted to AI Hero`, {
-            duration: Infinity,
-            cancel: {
-              label: "Go to AI Hero",
-              onClick: () => {
-                window.location.href = aiHeroPageUrl;
-              },
-            },
-          });
-
-          // Fire-and-forget: add AI Hero post URL to global links
-          if (upload.aiHeroSlug) {
-            const formData = new FormData();
-            formData.append("title", upload.title);
-            formData.append("url", `https://aihero.dev/${upload.aiHeroSlug}`);
-            fetch("/api/links", {
-              method: "POST",
-              body: formData,
-            }).catch(() => {
-              // Silently ignore errors (including duplicate URL conflicts)
-            });
-          }
-        } else if (upload.uploadType === "export") {
-          toast.success(`"${upload.title}" exported successfully`, {
-            duration: Infinity,
-            cancel: {
-              label: "Open",
-              onClick: () => {
-                fetch(`/api/videos/${upload.videoId}/reveal`, {
-                  method: "POST",
-                }).catch(() => {});
-              },
-            },
-          });
-        } else if (upload.uploadType === "dropbox-publish") {
-          const missingCount = upload.missingVideoCount ?? 0;
-          if (missingCount > 0) {
-            toast.warning(
-              `"${upload.title}" published to Dropbox, but ${missingCount} video${missingCount === 1 ? " was" : "s were"} not exported`,
-              { duration: Infinity }
-            );
-          } else {
-            toast.success(`"${upload.title}" published to Dropbox`, {
-              duration: Infinity,
-            });
-          }
-        }
+        showSuccessToast(upload);
       }
 
       if (upload.status === "error") {
-        const postUrl = `/videos/${upload.videoId}/post`;
-
-        toast.error(`"${upload.title}" upload failed: ${upload.errorMessage}`, {
-          duration: Infinity,
-          cancel: {
-            label: "Go to Post",
-            onClick: () => {
-              window.location.href = postUrl;
-            },
-          },
-        });
+        showErrorToast(upload);
       }
 
       if (upload.status === "retrying") {
@@ -669,6 +666,16 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
           const params = dropboxPublishParamsRef.current.get(uploadId);
           if (params) {
             initiateSSEDropboxPublishConnection(uploadId, params.repoId);
+          }
+        } else if (upload.uploadType === "publish") {
+          const params = publishParamsRef.current.get(uploadId);
+          if (params) {
+            initiateSSEPublishConnection(
+              uploadId,
+              params.courseId,
+              params.name,
+              params.description
+            );
           }
         }
       }
@@ -721,6 +728,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     initiateSSEAiHeroConnection,
     initiateSSEExportConnection,
     initiateSSEDropboxPublishConnection,
+    initiateSSEPublishConnection,
   ]);
 
   // Clean up abort controllers on unmount
@@ -742,6 +750,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         startExportUpload,
         startBatchExportUpload,
         startDropboxPublish,
+        startPublish,
         dismissUpload,
       }}
     >

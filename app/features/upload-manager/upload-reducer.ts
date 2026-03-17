@@ -10,12 +10,18 @@ export namespace uploadReducer {
     | "buffer"
     | "ai-hero"
     | "export"
-    | "dropbox-publish";
+    | "dropbox-publish"
+    | "publish";
   export type BufferStage = "copying" | "syncing" | "sending-webhook";
   export type ExportStage =
     | "queued"
     | "concatenating-clips"
     | "normalizing-audio";
+  export type PublishStage =
+    | "validating"
+    | "uploading"
+    | "freezing"
+    | "cloning";
 
   interface BaseUploadEntry {
     uploadId: string;
@@ -54,12 +60,20 @@ export namespace uploadReducer {
     missingVideoCount: number | null;
   }
 
+  export interface PublishUploadEntry extends BaseUploadEntry {
+    uploadType: "publish";
+    publishStage: PublishStage | null;
+    newDraftVersionId: string | null;
+    courseId: string;
+  }
+
   export type UploadEntry =
     | YouTubeUploadEntry
     | BufferUploadEntry
     | AiHeroUploadEntry
     | ExportUploadEntry
-    | DropboxPublishUploadEntry;
+    | DropboxPublishUploadEntry
+    | PublishUploadEntry;
 
   export interface State {
     uploads: Record<string, UploadEntry>;
@@ -74,6 +88,7 @@ export namespace uploadReducer {
         uploadType?: UploadType;
         dependsOn?: string;
         isBatchEntry?: boolean;
+        courseId?: string;
       }
     | { type: "UPDATE_PROGRESS"; uploadId: string; progress: number }
     | {
@@ -99,6 +114,16 @@ export namespace uploadReducer {
         type: "UPDATE_DROPBOX_PUBLISH_MISSING_COUNT";
         uploadId: string;
         missingVideoCount: number;
+      }
+    | {
+        type: "UPDATE_PUBLISH_STAGE";
+        uploadId: string;
+        stage: PublishStage;
+      }
+    | {
+        type: "PUBLISH_COMPLETE";
+        uploadId: string;
+        newDraftVersionId: string;
       };
 }
 
@@ -147,6 +172,15 @@ export const uploadReducer = (
             ...base,
             uploadType: "dropbox-publish",
             missingVideoCount: null,
+          };
+          break;
+        case "publish":
+          entry = {
+            ...base,
+            uploadType: "publish",
+            publishStage: "validating",
+            newDraftVersionId: null,
+            courseId: action.courseId ?? "",
           };
           break;
         default:
@@ -234,6 +268,46 @@ export const uploadReducer = (
       };
     }
 
+    case "UPDATE_PUBLISH_STAGE": {
+      const upload = state.uploads[action.uploadId];
+      if (!upload || upload.uploadType !== "publish") return state;
+
+      const publishStageProgress: Record<uploadReducer.PublishStage, number> = {
+        validating: 10,
+        uploading: 40,
+        freezing: 70,
+        cloning: 90,
+      };
+
+      return {
+        ...state,
+        uploads: {
+          ...state.uploads,
+          [action.uploadId]: {
+            ...upload,
+            publishStage: action.stage,
+            progress: publishStageProgress[action.stage],
+          },
+        },
+      };
+    }
+
+    case "PUBLISH_COMPLETE": {
+      const upload = state.uploads[action.uploadId];
+      if (!upload || upload.uploadType !== "publish") return state;
+
+      return {
+        ...state,
+        uploads: {
+          ...state.uploads,
+          [action.uploadId]: {
+            ...upload,
+            newDraftVersionId: action.newDraftVersionId,
+          },
+        },
+      };
+    }
+
     case "UPLOAD_SUCCESS": {
       const upload = state.uploads[action.uploadId];
       if (!upload) return state;
@@ -277,6 +351,15 @@ export const uploadReducer = (
             ...base,
             uploadType: "dropbox-publish",
             missingVideoCount: upload.missingVideoCount,
+          };
+          break;
+        case "publish":
+          entry = {
+            ...base,
+            uploadType: "publish",
+            publishStage: null,
+            newDraftVersionId: upload.newDraftVersionId,
+            courseId: upload.courseId,
           };
           break;
       }
@@ -378,6 +461,15 @@ export const uploadReducer = (
             ...base,
             uploadType: "dropbox-publish",
             missingVideoCount: null,
+          };
+          break;
+        case "publish":
+          entry = {
+            ...base,
+            uploadType: "publish",
+            publishStage: "validating",
+            newDraftVersionId: null,
+            courseId: upload.courseId,
           };
           break;
         default:

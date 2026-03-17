@@ -3,20 +3,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
+import { UploadContext } from "@/features/upload-manager/upload-context";
 import { generateChangelog } from "@/services/changelog-service";
 import { CoursePublishService } from "@/services/course-publish-service";
 import { DBFunctionsService } from "@/services/db-service.server";
 import { runtimeLive } from "@/services/layer.server";
 import { Console, Effect } from "effect";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Download,
-  Loader2,
-  AlertCircle,
-  ChevronRight,
-} from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { ArrowLeft, Download, AlertCircle, ChevronRight } from "lucide-react";
+import { useCallback, useContext, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { data, Link, useNavigate, useRevalidator } from "react-router";
@@ -72,25 +66,6 @@ export const loader = async (args: Route.LoaderArgs) => {
   );
 };
 
-type PublishStage =
-  | "idle"
-  | "validating"
-  | "uploading"
-  | "freezing"
-  | "cloning"
-  | "complete"
-  | "error";
-
-const STAGE_LABELS: Record<PublishStage, string> = {
-  idle: "",
-  validating: "Validating...",
-  uploading: "Uploading to Dropbox...",
-  freezing: "Freezing version...",
-  cloning: "Creating new draft...",
-  complete: "Published!",
-  error: "Publish failed",
-};
-
 export default function Component(props: Route.ComponentProps) {
   const {
     course,
@@ -101,145 +76,30 @@ export default function Component(props: Route.ComponentProps) {
   } = props.loaderData;
   const navigate = useNavigate();
   const revalidator = useRevalidator();
+  const { startBatchExportUpload, startPublish } = useContext(UploadContext);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [publishStage, setPublishStage] = useState<PublishStage>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [publishStarted, setPublishStarted] = useState(false);
 
-  useFocusRevalidate({ enabled: publishStage === "idle" && !isExporting });
+  useFocusRevalidate({ enabled: !publishStarted });
 
   const hasUnexportedVideos = unexportedVideoCount > 0;
   const canPublish =
-    name.trim().length > 0 && !hasUnexportedVideos && publishStage === "idle";
+    name.trim().length > 0 && !hasUnexportedVideos && !publishStarted;
 
-  const handleExportAll = useCallback(async () => {
-    setIsExporting(true);
-    setExportError(null);
+  const handleExportAll = useCallback(() => {
+    startBatchExportUpload(latestVersion.id);
+    // Revalidate after a delay to pick up newly exported videos
+    setTimeout(() => revalidator.revalidate(), 2000);
+  }, [latestVersion.id, startBatchExportUpload, revalidator]);
 
-    try {
-      const response = await fetch(
-        `/api/courseVersions/${latestVersion.id}/batch-export-sse`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!response.ok || !response.body) {
-        throw new Error("Failed to start batch export");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        let eventType = "";
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            eventType = line.slice(7);
-          } else if (line.startsWith("data: ") && eventType) {
-            const eventData = JSON.parse(line.slice(6));
-            if (eventType === "error") {
-              throw new Error(eventData.message);
-            }
-            eventType = "";
-          }
-        }
-      }
-
-      revalidator.revalidate();
-    } catch (e) {
-      console.error("Batch export failed:", e);
-      setExportError(e instanceof Error ? e.message : "Export failed");
-    } finally {
-      setIsExporting(false);
-    }
-  }, [latestVersion.id, revalidator]);
-
-  const handlePublish = useCallback(async () => {
-    setPublishStage("validating");
-    setErrorMessage(null);
-
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    try {
-      const response = await fetch(`/api/courses/${course.id}/publish-sse`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim(),
-        }),
-        signal: abortController.signal,
-      });
-
-      if (!response.ok || !response.body) {
-        setPublishStage("error");
-        setErrorMessage("Failed to start publish");
-        return;
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        let eventType = "";
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            eventType = line.slice(7);
-          } else if (line.startsWith("data: ") && eventType) {
-            const eventData = JSON.parse(line.slice(6));
-
-            if (eventType === "progress") {
-              setPublishStage(eventData.stage);
-            } else if (eventType === "complete") {
-              setPublishStage("complete");
-              // Navigate to the new draft after a brief delay
-              setTimeout(() => {
-                navigate(
-                  `/?courseId=${course.id}&versionId=${eventData.newDraftVersionId}`
-                );
-              }, 1500);
-            } else if (eventType === "error") {
-              setPublishStage("error");
-              setErrorMessage(eventData.message);
-            }
-            eventType = "";
-          }
-        }
-      }
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return;
-      setPublishStage("error");
-      setErrorMessage(e instanceof Error ? e.message : "Publish failed");
-    }
-  }, [course.id, name, description, navigate]);
-
-  const isPublishing =
-    publishStage !== "idle" &&
-    publishStage !== "error" &&
-    publishStage !== "complete";
+  const handlePublish = useCallback(() => {
+    setPublishStarted(true);
+    startPublish(course.id, course.name, name.trim(), description.trim());
+    // Navigate back to course — progress shows in GlobalUploadProgress
+    navigate(`/?courseId=${course.id}`);
+  }, [course.id, course.name, name, description, startPublish, navigate]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -276,7 +136,7 @@ export default function Component(props: Route.ComponentProps) {
               placeholder='e.g. "v2.1 — Added auth module"'
               value={name}
               onChange={(e) => setName(e.target.value)}
-              disabled={isPublishing || publishStage === "complete"}
+              disabled={publishStarted}
             />
           </div>
           <div className="space-y-2">
@@ -286,7 +146,7 @@ export default function Component(props: Route.ComponentProps) {
               placeholder="Optional description of what changed..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              disabled={isPublishing || publishStage === "complete"}
+              disabled={publishStarted}
               rows={3}
             />
           </div>
@@ -303,76 +163,24 @@ export default function Component(props: Route.ComponentProps) {
                   {unexportedVideoCount !== 1 ? "s" : ""}
                 </span>
               </div>
-              <Button
-                size="sm"
-                onClick={handleExportAll}
-                disabled={isExporting}
-              >
-                {isExporting ? (
-                  <>
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-3 h-3 mr-1" />
-                    Export All
-                  </>
-                )}
+              <Button size="sm" onClick={handleExportAll}>
+                <Download className="w-3 h-3 mr-1" />
+                Export All
               </Button>
             </div>
-            {exportError && (
-              <p className="text-sm text-destructive mt-2">{exportError}</p>
-            )}
           </div>
         )}
 
         {/* Publish Button */}
         <div className="mb-8">
-          {publishStage === "error" && errorMessage && (
-            <div className="mb-3 rounded-md border border-destructive/50 bg-destructive/5 p-3 text-sm text-destructive">
-              {errorMessage}
-            </div>
-          )}
-
-          {publishStage === "complete" && (
-            <div className="mb-3 rounded-md border border-green-500/50 bg-green-500/5 p-3 text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              Published successfully! Redirecting to new draft...
-            </div>
-          )}
-
           <Button
             onClick={handlePublish}
             disabled={!canPublish}
             className="w-full"
             size="lg"
           >
-            {isPublishing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {STAGE_LABELS[publishStage]}
-              </>
-            ) : publishStage === "error" ? (
-              "Retry Publish"
-            ) : (
-              "Publish"
-            )}
+            Publish
           </Button>
-
-          {publishStage === "error" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 w-full"
-              onClick={() => {
-                setPublishStage("idle");
-                setErrorMessage(null);
-              }}
-            >
-              Reset
-            </Button>
-          )}
         </div>
 
         {/* Changelog Preview */}

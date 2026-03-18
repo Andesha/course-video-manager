@@ -232,7 +232,7 @@ export const createCourseOperations = (db: DrizzleDB) => {
   );
 
   const updateCourseFilePath = Effect.fn("updateCourseFilePath")(
-    function* (opts: { repoId: string; filePath: string }) {
+    function* (opts: { repoId: string; filePath: string | null }) {
       const { repoId, filePath } = opts;
 
       const currentCourse = yield* makeDbCall(() =>

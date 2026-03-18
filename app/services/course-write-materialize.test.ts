@@ -839,6 +839,92 @@ describe("Materialization Cascade", () => {
     ).rejects.toThrow("File path does not exist");
   });
 
+  it("errors when directory is not a git repository", async () => {
+    const { run, ghostCourse, createGhostSection, getCourse } =
+      await setupGhostCourse();
+
+    // Create a non-git directory
+    const nonGitDir = fs.mkdtempSync(
+      path.join(tmpdir(), "course-non-git-test-")
+    );
+
+    const section = await createGhostSection("Introduction", 1);
+
+    await expect(
+      run(
+        Effect.gen(function* () {
+          const service = yield* CourseWriteService;
+          return yield* service.materializeCourseWithLesson(
+            section.id,
+            "Some Lesson",
+            nonGitDir
+          );
+        })
+      )
+    ).rejects.toThrow("Directory is not a git repository");
+
+    // Course should still be a ghost (filePath not set)
+    const course = await getCourse(ghostCourse.id);
+    expect(course.filePath).toBeNull();
+
+    fs.rmSync(nonGitDir, { recursive: true, force: true });
+  });
+
+  it("rolls back DB and filesystem when git add fails during cascade", async () => {
+    const {
+      run,
+      ghostCourse,
+      createGhostSection,
+      getCourse,
+      getSection,
+    } = await setupGhostCourse();
+
+    const section = await createGhostSection("Introduction", 1);
+
+    // Create a valid git repo, then make git add fail by locking the index
+    const fragileDir = fs.mkdtempSync(
+      path.join(tmpdir(), "course-fragile-test-")
+    );
+    execSync("git init", { cwd: fragileDir });
+    execSync('git config user.email "test@test.com"', { cwd: fragileDir });
+    execSync('git config user.name "Test"', { cwd: fragileDir });
+    fs.writeFileSync(path.join(fragileDir, ".gitkeep"), "");
+    execSync("git add . && git commit -m 'init'", { cwd: fragileDir });
+    // Make .git/objects unwritable so git add fails (after passing git rev-parse check)
+    fs.chmodSync(path.join(fragileDir, ".git", "objects"), 0o444);
+
+    try {
+      await expect(
+        run(
+          Effect.gen(function* () {
+            const service = yield* CourseWriteService;
+            return yield* service.materializeCourseWithLesson(
+              section.id,
+              "Some Lesson",
+              fragileDir
+            );
+          })
+        )
+      ).rejects.toThrow();
+
+      // Course filePath should be rolled back to null
+      const course = await getCourse(ghostCourse.id);
+      expect(course.filePath).toBeNull();
+
+      // Section path should be rolled back to original ghost path
+      const updatedSection = await getSection(section.id);
+      expect(updatedSection.path).toBe("Introduction");
+
+      // No section directories should remain (only .gitkeep and .git)
+      const entries = fs.readdirSync(fragileDir);
+      expect(entries.filter((e) => e !== ".gitkeep" && e !== ".git")).toEqual([]);
+    } finally {
+      // Restore permissions for cleanup
+      fs.chmodSync(path.join(fragileDir, ".git", "objects"), 0o755);
+      fs.rmSync(fragileDir, { recursive: true, force: true });
+    }
+  });
+
   it("course stays real after all lessons are deleted", async () => {
     const { run, ghostCourse, createGhostSection, getCourse } =
       await setupGhostCourse();

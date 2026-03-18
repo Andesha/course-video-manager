@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import { FileSystem } from "@effect/platform";
 import { NodeFileSystem } from "@effect/platform-node";
+import { execFileSync } from "node:child_process";
+import nodePath from "node:path";
 import { DBFunctionsService } from "./db-service.server";
 import { CourseRepoWriteService } from "./course-repo-write-service";
 import {
@@ -362,6 +364,7 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
       ) {
         const section = yield* db.getSectionWithHierarchyById(sectionId);
         const courseId = section.repoVersion.repo.id;
+        const originalSectionPath = section.path;
 
         if (section.repoVersion.repo.filePath) {
           return yield* new CourseWriteError({
@@ -389,11 +392,52 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
           });
         }
 
+        // Validate filePath is a git repository before making any changes
+        yield* Effect.try({
+          try: () =>
+            execFileSync("git", ["rev-parse", "--is-inside-work-tree"], {
+              cwd: filePath,
+              stdio: "pipe",
+            }),
+          catch: () =>
+            new CourseWriteError({
+              cause: null,
+              message: `Directory is not a git repository: ${filePath}`,
+            }),
+        });
+
+        // Snapshot directory contents before making changes, for cleanup on failure
+        const entriesBefore = yield* fileSystem
+          .readDirectory(filePath)
+          .pipe(Effect.catchAll(() => Effect.succeed([] as string[])));
+
         // Assign file path to the ghost course — this makes it permanently real
         yield* db.updateCourseFilePath({ repoId: courseId, filePath });
 
-        // Now delegate to createRealLesson which handles section materialization
-        return yield* createRealLesson(sectionId, title, opts);
+        // Delegate to createRealLesson; rollback DB + filesystem changes if it fails
+        return yield* createRealLesson(sectionId, title, opts).pipe(
+          Effect.catchAll((error) =>
+            Effect.gen(function* () {
+              // Rollback: revert course filePath to null
+              yield* db.updateCourseFilePath({ repoId: courseId, filePath: null });
+              // Rollback: revert section path if it was changed
+              yield* db.updateSectionPath(sectionId, originalSectionPath);
+              // Cleanup: remove any new directories created inside the repo
+              const entriesAfter = yield* fileSystem
+                .readDirectory(filePath)
+                .pipe(Effect.catchAll(() => Effect.succeed([] as string[])));
+              const beforeSet = new Set(entriesBefore);
+              for (const entry of entriesAfter) {
+                if (!beforeSet.has(entry)) {
+                  yield* fileSystem
+                    .remove(nodePath.join(filePath, entry), { recursive: true })
+                    .pipe(Effect.catchAll(() => Effect.void));
+                }
+              }
+              return yield* Effect.fail(error);
+            })
+          )
+        );
       });
 
       /** Creates a ghost lesson. Supports optional insertion before/after a lesson. */

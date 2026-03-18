@@ -264,31 +264,54 @@ export function SectionGrid({
               lessons = lessons.filter((l) => l.id !== pendingDeleteId);
             }
 
-            // Optimistic ghost lesson addition
+            // Optimistic lesson addition (ghost or real)
             const pendingGhostAdd = addGhostFetcher.formData;
             if (
               pendingGhostAdd &&
               pendingGhostAdd.get("sectionId") === section.id
             ) {
-              const ghostTitle = pendingGhostAdd.get("title") as string;
-              lessons = [
-                ...lessons,
-                {
-                  id: `optimistic-ghost-${ghostTitle}`,
-                  path: ghostTitle,
-                  title: ghostTitle,
-                  fsStatus: "ghost",
-                  description: "",
-                  icon: null,
-                  priority: 2,
-                  dependencies: [],
-                  order: lessons.length,
-                  videos: [],
-                  createdAt: new Date(),
-                  previousVersionLessonId: null,
-                  sectionId: section.id,
-                } as Lesson,
-              ];
+              const lessonTitle = pendingGhostAdd.get("title") as string;
+              const isRealMode =
+                addGhostFetcher.formAction?.includes("create-real");
+              const adjLessonId = pendingGhostAdd.get("adjacentLessonId") as
+                | string
+                | null;
+              const pos = pendingGhostAdd.get("position") as
+                | "before"
+                | "after"
+                | null;
+
+              const optimisticLesson = {
+                id: `optimistic-lesson-${lessonTitle}`,
+                path: lessonTitle,
+                title: lessonTitle,
+                fsStatus: isRealMode ? "real" : "ghost",
+                description: "",
+                icon: null,
+                priority: 2,
+                dependencies: [],
+                order: lessons.length,
+                videos: [],
+                createdAt: new Date(),
+                previousVersionLessonId: null,
+                sectionId: section.id,
+              } as Lesson;
+
+              if (adjLessonId && pos) {
+                const adjIdx = lessons.findIndex((l) => l.id === adjLessonId);
+                if (adjIdx !== -1) {
+                  const insertIdx = pos === "after" ? adjIdx + 1 : adjIdx;
+                  lessons = [
+                    ...lessons.slice(0, insertIdx),
+                    optimisticLesson,
+                    ...lessons.slice(insertIdx),
+                  ];
+                } else {
+                  lessons = [...lessons, optimisticLesson];
+                }
+              } else {
+                lessons = [...lessons, optimisticLesson];
+              }
             }
 
             // Optimistic lesson move between sections

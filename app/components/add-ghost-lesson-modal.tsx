@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { capitalizeTitle } from "@/utils/capitalize-title";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 
 export function AddGhostLessonModal(props: {
@@ -26,6 +26,20 @@ export function AddGhostLessonModal(props: {
   const fetcher = props.fetcher ?? internalFetcher;
   const [title, setTitle] = useState("");
   const [filePath, setFilePath] = useState("");
+  const wasSubmitting = useRef(false);
+
+  // Close modal when fetcher completes successfully
+  useEffect(() => {
+    if (fetcher.state === "submitting" || fetcher.state === "loading") {
+      wasSubmitting.current = true;
+    }
+    if (wasSubmitting.current && fetcher.state === "idle") {
+      wasSubmitting.current = false;
+      setTitle("");
+      setFilePath("");
+      props.onOpenChange(false);
+    }
+  }, [fetcher.state, props.onOpenChange]);
   const isReal = props.mode === "real";
   const isGhostCourse = isReal && !props.courseFilePath;
   const isValid =
@@ -67,7 +81,7 @@ export function AddGhostLessonModal(props: {
           method="post"
           action={actionUrl}
           className="space-y-4 py-4"
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
             if (!isValid) return;
             const formData = new FormData(e.currentTarget);
@@ -75,13 +89,10 @@ export function AddGhostLessonModal(props: {
             if (isGhostCourse) {
               formData.set("filePath", filePath.trim());
             }
-            await fetcher.submit(formData, {
+            fetcher.submit(formData, {
               method: "post",
               action: actionUrl,
             });
-            setTitle("");
-            setFilePath("");
-            props.onOpenChange(false);
           }}
         >
           <input type="hidden" name="sectionId" value={props.sectionId} />
@@ -135,8 +146,8 @@ export function AddGhostLessonModal(props: {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!isValid}>
-              {fetcher.state === "submitting" ? (
+            <Button type="submit" disabled={!isValid || fetcher.state !== "idle"}>
+              {fetcher.state !== "idle" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : isGhostCourse ? (
                 "Materialize & Create"

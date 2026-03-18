@@ -76,17 +76,25 @@ export default function Component(props: Route.ComponentProps) {
   } = props.loaderData;
   const navigate = useNavigate();
   const revalidator = useRevalidator();
-  const { startBatchExportUpload, startPublish } = useContext(UploadContext);
+  const { uploads, startBatchExportUpload, startPublish } = useContext(UploadContext);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [publishStarted, setPublishStarted] = useState(false);
 
+  const hasActiveExport = Object.values(uploads).some(
+    (u) => u.uploadType === "export" && (u.status === "uploading" || u.status === "waiting" || u.status === "retrying")
+  );
+  const hasActivePublish = Object.values(uploads).some(
+    (u) => u.uploadType === "publish" && (u.status === "uploading" || u.status === "waiting" || u.status === "retrying")
+  );
+  const isOperationInProgress = hasActiveExport || hasActivePublish;
+
   useFocusRevalidate({ enabled: !publishStarted });
 
   const hasUnexportedVideos = unexportedVideoCount > 0;
   const canPublish =
-    name.trim().length > 0 && !hasUnexportedVideos && !publishStarted;
+    name.trim().length > 0 && !hasUnexportedVideos && !publishStarted && !isOperationInProgress;
 
   const handleExportAll = useCallback(() => {
     startBatchExportUpload(latestVersion.id);
@@ -163,9 +171,9 @@ export default function Component(props: Route.ComponentProps) {
                   {unexportedVideoCount !== 1 ? "s" : ""}
                 </span>
               </div>
-              <Button size="sm" onClick={handleExportAll}>
+              <Button size="sm" onClick={handleExportAll} disabled={isOperationInProgress}>
                 <Download className="w-3 h-3 mr-1" />
-                Export All
+                {hasActiveExport ? "Exporting..." : "Export All"}
               </Button>
             </div>
           </div>
@@ -179,7 +187,7 @@ export default function Component(props: Route.ComponentProps) {
             className="w-full"
             size="lg"
           >
-            Publish
+            {hasActivePublish ? "Publishing..." : hasActiveExport ? "Export in progress..." : "Publish"}
           </Button>
         </div>
 

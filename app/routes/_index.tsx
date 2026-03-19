@@ -7,7 +7,11 @@ import { useCourseViewReducer } from "@/hooks/use-course-view-reducer";
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
 import { Button } from "@/components/ui/button";
 import { DBFunctionsService } from "@/services/db-service.server";
-import { loadCourseFileMaps } from "@/services/course-loader-fs";
+import {
+  loadExportStatusMap,
+  loadLessonFsMaps,
+} from "@/services/course-loader-fs";
+import type { ExportClip } from "@/services/export-hash";
 import { FeatureFlagService } from "@/services/feature-flag-service";
 import { runtimeLive } from "@/services/layer.server";
 import {
@@ -21,7 +25,7 @@ import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Console, Effect } from "effect";
 import { getGitStatus } from "@/services/git-status-service";
 import { Plus } from "lucide-react";
-import { useCallback, useContext, useMemo, useState } from "react";
+import { Suspense, useCallback, useContext, useMemo, useState } from "react";
 import { data, useFetcher, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/_index";
 import { toast } from "sonner";
@@ -136,11 +140,27 @@ export const loader = async (args: Route.LoaderArgs) => {
         )
       : [];
 
-    const { hasExportedVideoMap, hasExplainerFolderMap, lessonHasFilesMap } =
-      yield* loadCourseFileMaps({
-        videos: videos ?? [],
-        lessons,
-      });
+    // Deferred: streams to the client after initial render
+    const hasExportedVideoMap = selectedCourse
+      ? runtimeLive.runPromise(
+          loadExportStatusMap({
+            courseId: selectedCourse.id,
+            videos: (videos ?? []).map((v) => ({
+              id: v.id,
+              clips: v.clips.map(
+                (c): ExportClip => ({
+                  videoFilename: c.videoFilename,
+                  sourceStartTime: c.sourceStartTime,
+                  sourceEndTime: c.sourceEndTime,
+                  order: c.order,
+                })
+              ),
+            })),
+          })
+        )
+      : Promise.resolve({} as Record<string, boolean>);
+
+    const lessonFsMaps = runtimeLive.runPromise(loadLessonFsMaps({ lessons }));
 
     const latestVersion = versions[0];
     const isLatestVersion = !!(
@@ -161,8 +181,7 @@ export const loader = async (args: Route.LoaderArgs) => {
       selectedVersion,
       isLatestVersion,
       hasExportedVideoMap,
-      hasExplainerFolderMap,
-      lessonHasFilesMap,
+      lessonFsMaps,
       plans,
       gitStatus,
       showMediaFilesList: featureFlags.isEnabled("ENABLE_MEDIA_FILES_LIST"),
@@ -460,95 +479,97 @@ export default function Component(props: Route.ComponentProps) {
                 />
               </div>
 
-              {/* Next Up — only show for draft */}
-              {loaderData.isLatestVersion && (
-                <div className="mb-14">
-                  <NextTodoCard
-                    sections={currentCourse.sections}
-                    data={loaderData}
-                    navigate={navigate}
-                    addVideoToLessonId={addVideoToLessonId}
-                    editLessonId={editLessonId}
-                    convertToGhostLessonId={convertToGhostLessonId}
-                    deleteLessonId={deleteLessonId}
+              <Suspense>
+                {/* Next Up — only show for draft */}
+                {loaderData.isLatestVersion && (
+                  <div className="mb-14">
+                    <NextTodoCard
+                      sections={currentCourse.sections}
+                      data={loaderData}
+                      navigate={navigate}
+                      addVideoToLessonId={addVideoToLessonId}
+                      editLessonId={editLessonId}
+                      convertToGhostLessonId={convertToGhostLessonId}
+                      deleteLessonId={deleteLessonId}
+                      dispatch={dispatch}
+                      startExportUpload={startExportUpload}
+                      revealVideoFetcher={revealVideoFetcher}
+                      deleteVideoFileFetcher={deleteVideoFileFetcher}
+                      deleteVideoFetcher={deleteVideoFetcher}
+                      deleteLessonFetcher={deleteLessonFetcher}
+                      allFlatLessons={allFlatLessons}
+                      dependencyMap={dependencyMap}
+                      dismissed={nextUpDismissed}
+                      onDismiss={() => setNextUpDismissed(true)}
+                    />
+                  </div>
+                )}
+
+                {/* All Lessons */}
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold mb-3">All Lessons</h2>
+                  <FilterBar
+                    priorityFilter={priorityFilter}
+                    iconFilter={iconFilter}
+                    fsStatusFilter={fsStatusFilter}
+                    fsStatusCounts={fsStatusCounts}
+                    searchQuery={searchQuery}
                     dispatch={dispatch}
-                    startExportUpload={startExportUpload}
-                    revealVideoFetcher={revealVideoFetcher}
-                    deleteVideoFileFetcher={deleteVideoFileFetcher}
-                    deleteVideoFetcher={deleteVideoFetcher}
-                    deleteLessonFetcher={deleteLessonFetcher}
-                    allFlatLessons={allFlatLessons}
-                    dependencyMap={dependencyMap}
-                    dismissed={nextUpDismissed}
-                    onDismiss={() => setNextUpDismissed(true)}
+                    isRealCourse={currentCourse?.filePath != null}
                   />
                 </div>
-              )}
 
-              {/* All Lessons */}
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold mb-3">All Lessons</h2>
-                <FilterBar
+                <SectionGrid
+                  currentCourse={currentCourse}
+                  data={loaderData}
+                  sensors={sensors}
+                  handleSectionDragEnd={handleSectionDragEnd}
+                  handleLessonDragEnd={handleLessonDragEnd}
+                  reorderSectionFetcher={reorderSectionFetcher}
+                  reorderLessonFetcher={reorderLessonFetcher}
+                  deleteLessonFetcher={deleteLessonFetcher}
+                  addGhostFetcher={addGhostFetcher}
+                  createSectionFetcher={createSectionFetcher}
+                  moveLessonFetcher={moveLessonFetcher}
                   priorityFilter={priorityFilter}
                   iconFilter={iconFilter}
                   fsStatusFilter={fsStatusFilter}
-                  fsStatusCounts={fsStatusCounts}
                   searchQuery={searchQuery}
+                  addGhostLessonSectionId={addGhostLessonSectionId}
+                  insertAdjacentLessonId={insertAdjacentLessonId}
+                  insertPosition={insertPosition}
+                  editSectionId={editSectionId}
+                  addVideoToLessonId={addVideoToLessonId}
+                  editLessonId={editLessonId}
+                  convertToGhostLessonId={convertToGhostLessonId}
+                  deleteLessonId={deleteLessonId}
+                  deleteSectionId={deleteSectionId}
                   dispatch={dispatch}
-                  isRealCourse={currentCourse?.filePath != null}
+                  navigate={navigate}
+                  startExportUpload={startExportUpload}
+                  revealVideoFetcher={revealVideoFetcher}
+                  deleteVideoFileFetcher={deleteVideoFileFetcher}
+                  deleteVideoFetcher={deleteVideoFetcher}
                 />
-              </div>
 
-              <SectionGrid
-                currentCourse={currentCourse}
-                data={loaderData}
-                sensors={sensors}
-                handleSectionDragEnd={handleSectionDragEnd}
-                handleLessonDragEnd={handleLessonDragEnd}
-                reorderSectionFetcher={reorderSectionFetcher}
-                reorderLessonFetcher={reorderLessonFetcher}
-                deleteLessonFetcher={deleteLessonFetcher}
-                addGhostFetcher={addGhostFetcher}
-                createSectionFetcher={createSectionFetcher}
-                moveLessonFetcher={moveLessonFetcher}
-                priorityFilter={priorityFilter}
-                iconFilter={iconFilter}
-                fsStatusFilter={fsStatusFilter}
-                searchQuery={searchQuery}
-                addGhostLessonSectionId={addGhostLessonSectionId}
-                insertAdjacentLessonId={insertAdjacentLessonId}
-                insertPosition={insertPosition}
-                editSectionId={editSectionId}
-                addVideoToLessonId={addVideoToLessonId}
-                editLessonId={editLessonId}
-                convertToGhostLessonId={convertToGhostLessonId}
-                deleteLessonId={deleteLessonId}
-                deleteSectionId={deleteSectionId}
-                dispatch={dispatch}
-                navigate={navigate}
-                startExportUpload={startExportUpload}
-                revealVideoFetcher={revealVideoFetcher}
-                deleteVideoFileFetcher={deleteVideoFileFetcher}
-                deleteVideoFetcher={deleteVideoFetcher}
-              />
-
-              {loaderData.selectedVersion && loaderData.isLatestVersion && (
-                <div className="mt-8 flex justify-center">
-                  <Button
-                    variant="outline"
-                    className="border-dashed"
-                    onClick={() =>
-                      dispatch({
-                        type: "set-create-section-modal-open",
-                        open: true,
-                      })
-                    }
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Section
-                  </Button>
-                </div>
-              )}
+                {loaderData.selectedVersion && loaderData.isLatestVersion && (
+                  <div className="mt-8 flex justify-center">
+                    <Button
+                      variant="outline"
+                      className="border-dashed"
+                      onClick={() =>
+                        dispatch({
+                          type: "set-create-section-modal-open",
+                          open: true,
+                        })
+                      }
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Section
+                    </Button>
+                  </div>
+                )}
+              </Suspense>
 
               {loaderData.selectedVersion && loaderData.isLatestVersion && (
                 <CreateSectionModal

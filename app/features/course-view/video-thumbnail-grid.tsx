@@ -18,6 +18,7 @@ import {
   Play,
   Trash2,
 } from "lucide-react";
+import { use } from "react";
 import { useNavigate, useFetcher } from "react-router";
 import type { LoaderData, Section, Lesson, Video } from "./course-view-types";
 
@@ -44,6 +45,7 @@ function VideoThumbnailItem({
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFetcher: ReturnType<typeof useFetcher>;
 }) {
+  const hasExportedVideoMap = use(data.hasExportedVideoMap);
   const isReadOnly = !data.isLatestVersion;
   const totalDuration = video.clips.reduce((acc, clip) => {
     return acc + (clip.sourceEndTime - clip.sourceStartTime);
@@ -74,7 +76,7 @@ function VideoThumbnailItem({
                 <FileVideo className="w-6 h-6 text-muted-foreground/40" />
               </div>
             )}
-            {!data.hasExportedVideoMap[video.id] && (
+            {!hasExportedVideoMap[video.id] && (
               <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-red-500" />
             )}
           </div>
@@ -161,7 +163,7 @@ function VideoThumbnailItem({
               <ArrowRightLeft className="w-4 h-4" />
               Move to Lesson
             </ContextMenuItem>
-            {data.hasExportedVideoMap[video.id] && (
+            {hasExportedVideoMap[video.id] && (
               <ContextMenuItem
                 variant="destructive"
                 onSelect={() => {

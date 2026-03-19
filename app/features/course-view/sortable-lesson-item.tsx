@@ -35,7 +35,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { useCallback, useRef, useState } from "react";
+import { use, useCallback, useRef, useState } from "react";
 import { useNavigate, useFetcher } from "react-router";
 
 export function SortableLessonItem({
@@ -92,6 +92,7 @@ export function SortableLessonItem({
     opacity: isDragging ? 0.5 : undefined,
   };
 
+  const lessonFsMaps = use(data.lessonFsMaps);
   const isReadOnly = !data.isLatestVersion;
   const createOnDiskFetcher = useFetcher();
   const isGhost =
@@ -498,7 +499,9 @@ export function SortableLessonItem({
         <AddVideoModal
           lessonId={lesson.id}
           videoCount={lesson.videos.length}
-          hasExplainerFolder={data.hasExplainerFolderMap[lesson.id] ?? false}
+          hasExplainerFolder={
+            lessonFsMaps.hasExplainerFolderMap[lesson.id] ?? false
+          }
           open={addVideoToLessonId === lesson.id}
           onOpenChange={(open) => {
             dispatch({
@@ -536,7 +539,7 @@ export function SortableLessonItem({
           <DeleteLessonModal
             lessonId={lesson.id}
             lessonTitle={lesson.path}
-            filesOnDisk={data.lessonHasFilesMap[lesson.id] ?? []}
+            filesOnDisk={lessonFsMaps.lessonHasFilesMap[lesson.id] ?? []}
             open={deleteLessonId === lesson.id}
             onOpenChange={(open) => {
               dispatch({
@@ -550,7 +553,7 @@ export function SortableLessonItem({
           <ConvertToGhostModal
             lessonId={lesson.id}
             lessonTitle={lesson.path}
-            filesOnDisk={data.lessonHasFilesMap[lesson.id] ?? []}
+            filesOnDisk={lessonFsMaps.lessonHasFilesMap[lesson.id] ?? []}
             hasVideos={lesson.videos.length > 0}
             open={convertToGhostLessonId === lesson.id}
             onOpenChange={(open) => {

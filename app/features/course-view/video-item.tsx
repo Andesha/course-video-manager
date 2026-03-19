@@ -18,6 +18,7 @@ import {
   Play,
   Trash2,
 } from "lucide-react";
+import { use } from "react";
 import { useNavigate, useFetcher } from "react-router";
 import type { LoaderData, Section, Lesson, Video } from "./course-view-types";
 
@@ -44,6 +45,7 @@ export function VideoItem({
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFetcher: ReturnType<typeof useFetcher>;
 }) {
+  const hasExportedVideoMap = use(data.hasExportedVideoMap);
   const totalDuration = video.clips.reduce((acc, clip) => {
     return acc + (clip.sourceEndTime - clip.sourceStartTime);
   }, 0);
@@ -62,7 +64,7 @@ export function VideoItem({
             <FileVideo
               className={cn(
                 "w-3 h-3 shrink-0",
-                data.hasExportedVideoMap[video.id]
+                hasExportedVideoMap[video.id]
                   ? "text-muted-foreground"
                   : "text-red-500"
               )}
@@ -145,7 +147,7 @@ export function VideoItem({
           <ArrowRightLeft className="w-4 h-4" />
           Move to Lesson
         </ContextMenuItem>
-        {data.hasExportedVideoMap[video.id] && (
+        {hasExportedVideoMap[video.id] && (
           <ContextMenuItem
             variant="destructive"
             onSelect={() => {

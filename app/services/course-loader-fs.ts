@@ -1,6 +1,10 @@
 import { FileSystem } from "@effect/platform";
-import { Effect } from "effect";
-import { CoursePublishService } from "./course-publish-service";
+import { Config, Effect } from "effect";
+import {
+  computeExportHash,
+  resolveExportPath,
+  type ExportClip,
+} from "./export-hash";
 
 const listFilesRecursive = (
   dir: string,
@@ -36,48 +40,62 @@ const listFilesRecursive = (
     return entryResults.flat();
   });
 
-export const loadCourseFileMaps = (opts: {
-  videos: { id: string }[];
+export const loadExportStatusMap = (opts: {
+  courseId: string;
+  videos: { id: string; clips: ExportClip[] }[];
+}) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const finishedVideosDir = yield* Config.string("FINISHED_VIDEOS_DIRECTORY");
+
+    const hasExportedVideoMap: Record<string, boolean> = {};
+
+    yield* Effect.forEach(
+      opts.videos,
+      (video) =>
+        Effect.gen(function* () {
+          const hash = computeExportHash(video.clips);
+          if (!hash) {
+            hasExportedVideoMap[video.id] = false;
+            return;
+          }
+          const exportPath = resolveExportPath(
+            finishedVideosDir,
+            opts.courseId,
+            hash
+          );
+          hasExportedVideoMap[video.id] = yield* fs.exists(exportPath);
+        }),
+      { concurrency: "unbounded" }
+    );
+
+    return hasExportedVideoMap;
+  });
+
+export const loadLessonFsMaps = (opts: {
   lessons: { id: string; fullPath: string }[];
 }) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const publishService = yield* CoursePublishService;
 
-    const hasExportedVideoMap: Record<string, boolean> = {};
     const hasExplainerFolderMap: Record<string, boolean> = {};
     const lessonHasFilesMap: Record<string, { path: string; size: number }[]> =
       {};
 
-    yield* Effect.all(
-      [
-        Effect.forEach(
-          opts.videos,
-          (video) =>
-            Effect.gen(function* () {
-              hasExportedVideoMap[video.id] = yield* publishService.isExported(
-                video.id
-              );
-            }),
-          { concurrency: "unbounded" }
-        ),
-        Effect.forEach(
-          opts.lessons,
-          (lesson) =>
-            Effect.gen(function* () {
-              hasExplainerFolderMap[lesson.id] = yield* fs.exists(
-                `${lesson.fullPath}/explainer`
-              );
-              lessonHasFilesMap[lesson.id] = yield* listFilesRecursive(
-                lesson.fullPath,
-                ""
-              );
-            }),
-          { concurrency: "unbounded" }
-        ),
-      ],
+    yield* Effect.forEach(
+      opts.lessons,
+      (lesson) =>
+        Effect.gen(function* () {
+          hasExplainerFolderMap[lesson.id] = yield* fs.exists(
+            `${lesson.fullPath}/explainer`
+          );
+          lessonHasFilesMap[lesson.id] = yield* listFilesRecursive(
+            lesson.fullPath,
+            ""
+          );
+        }),
       { concurrency: "unbounded" }
     );
 
-    return { hasExportedVideoMap, hasExplainerFolderMap, lessonHasFilesMap };
+    return { hasExplainerFolderMap, lessonHasFilesMap };
   });

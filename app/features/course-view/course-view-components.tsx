@@ -21,6 +21,7 @@ import {
   VideoIcon,
   X,
 } from "lucide-react";
+import { Suspense, use } from "react";
 import { Link, useFetcher, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,13 +110,21 @@ export function StatsBar({
           {totalDurationFormatted}
         </span>
       )}
-      {gitStatus && gitStatus.total > 0 && (
-        <span className="inline-flex items-center gap-1 rounded-md bg-yellow-500/20 px-2 py-1 text-xs font-medium text-yellow-600">
-          <GitBranch className="w-3 h-3" />
-          {gitStatus.total} change{gitStatus.total !== 1 ? "s" : ""}
-        </span>
-      )}
+      <Suspense>
+        <GitStatusBadge gitStatus={gitStatus} />
+      </Suspense>
     </div>
+  );
+}
+
+function GitStatusBadge({ gitStatus }: { gitStatus: LoaderData["gitStatus"] }) {
+  const resolved = use(gitStatus);
+  if (!resolved || resolved.total === 0) return null;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-yellow-500/20 px-2 py-1 text-xs font-medium text-yellow-600">
+      <GitBranch className="w-3 h-3" />
+      {resolved.total} change{resolved.total !== 1 ? "s" : ""}
+    </span>
   );
 }
 

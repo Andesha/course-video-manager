@@ -23,7 +23,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Console, Effect } from "effect";
-import { getGitStatus } from "@/services/git-status-service";
+import { getGitStatusAsync } from "@/services/git-status-service";
 import { Plus } from "lucide-react";
 import { Suspense, useCallback, useContext, useMemo, useState } from "react";
 import { data, useFetcher, useNavigate, useSearchParams } from "react-router";
@@ -170,8 +170,8 @@ export const loader = async (args: Route.LoaderArgs) => {
     );
 
     const gitStatus = selectedCourse?.filePath
-      ? getGitStatus(selectedCourse.filePath)
-      : null;
+      ? getGitStatusAsync(selectedCourse.filePath)
+      : Promise.resolve(null);
 
     return {
       courses,

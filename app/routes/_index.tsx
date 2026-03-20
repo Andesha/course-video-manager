@@ -227,6 +227,16 @@ export const loader = async (args: Route.LoaderArgs) => {
 
 export default function Component(props: Route.ComponentProps) {
   const [searchParams] = useSearchParams();
+  const selectedCourseId = searchParams.get("courseId");
+
+  // Key on courseId so React remounts the inner component (and resets
+  // reducer state) whenever the user switches courses — same pattern
+  // the video editor uses with key={video.id}.
+  return <ComponentInner {...props} key={selectedCourseId ?? "no-course"} />;
+}
+
+function ComponentInner(props: Route.ComponentProps) {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedCourseId = searchParams.get("courseId");
   const loaderData = props.loaderData;

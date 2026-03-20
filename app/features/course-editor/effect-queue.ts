@@ -98,6 +98,199 @@ export class EffectQueue {
         });
         break;
       }
+
+      // ====================================================================
+      // Lesson effects
+      // ====================================================================
+
+      case "add-ghost-lesson": {
+        const resolvedSectionId = this.resolveId(effect.sectionId);
+        const opts: {
+          adjacentLessonId?: string;
+          position?: "before" | "after";
+        } = {};
+        if (effect.adjacentLessonId) {
+          opts.adjacentLessonId = this.resolveId(effect.adjacentLessonId);
+        }
+        if (effect.position) {
+          opts.position = effect.position;
+        }
+        const result = await this.service.addGhostLesson(
+          resolvedSectionId,
+          effect.title,
+          Object.keys(opts).length > 0 ? opts : undefined
+        );
+        this.idMap.set(effect.frontendId, result.lessonId as DatabaseId);
+        this.dispatch({
+          type: "lesson-created",
+          frontendId: effect.frontendId,
+          databaseId: result.lessonId as DatabaseId,
+          path: result.lessonId,
+        });
+        break;
+      }
+
+      case "create-real-lesson": {
+        const resolvedSectionId = this.resolveId(effect.sectionId);
+        const opts: {
+          adjacentLessonId?: string;
+          position?: "before" | "after";
+        } = {};
+        if (effect.adjacentLessonId) {
+          opts.adjacentLessonId = this.resolveId(effect.adjacentLessonId);
+        }
+        if (effect.position) {
+          opts.position = effect.position;
+        }
+        const result = await this.service.createRealLesson(
+          resolvedSectionId,
+          effect.title,
+          Object.keys(opts).length > 0 ? opts : undefined
+        );
+        this.idMap.set(effect.frontendId, result.lessonId as DatabaseId);
+        this.dispatch({
+          type: "lesson-created",
+          frontendId: effect.frontendId,
+          databaseId: result.lessonId as DatabaseId,
+          path: result.path,
+        });
+        break;
+      }
+
+      case "update-lesson-name": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        const result = await this.service.updateLessonName(
+          resolvedId,
+          effect.newSlug
+        );
+        this.dispatch({
+          type: "lesson-name-updated",
+          frontendId: effect.frontendId,
+          path: result.path,
+        });
+        break;
+      }
+
+      case "update-lesson-title": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        await this.service.updateLessonTitle(resolvedId, effect.title);
+        this.dispatch({
+          type: "lesson-title-updated",
+          frontendId: effect.frontendId,
+        });
+        break;
+      }
+
+      case "update-lesson-description": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        await this.service.updateLessonDescription(
+          resolvedId,
+          effect.description
+        );
+        this.dispatch({
+          type: "lesson-description-updated",
+          frontendId: effect.frontendId,
+        });
+        break;
+      }
+
+      case "update-lesson-icon": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        await this.service.updateLessonIcon(
+          resolvedId,
+          effect.icon as "watch" | "code" | "discussion"
+        );
+        this.dispatch({
+          type: "lesson-icon-updated",
+          frontendId: effect.frontendId,
+        });
+        break;
+      }
+
+      case "update-lesson-priority": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        await this.service.updateLessonPriority(
+          resolvedId,
+          effect.priority as 1 | 2 | 3
+        );
+        this.dispatch({
+          type: "lesson-priority-updated",
+          frontendId: effect.frontendId,
+        });
+        break;
+      }
+
+      case "update-lesson-dependencies": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        await this.service.updateLessonDependencies(
+          resolvedId,
+          effect.dependencies
+        );
+        this.dispatch({
+          type: "lesson-dependencies-updated",
+          frontendId: effect.frontendId,
+        });
+        break;
+      }
+
+      case "delete-lesson": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        await this.service.deleteLesson(resolvedId);
+        this.dispatch({
+          type: "lesson-deleted",
+          frontendId: effect.frontendId,
+        });
+        break;
+      }
+
+      case "reorder-lessons": {
+        const resolvedSectionId = this.resolveId(effect.sectionId);
+        const resolvedLessonIds = effect.lessonIds.map((id) =>
+          this.resolveId(id)
+        );
+        await this.service.reorderLessons(resolvedSectionId, resolvedLessonIds);
+        this.dispatch({
+          type: "lessons-reordered",
+        });
+        break;
+      }
+
+      case "move-lesson-to-section": {
+        const resolvedLessonId = this.resolveId(effect.lessonId);
+        const resolvedTargetId = this.resolveId(effect.targetSectionId);
+        await this.service.moveLessonToSection(
+          resolvedLessonId,
+          resolvedTargetId
+        );
+        this.dispatch({
+          type: "lesson-moved",
+        });
+        break;
+      }
+
+      case "convert-to-ghost": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        await this.service.convertToGhost(resolvedId);
+        this.dispatch({
+          type: "lesson-converted-to-ghost",
+          frontendId: effect.frontendId,
+        });
+        break;
+      }
+
+      case "create-on-disk": {
+        const resolvedId = this.resolveId(effect.lessonId);
+        const opts = effect.repoPath
+          ? { repoPath: effect.repoPath }
+          : undefined;
+        const result = await this.service.createOnDisk(resolvedId, opts);
+        this.dispatch({
+          type: "lesson-created-on-disk",
+          frontendId: effect.frontendId,
+          path: result.path,
+        });
+        break;
+      }
     }
   }
 

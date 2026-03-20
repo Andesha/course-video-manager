@@ -5,16 +5,13 @@ import type {
   EditorSection,
 } from "./course-editor-types";
 import type { Lesson } from "@/features/course-view/course-view-types";
+import { handleLessonCase } from "./course-editor-lesson-cases";
 
 // ============================================================================
 // Namespace: State, Action, Effect
 // ============================================================================
 
 export namespace courseEditorReducer {
-  // --------------------------------------------------------------------------
-  // Sub-types used in state
-  // --------------------------------------------------------------------------
-
   export type VideoPlayerState = {
     isOpen: boolean;
     videoId: string;
@@ -38,15 +35,8 @@ export namespace courseEditorReducer {
     videoPath: string;
   } | null;
 
-  // --------------------------------------------------------------------------
-  // State
-  // --------------------------------------------------------------------------
-
   export type State = {
-    // Entity state (owned by reducer after initialization)
     sections: EditorSection[];
-
-    // Boolean modal toggles
     isAddCourseModalOpen: boolean;
     isCreateSectionModalOpen: boolean;
     isVersionSelectorModalOpen: boolean;
@@ -59,8 +49,6 @@ export namespace courseEditorReducer {
       sectionPath: string;
       lessons: Lesson[];
     } | null;
-
-    // ID-based selection states (use FrontendId for stable references)
     addGhostLessonSectionId: FrontendId | null;
     insertAdjacentLessonId: FrontendId | null;
     insertPosition: "before" | "after" | null;
@@ -71,31 +59,66 @@ export namespace courseEditorReducer {
     deleteLessonId: FrontendId | null;
     deleteSectionId: FrontendId | null;
     createOnDiskLessonId: FrontendId | null;
-
-    // Complex object states
     videoPlayerState: VideoPlayerState;
     moveVideoState: MoveVideoState;
     moveLessonState: MoveLessonState;
     renameVideoState: RenameVideoState;
-
-    // Filter states
     priorityFilter: number[];
     iconFilter: string[];
     fsStatusFilter: string | null;
     searchQuery: string;
   };
 
-  // --------------------------------------------------------------------------
-  // Actions
-  // --------------------------------------------------------------------------
-
   export type Action =
-    // === Section entity actions ===
     | { type: "add-section"; title: string; repoVersionId: string }
     | { type: "rename-section"; frontendId: FrontendId; title: string }
     | { type: "delete-section"; frontendId: FrontendId }
     | { type: "reorder-sections"; frontendIds: FrontendId[] }
-    // === Reconciliation actions (dispatched by effect queue) ===
+    | {
+        type: "add-ghost-lesson";
+        sectionFrontendId: FrontendId;
+        title: string;
+        adjacentLessonId?: FrontendId;
+        position?: "before" | "after";
+      }
+    | {
+        type: "create-real-lesson";
+        sectionFrontendId: FrontendId;
+        title: string;
+        adjacentLessonId?: FrontendId;
+        position?: "before" | "after";
+      }
+    | { type: "update-lesson-name"; frontendId: FrontendId; newSlug: string }
+    | { type: "update-lesson-title"; frontendId: FrontendId; title: string }
+    | {
+        type: "update-lesson-description";
+        frontendId: FrontendId;
+        description: string;
+      }
+    | { type: "update-lesson-icon"; frontendId: FrontendId; icon: string }
+    | {
+        type: "update-lesson-priority";
+        frontendId: FrontendId;
+        priority: number;
+      }
+    | {
+        type: "update-lesson-dependencies";
+        frontendId: FrontendId;
+        dependencies: string[];
+      }
+    | { type: "delete-lesson"; frontendId: FrontendId }
+    | {
+        type: "reorder-lessons";
+        sectionFrontendId: FrontendId;
+        lessonFrontendIds: FrontendId[];
+      }
+    | {
+        type: "move-lesson-to-section";
+        lessonFrontendId: FrontendId;
+        targetSectionFrontendId: FrontendId;
+      }
+    | { type: "convert-to-ghost"; frontendId: FrontendId }
+    | { type: "create-on-disk"; frontendId: FrontendId; repoPath?: string }
     | {
         type: "section-created";
         frontendId: FrontendId;
@@ -105,7 +128,27 @@ export namespace courseEditorReducer {
     | { type: "section-renamed"; frontendId: FrontendId; path: string }
     | { type: "section-deleted"; frontendId: FrontendId }
     | { type: "sections-reordered" }
-    // === Boolean modal toggles ===
+    | {
+        type: "lesson-created";
+        frontendId: FrontendId;
+        databaseId: DatabaseId;
+        path: string;
+      }
+    | { type: "lesson-name-updated"; frontendId: FrontendId; path: string }
+    | { type: "lesson-title-updated"; frontendId: FrontendId }
+    | { type: "lesson-description-updated"; frontendId: FrontendId }
+    | { type: "lesson-icon-updated"; frontendId: FrontendId }
+    | { type: "lesson-priority-updated"; frontendId: FrontendId }
+    | { type: "lesson-dependencies-updated"; frontendId: FrontendId }
+    | { type: "lesson-deleted"; frontendId: FrontendId }
+    | { type: "lessons-reordered" }
+    | { type: "lesson-moved" }
+    | { type: "lesson-converted-to-ghost"; frontendId: FrontendId }
+    | {
+        type: "lesson-created-on-disk";
+        frontendId: FrontendId;
+        path: string;
+      }
     | { type: "set-add-course-modal-open"; open: boolean }
     | { type: "set-create-section-modal-open"; open: boolean }
     | { type: "set-version-selector-modal-open"; open: boolean }
@@ -120,11 +163,7 @@ export namespace courseEditorReducer {
         lessons: Lesson[];
       }
     | { type: "close-copy-section-transcript" }
-    // === ID-based selections ===
-    | {
-        type: "set-add-lesson-section-id";
-        sectionId: FrontendId | null;
-      }
+    | { type: "set-add-lesson-section-id"; sectionId: FrontendId | null }
     | {
         type: "set-insert-lesson";
         sectionId: FrontendId;
@@ -140,14 +179,9 @@ export namespace courseEditorReducer {
       }
     | { type: "set-delete-lesson-id"; lessonId: FrontendId | null }
     | { type: "set-delete-section-id"; sectionId: FrontendId | null }
-    | {
-        type: "set-create-on-disk-lesson-id";
-        lessonId: FrontendId | null;
-      }
-    // === Video player ===
+    | { type: "set-create-on-disk-lesson-id"; lessonId: FrontendId | null }
     | { type: "open-video-player"; videoId: string; videoPath: string }
     | { type: "close-video-player" }
-    // === Move video ===
     | {
         type: "open-move-video";
         videoId: string;
@@ -155,7 +189,6 @@ export namespace courseEditorReducer {
         currentLessonId: string;
       }
     | { type: "close-move-video" }
-    // === Move lesson ===
     | {
         type: "open-move-lesson";
         lessonId: string;
@@ -163,18 +196,12 @@ export namespace courseEditorReducer {
         currentSectionId: string;
       }
     | { type: "close-move-lesson" }
-    // === Rename video ===
     | { type: "open-rename-video"; videoId: string; videoPath: string }
     | { type: "close-rename-video" }
-    // === Filters ===
     | { type: "toggle-priority-filter"; priority: number }
     | { type: "toggle-icon-filter"; icon: string }
     | { type: "toggle-fs-status-filter"; status: string }
     | { type: "set-search-query"; query: string };
-
-  // --------------------------------------------------------------------------
-  // Effects
-  // --------------------------------------------------------------------------
 
   export type Effect =
     | {
@@ -195,9 +222,85 @@ export namespace courseEditorReducer {
         frontendId: FrontendId;
         sectionId: FrontendId | DatabaseId;
       }
+    | { type: "reorder-sections"; sectionIds: (FrontendId | DatabaseId)[] }
     | {
-        type: "reorder-sections";
-        sectionIds: (FrontendId | DatabaseId)[];
+        type: "add-ghost-lesson";
+        frontendId: FrontendId;
+        sectionId: FrontendId | DatabaseId;
+        title: string;
+        adjacentLessonId?: FrontendId | DatabaseId;
+        position?: "before" | "after";
+      }
+    | {
+        type: "create-real-lesson";
+        frontendId: FrontendId;
+        sectionId: FrontendId | DatabaseId;
+        title: string;
+        adjacentLessonId?: FrontendId | DatabaseId;
+        position?: "before" | "after";
+      }
+    | {
+        type: "update-lesson-name";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+        newSlug: string;
+      }
+    | {
+        type: "update-lesson-title";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+        title: string;
+      }
+    | {
+        type: "update-lesson-description";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+        description: string;
+      }
+    | {
+        type: "update-lesson-icon";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+        icon: string;
+      }
+    | {
+        type: "update-lesson-priority";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+        priority: number;
+      }
+    | {
+        type: "update-lesson-dependencies";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+        dependencies: string[];
+      }
+    | {
+        type: "delete-lesson";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+      }
+    | {
+        type: "reorder-lessons";
+        sectionId: FrontendId | DatabaseId;
+        lessonIds: (FrontendId | DatabaseId)[];
+      }
+    | {
+        type: "move-lesson-to-section";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+        targetSectionId: FrontendId | DatabaseId;
+      }
+    | {
+        type: "convert-to-ghost";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+      }
+    | {
+        type: "create-on-disk";
+        frontendId: FrontendId;
+        lessonId: FrontendId | DatabaseId;
+        repoPath?: string;
       };
 }
 
@@ -264,29 +367,26 @@ export const courseEditorReducer: EffectReducer<
   courseEditorReducer.Action,
   courseEditorReducer.Effect
 > = (state, action, exec) => {
-  switch (action.type) {
-    // ========================================================================
-    // Section entity actions
-    // ========================================================================
+  // Delegate lesson actions to the lesson case handler
+  const lessonResult = handleLessonCase(state, action, exec);
+  if (lessonResult !== null) return lessonResult;
 
+  switch (action.type) {
     case "add-section": {
       const frontendId = generateFrontendId();
       const maxOrder = state.sections.reduce(
         (max, s) => Math.max(max, s.order),
         0
       );
-      const newOrder = maxOrder + 1;
       const slug = toSlug(action.title.trim()) || "untitled";
-
       const newSection: EditorSection = {
         frontendId,
         databaseId: null,
         repoVersionId: action.repoVersionId,
         path: slug,
-        order: newOrder,
+        order: maxOrder + 1,
         lessons: [],
       };
-
       exec({
         type: "create-section",
         frontendId,
@@ -294,11 +394,7 @@ export const courseEditorReducer: EffectReducer<
         title: action.title,
         maxOrder,
       });
-
-      return {
-        ...state,
-        sections: [...state.sections, newSection],
-      };
+      return { ...state, sections: [...state.sections, newSection] };
     }
 
     case "rename-section": {
@@ -306,17 +402,13 @@ export const courseEditorReducer: EffectReducer<
         (s) => s.frontendId === action.frontendId
       );
       if (!section) return state;
-
       const slug = toSlug(action.title.trim()) || "untitled";
-      const sectionId = section.databaseId ?? section.frontendId;
-
       exec({
         type: "rename-section",
         frontendId: action.frontendId,
-        sectionId,
+        sectionId: section.databaseId ?? section.frontendId,
         title: action.title,
       });
-
       return {
         ...state,
         sections: state.sections.map((s) =>
@@ -330,15 +422,11 @@ export const courseEditorReducer: EffectReducer<
         (s) => s.frontendId === action.frontendId
       );
       if (!section) return state;
-
-      const sectionId = section.databaseId ?? section.frontendId;
-
       exec({
         type: "delete-section",
         frontendId: action.frontendId,
-        sectionId,
+        sectionId: section.databaseId ?? section.frontendId,
       });
-
       return {
         ...state,
         sections: state.sections.filter(
@@ -349,30 +437,18 @@ export const courseEditorReducer: EffectReducer<
 
     case "reorder-sections": {
       const sectionMap = new Map(state.sections.map((s) => [s.frontendId, s]));
-
       const reordered = action.frontendIds
         .map((fid) => sectionMap.get(fid))
         .filter((s): s is EditorSection => s != null)
         .map((s, i) => ({ ...s, order: i + 1 }));
-
-      const sectionIds = reordered.map((s) => s.databaseId ?? s.frontendId);
-
       exec({
         type: "reorder-sections",
-        sectionIds,
+        sectionIds: reordered.map((s) => s.databaseId ?? s.frontendId),
       });
-
-      return {
-        ...state,
-        sections: reordered,
-      };
+      return { ...state, sections: reordered };
     }
 
-    // ========================================================================
-    // Reconciliation actions
-    // ========================================================================
-
-    case "section-created": {
+    case "section-created":
       return {
         ...state,
         sections: state.sections.map((s) =>
@@ -381,26 +457,18 @@ export const courseEditorReducer: EffectReducer<
             : s
         ),
       };
-    }
 
-    case "section-renamed": {
+    case "section-renamed":
       return {
         ...state,
         sections: state.sections.map((s) =>
           s.frontendId === action.frontendId ? { ...s, path: action.path } : s
         ),
       };
-    }
 
     case "section-deleted":
-    case "sections-reordered": {
-      // No state change needed — optimistic state is already correct
+    case "sections-reordered":
       return state;
-    }
-
-    // ========================================================================
-    // Boolean modal toggles
-    // ========================================================================
 
     case "set-add-course-modal-open":
       return { ...state, isAddCourseModalOpen: action.open };
@@ -428,11 +496,6 @@ export const courseEditorReducer: EffectReducer<
       };
     case "close-copy-section-transcript":
       return { ...state, copySectionTranscriptState: null };
-
-    // ========================================================================
-    // ID-based selections
-    // ========================================================================
-
     case "set-add-lesson-section-id":
       return {
         ...state,
@@ -461,11 +524,6 @@ export const courseEditorReducer: EffectReducer<
       return { ...state, deleteSectionId: action.sectionId };
     case "set-create-on-disk-lesson-id":
       return { ...state, createOnDiskLessonId: action.lessonId };
-
-    // ========================================================================
-    // Video player
-    // ========================================================================
-
     case "open-video-player":
       return {
         ...state,
@@ -480,11 +538,6 @@ export const courseEditorReducer: EffectReducer<
         ...state,
         videoPlayerState: { isOpen: false, videoId: "", videoPath: "" },
       };
-
-    // ========================================================================
-    // Move video
-    // ========================================================================
-
     case "open-move-video":
       return {
         ...state,
@@ -496,11 +549,6 @@ export const courseEditorReducer: EffectReducer<
       };
     case "close-move-video":
       return { ...state, moveVideoState: null };
-
-    // ========================================================================
-    // Move lesson
-    // ========================================================================
-
     case "open-move-lesson":
       return {
         ...state,
@@ -512,11 +560,6 @@ export const courseEditorReducer: EffectReducer<
       };
     case "close-move-lesson":
       return { ...state, moveLessonState: null };
-
-    // ========================================================================
-    // Rename video
-    // ========================================================================
-
     case "open-rename-video":
       return {
         ...state,
@@ -527,11 +570,6 @@ export const courseEditorReducer: EffectReducer<
       };
     case "close-rename-video":
       return { ...state, renameVideoState: null };
-
-    // ========================================================================
-    // Filters
-    // ========================================================================
-
     case "toggle-priority-filter":
       return {
         ...state,
@@ -554,5 +592,7 @@ export const courseEditorReducer: EffectReducer<
       };
     case "set-search-query":
       return { ...state, searchQuery: action.query };
+    default:
+      return state;
   }
 };

@@ -1,0 +1,274 @@
+import { describe, expect, it, vi } from "vitest";
+import type { FrontendId, DatabaseId } from "./course-editor-types";
+import { EffectQueue } from "./effect-queue";
+import type { CourseEditorService } from "@/services/course-editor-service";
+
+const fid = (id: string) => id as FrontendId;
+const did = (id: string) => id as DatabaseId;
+
+const createMockService = (): CourseEditorService => ({
+  createSection: vi
+    .fn()
+    .mockResolvedValue({ success: true, sectionId: "db-section-new" }),
+  updateSectionName: vi.fn().mockResolvedValue({ success: true }),
+  deleteSection: vi.fn().mockResolvedValue({ success: true }),
+  reorderSections: vi.fn().mockResolvedValue({ success: true }),
+  addGhostLesson: vi
+    .fn()
+    .mockResolvedValue({ success: true, lessonId: "db-lesson-new" }),
+  createRealLesson: vi
+    .fn()
+    .mockResolvedValue({
+      success: true,
+      lessonId: "db-lesson-new",
+      path: "new-lesson",
+    }),
+  updateLessonName: vi
+    .fn()
+    .mockResolvedValue({ success: true, path: "renamed-lesson" }),
+  updateLessonTitle: vi.fn().mockResolvedValue({ success: true }),
+  updateLessonDescription: vi.fn().mockResolvedValue({ success: true }),
+  updateLessonIcon: vi.fn().mockResolvedValue({ success: true }),
+  updateLessonPriority: vi.fn().mockResolvedValue({ success: true }),
+  updateLessonDependencies: vi.fn().mockResolvedValue({ success: true }),
+  deleteLesson: vi.fn().mockResolvedValue({ success: true }),
+  reorderLessons: vi.fn().mockResolvedValue({ success: true }),
+  moveLessonToSection: vi.fn().mockResolvedValue({ success: true }),
+  convertToGhost: vi.fn().mockResolvedValue({ success: true }),
+  createOnDisk: vi
+    .fn()
+    .mockResolvedValue({ success: true, path: "on-disk-path" }),
+});
+
+describe("EffectQueue — lesson effects", () => {
+  it("should resolve section FrontendId for add-ghost-lesson after create-section", async () => {
+    const service = createMockService();
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "create-section",
+      frontendId: fid("s-1"),
+      repoVersionId: "v1",
+      title: "Section",
+      maxOrder: 0,
+    });
+    queue.enqueue({
+      type: "add-ghost-lesson",
+      frontendId: fid("l-1"),
+      sectionId: fid("s-1"),
+      title: "Ghost Lesson",
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalledTimes(2));
+    expect(service.addGhostLesson).toHaveBeenCalledWith(
+      "db-section-new",
+      "Ghost Lesson",
+      undefined
+    );
+    expect(queue.getIdMap().get(fid("l-1"))).toBe("db-lesson-new");
+  });
+
+  it("should resolve lesson FrontendId for delete-lesson", async () => {
+    const service = createMockService();
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "add-ghost-lesson",
+      frontendId: fid("l-1"),
+      sectionId: did("db-s-1"),
+      title: "Lesson",
+    });
+    queue.enqueue({
+      type: "delete-lesson",
+      frontendId: fid("l-1"),
+      lessonId: fid("l-1"),
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalledTimes(2));
+    expect(service.deleteLesson).toHaveBeenCalledWith("db-lesson-new");
+  });
+
+  it("should resolve both lesson and section FrontendIds for move", async () => {
+    const service = {
+      ...createMockService(),
+      createSection: vi
+        .fn()
+        .mockResolvedValueOnce({ success: true, sectionId: "db-s-1" })
+        .mockResolvedValueOnce({ success: true, sectionId: "db-s-2" }),
+    };
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "create-section",
+      frontendId: fid("s-1"),
+      repoVersionId: "v1",
+      title: "Source",
+      maxOrder: 0,
+    });
+    queue.enqueue({
+      type: "create-section",
+      frontendId: fid("s-2"),
+      repoVersionId: "v1",
+      title: "Target",
+      maxOrder: 1,
+    });
+    queue.enqueue({
+      type: "add-ghost-lesson",
+      frontendId: fid("l-1"),
+      sectionId: fid("s-1"),
+      title: "Lesson",
+    });
+    queue.enqueue({
+      type: "move-lesson-to-section",
+      frontendId: fid("l-1"),
+      lessonId: fid("l-1"),
+      targetSectionId: fid("s-2"),
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalledTimes(4));
+    expect(service.moveLessonToSection).toHaveBeenCalledWith(
+      "db-lesson-new",
+      "db-s-2"
+    );
+  });
+
+  it("should resolve FrontendIds for reorder-lessons", async () => {
+    const service = {
+      ...createMockService(),
+      addGhostLesson: vi
+        .fn()
+        .mockResolvedValueOnce({ success: true, lessonId: "db-l-1" })
+        .mockResolvedValueOnce({ success: true, lessonId: "db-l-2" }),
+    };
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "add-ghost-lesson",
+      frontendId: fid("l-1"),
+      sectionId: did("db-s-1"),
+      title: "L1",
+    });
+    queue.enqueue({
+      type: "add-ghost-lesson",
+      frontendId: fid("l-2"),
+      sectionId: did("db-s-1"),
+      title: "L2",
+    });
+    queue.enqueue({
+      type: "reorder-lessons",
+      sectionId: did("db-s-1"),
+      lessonIds: [fid("l-2"), fid("l-1")],
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalledTimes(3));
+    expect(service.reorderLessons).toHaveBeenCalledWith("db-s-1", [
+      "db-l-2",
+      "db-l-1",
+    ]);
+  });
+
+  it("should pass adjacentLessonId and position", async () => {
+    const service = createMockService();
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "add-ghost-lesson",
+      frontendId: fid("l-1"),
+      sectionId: did("db-s-1"),
+      title: "Inserted",
+      adjacentLessonId: did("db-adj-1"),
+      position: "before",
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalled());
+    expect(service.addGhostLesson).toHaveBeenCalledWith("db-s-1", "Inserted", {
+      adjacentLessonId: "db-adj-1",
+      position: "before",
+    });
+  });
+
+  it("should dispatch lesson-created for create-real-lesson with path", async () => {
+    const service = createMockService();
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "create-real-lesson",
+      frontendId: fid("l-1"),
+      sectionId: did("db-s-1"),
+      title: "Real",
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalled());
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "lesson-created",
+      frontendId: fid("l-1"),
+      databaseId: "db-lesson-new",
+      path: "new-lesson",
+    });
+  });
+
+  it("should handle update-lesson-name with server path", async () => {
+    const service = createMockService();
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "update-lesson-name",
+      frontendId: fid("l-1"),
+      lessonId: did("db-l-1"),
+      newSlug: "new-slug",
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalled());
+    expect(service.updateLessonName).toHaveBeenCalledWith("db-l-1", "new-slug");
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "lesson-name-updated",
+      frontendId: fid("l-1"),
+      path: "renamed-lesson",
+    });
+  });
+
+  it("should handle convert-to-ghost", async () => {
+    const service = createMockService();
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "convert-to-ghost",
+      frontendId: fid("l-1"),
+      lessonId: did("db-l-1"),
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalled());
+    expect(service.convertToGhost).toHaveBeenCalledWith("db-l-1");
+  });
+
+  it("should handle create-on-disk with repoPath", async () => {
+    const service = createMockService();
+    const dispatch = vi.fn();
+    const queue = new EffectQueue(service, dispatch);
+
+    queue.enqueue({
+      type: "create-on-disk",
+      frontendId: fid("l-1"),
+      lessonId: did("db-l-1"),
+      repoPath: "/repo/path",
+    });
+
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalled());
+    expect(service.createOnDisk).toHaveBeenCalledWith("db-l-1", {
+      repoPath: "/repo/path",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "lesson-created-on-disk",
+      frontendId: fid("l-1"),
+      path: "on-disk-path",
+    });
+  });
+});

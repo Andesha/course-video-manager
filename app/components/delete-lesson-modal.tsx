@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, Loader2, AlertTriangle, Code, File } from "lucide-react";
+import { Trash2, AlertTriangle, Code, File } from "lucide-react";
 import { useFetcher } from "react-router";
 
 const formatFileSize = (bytes: number): string => {
@@ -21,8 +21,8 @@ export function DeleteLessonModal(props: {
   filesOnDisk: { path: string; size: number }[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDelete: () => void;
 }) {
-  const fetcher = useFetcher();
   const openRepoFetcher = useFetcher();
   const hasFiles = props.filesOnDisk.length > 0;
 
@@ -35,7 +35,8 @@ export function DeleteLessonModal(props: {
             Delete Lesson
           </DialogTitle>
           <DialogDescription>
-            Permanently delete "{props.lessonTitle}" and all its files from disk.
+            Permanently delete "{props.lessonTitle}" and all its files from
+            disk.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -91,21 +92,11 @@ export function DeleteLessonModal(props: {
             <Button
               variant="destructive"
               onClick={() => {
-                fetcher.submit(
-                  { lessonId: props.lessonId },
-                  {
-                    method: "post",
-                    action: "/api/lessons/delete",
-                  }
-                );
+                props.onDelete();
                 props.onOpenChange(false);
               }}
             >
-              {fetcher.state === "submitting" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Delete Lesson"
-              )}
+              Delete Lesson
             </Button>
           </div>
         </div>

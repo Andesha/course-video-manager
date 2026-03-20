@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { Suspense, use } from "react";
-import { Link, useFetcher, useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { LoaderData } from "./course-view-types";
@@ -425,7 +425,6 @@ export function RouteModals({
   viewState,
   dispatch,
   navigate,
-  moveLessonFetcher,
 }: {
   currentCourse: NonNullable<LoaderData["selectedCourse"]> | undefined;
   data: LoaderData;
@@ -457,7 +456,6 @@ export function RouteModals({
   };
   dispatch: (action: courseViewReducer.Action) => void;
   navigate: ReturnType<typeof useNavigate>;
-  moveLessonFetcher: ReturnType<typeof useFetcher>;
 }) {
   return (
     <>
@@ -549,7 +547,13 @@ export function RouteModals({
           onOpenChange={(open) => {
             if (!open) dispatch({ type: "close-move-lesson" });
           }}
-          fetcher={moveLessonFetcher}
+          onMove={(targetSectionId) => {
+            dispatch({
+              type: "move-lesson-to-section",
+              lessonFrontendId: viewState.moveLessonState!.lessonId,
+              targetSectionFrontendId: targetSectionId,
+            } as any);
+          }}
         />
       )}
 

@@ -8,17 +8,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { capitalizeTitle } from "@/utils/capitalize-title";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useFetcher } from "react-router";
 
 export function EditGhostLessonModal(props: {
   lessonId: string;
   currentTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRename: (title: string) => void;
 }) {
-  const fetcher = useFetcher();
   const [title, setTitle] = useState(props.currentTitle);
 
   useEffect(() => {
@@ -39,19 +37,12 @@ export function EditGhostLessonModal(props: {
         <DialogHeader>
           <DialogTitle>Rename Ghost Lesson</DialogTitle>
         </DialogHeader>
-        <fetcher.Form
-          method="post"
-          action={`/api/lessons/${props.lessonId}/update-title`}
+        <form
           className="space-y-4 py-4"
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
             if (!isValid) return;
-            const formData = new FormData(e.currentTarget);
-            formData.set("title", capitalizeTitle(title.trim()));
-            await fetcher.submit(formData, {
-              method: "post",
-              action: `/api/lessons/${props.lessonId}/update-title`,
-            });
+            props.onRename(capitalizeTitle(title.trim()));
             props.onOpenChange(false);
           }}
         >
@@ -78,14 +69,10 @@ export function EditGhostLessonModal(props: {
               Cancel
             </Button>
             <Button type="submit" disabled={!isValid}>
-              {fetcher.state === "submitting" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Save"
-              )}
+              Save
             </Button>
           </div>
-        </fetcher.Form>
+        </form>
       </DialogContent>
     </Dialog>
   );

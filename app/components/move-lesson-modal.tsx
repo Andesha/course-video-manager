@@ -13,9 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowRightLeft, Loader2 } from "lucide-react";
+import { ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
-import type { useFetcher } from "react-router";
 
 export function MoveLessonModal(props: {
   lessonId: string;
@@ -27,7 +26,7 @@ export function MoveLessonModal(props: {
   }[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fetcher: ReturnType<typeof useFetcher>;
+  onMove: (targetSectionId: string) => void;
 }) {
   const [selectedSectionId, setSelectedSectionId] = useState<string>("");
 
@@ -77,25 +76,13 @@ export function MoveLessonModal(props: {
               Cancel
             </Button>
             <Button
-              disabled={
-                !selectedSectionId || props.fetcher.state === "submitting"
-              }
-              onClick={async () => {
-                await props.fetcher.submit(
-                  { sectionId: selectedSectionId, lessonId: props.lessonId },
-                  {
-                    method: "post",
-                    action: `/api/lessons/${props.lessonId}/move-to-section`,
-                  }
-                );
+              disabled={!selectedSectionId}
+              onClick={() => {
+                props.onMove(selectedSectionId);
                 handleOpenChange(false);
               }}
             >
-              {props.fetcher.state === "submitting" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Move"
-              )}
+              Move
             </Button>
           </div>
         </div>

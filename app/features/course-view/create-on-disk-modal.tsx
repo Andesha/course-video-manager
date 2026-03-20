@@ -7,35 +7,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useFetcher } from "react-router";
+import { useState } from "react";
 
 export function CreateOnDiskModal({
-  lessonId,
   open,
   onOpenChange,
+  onCreateOnDisk,
 }: {
   lessonId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreateOnDisk: (repoPath: string) => void;
 }) {
-  const createOnDiskFetcher = useFetcher();
   const [repoPathInput, setRepoPathInput] = useState("");
-  const [createOnDiskError, setCreateOnDiskError] = useState<string | null>(
-    null
-  );
-
-  // If the create-on-disk fetcher returns an error, reopen the modal
-  useEffect(() => {
-    const errorMsg = (
-      createOnDiskFetcher.data as { error?: string } | undefined
-    )?.error;
-    if (errorMsg && createOnDiskFetcher.state === "idle") {
-      setCreateOnDiskError(errorMsg);
-      onOpenChange(true);
-    }
-  }, [createOnDiskFetcher.data, createOnDiskFetcher.state, onOpenChange]);
 
   return (
     <Dialog
@@ -43,7 +27,6 @@ export function CreateOnDiskModal({
       onOpenChange={(open) => {
         if (!open) {
           setRepoPathInput("");
-          setCreateOnDiskError(null);
         }
         onOpenChange(open);
       }}
@@ -52,21 +35,12 @@ export function CreateOnDiskModal({
         <DialogHeader>
           <DialogTitle>Create on Disk</DialogTitle>
         </DialogHeader>
-        <createOnDiskFetcher.Form
-          method="post"
-          action={`/api/lessons/${lessonId}/create-on-disk`}
+        <form
           className="space-y-4 py-4"
           onSubmit={(e) => {
             e.preventDefault();
             if (!repoPathInput.trim()) return;
-            setCreateOnDiskError(null);
-            createOnDiskFetcher.submit(
-              { repoPath: repoPathInput.trim() },
-              {
-                method: "post",
-                action: `/api/lessons/${lessonId}/create-on-disk`,
-              }
-            );
+            onCreateOnDisk(repoPathInput.trim());
             onOpenChange(false);
             setRepoPathInput("");
           }}
@@ -88,35 +62,22 @@ export function CreateOnDiskModal({
               permanently assign a file path to the course.
             </p>
           </div>
-          {createOnDiskError && (
-            <p className="text-sm text-destructive">{createOnDiskError}</p>
-          )}
           <div className="flex justify-end space-x-2">
             <Button
               variant="outline"
               onClick={() => {
                 onOpenChange(false);
                 setRepoPathInput("");
-                setCreateOnDiskError(null);
               }}
               type="button"
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={
-                !repoPathInput.trim() || createOnDiskFetcher.state !== "idle"
-              }
-            >
-              {createOnDiskFetcher.state !== "idle" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Create on Disk"
-              )}
+            <Button type="submit" disabled={!repoPathInput.trim()}>
+              Create on Disk
             </Button>
           </div>
-        </createOnDiskFetcher.Form>
+        </form>
       </DialogContent>
     </Dialog>
   );

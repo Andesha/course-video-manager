@@ -55,7 +55,6 @@ export function SortableLessonItem({
   revealVideoFetcher,
   deleteVideoFileFetcher,
   deleteVideoFetcher,
-  deleteLessonFetcher,
   allFlatLessons,
   dependencyMap,
   hideAnchor,
@@ -75,7 +74,6 @@ export function SortableLessonItem({
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFetcher: ReturnType<typeof useFetcher>;
-  deleteLessonFetcher: ReturnType<typeof useFetcher>;
   allFlatLessons: DependencyLessonItem[];
   dependencyMap: Record<string, string[]>;
   hideAnchor?: boolean;
@@ -97,31 +95,19 @@ export function SortableLessonItem({
 
   const lessonFsMaps = use(data.lessonFsMaps);
   const isReadOnly = !data.isLatestVersion;
-  const createOnDiskFetcher = useFetcher();
-  const isGhost =
-    lesson.fsStatus === "ghost" && createOnDiskFetcher.state === "idle";
+  const isGhost = lesson.fsStatus === "ghost";
   const isGhostCourse = !data.selectedCourse?.filePath;
 
-  const descriptionFetcher = useFetcher();
-  const currentDescription =
-    (descriptionFetcher.formData?.get("description") as string) ??
-    lesson.description ??
-    "";
+  const currentDescription = lesson.description ?? "";
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState(lesson.description || "");
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const dependencyFetcher = useFetcher();
-  const iconFetcher = useFetcher();
-  const priorityFetcher = useFetcher();
 
-  const currentIcon = ((iconFetcher.formData?.get("icon") as string) ??
-    lesson.icon ??
-    "watch") as "watch" | "code" | "discussion";
-  const currentPriority = (
-    priorityFetcher.formData
-      ? Number(priorityFetcher.formData.get("priority"))
-      : (lesson.priority ?? 2)
-  ) as 1 | 2 | 3;
+  const currentIcon = (lesson.icon ?? "watch") as
+    | "watch"
+    | "code"
+    | "discussion";
+  const currentPriority = (lesson.priority ?? 2) as 1 | 2 | 3;
 
   const handleIconCycle = useCallback(() => {
     const nextIcon =
@@ -130,33 +116,25 @@ export function SortableLessonItem({
         : currentIcon === "code"
           ? "discussion"
           : "watch";
-    iconFetcher.submit(
-      { icon: nextIcon },
-      {
-        method: "post",
-        action: `/api/lessons/${lesson.id}/update-icon`,
-      }
-    );
-  }, [currentIcon, lesson.id, iconFetcher]);
+    dispatch({
+      type: "update-lesson-icon",
+      frontendId: lesson.id,
+      icon: nextIcon,
+    } as any);
+  }, [currentIcon, lesson.id, dispatch]);
 
   const handlePriorityCycle = useCallback(() => {
     const nextPriority =
       currentPriority === 2 ? 3 : currentPriority === 3 ? 1 : 2;
-    priorityFetcher.submit(
-      { priority: String(nextPriority) },
-      {
-        method: "post",
-        action: `/api/lessons/${lesson.id}/update-priority`,
-      }
-    );
-  }, [currentPriority, lesson.id, priorityFetcher]);
+    dispatch({
+      type: "update-lesson-priority",
+      frontendId: lesson.id,
+      priority: nextPriority,
+    } as any);
+  }, [currentPriority, lesson.id, dispatch]);
 
-  // Dependency violation checking (optimistic: read pending fetcher data first)
-  const lessonDeps = dependencyFetcher.formData
-    ? (JSON.parse(
-        dependencyFetcher.formData.get("dependencies") as string
-      ) as string[])
-    : (lesson.dependencies ?? []);
+  // Dependency violation checking
+  const lessonDeps = lesson.dependencies ?? [];
   const flatLessonIdx = allFlatLessons.findIndex((l) => l.id === lesson.id);
   const orderViolations = lessonDeps
     .map((depId) => {
@@ -186,31 +164,27 @@ export function SortableLessonItem({
 
   const handleDependenciesChange = useCallback(
     (newDeps: string[]) => {
-      dependencyFetcher.submit(
-        { dependencies: JSON.stringify(newDeps) },
-        {
-          method: "post",
-          action: `/api/lessons/${lesson.id}/update-dependencies`,
-        }
-      );
+      dispatch({
+        type: "update-lesson-dependencies",
+        frontendId: lesson.id,
+        dependencies: newDeps,
+      } as any);
     },
-    [lesson.id, dependencyFetcher]
+    [lesson.id, dispatch]
   );
 
   const saveDescription = useCallback(
     (value: string) => {
       setEditingDesc(false);
       if (value !== currentDescription) {
-        descriptionFetcher.submit(
-          { description: value },
-          {
-            method: "post",
-            action: `/api/lessons/${lesson.id}/update-description`,
-          }
-        );
+        dispatch({
+          type: "update-lesson-description",
+          frontendId: lesson.id,
+          description: value,
+        } as any);
       }
     },
-    [currentDescription, lesson.id, descriptionFetcher]
+    [currentDescription, lesson.id, dispatch]
   );
 
   return (
@@ -330,10 +304,10 @@ export function SortableLessonItem({
                             lessonId: lesson.id,
                           });
                         } else {
-                          createOnDiskFetcher.submit(null, {
-                            method: "post",
-                            action: `/api/lessons/${lesson.id}/create-on-disk`,
-                          });
+                          dispatch({
+                            type: "create-on-disk",
+                            frontendId: lesson.id,
+                          } as any);
                         }
                       }}
                     >
@@ -438,13 +412,10 @@ export function SortableLessonItem({
                   variant="destructive"
                   onSelect={() => {
                     if (isGhost) {
-                      deleteLessonFetcher.submit(
-                        { lessonId: lesson.id },
-                        {
-                          method: "post",
-                          action: "/api/lessons/delete",
-                        }
-                      );
+                      dispatch({
+                        type: "delete-lesson",
+                        frontendId: lesson.id,
+                      } as any);
                     } else {
                       dispatch({
                         type: "set-delete-lesson-id",
@@ -533,6 +504,13 @@ export function SortableLessonItem({
                 lessonId: open ? lesson.id : null,
               });
             }}
+            onRename={(title) => {
+              dispatch({
+                type: "update-lesson-title",
+                frontendId: lesson.id,
+                title,
+              } as any);
+            }}
           />
         ) : (
           <EditLessonModal
@@ -544,6 +522,13 @@ export function SortableLessonItem({
                 type: "set-edit-lesson-id",
                 lessonId: open ? lesson.id : null,
               });
+            }}
+            onRename={(newSlug) => {
+              dispatch({
+                type: "update-lesson-name",
+                frontendId: lesson.id,
+                newSlug,
+              } as any);
             }}
           />
         )}
@@ -559,6 +544,12 @@ export function SortableLessonItem({
                 lessonId: open ? lesson.id : null,
               });
             }}
+            onDelete={() => {
+              dispatch({
+                type: "delete-lesson",
+                frontendId: lesson.id,
+              } as any);
+            }}
           />
         )}
         {!isGhost && (
@@ -573,6 +564,12 @@ export function SortableLessonItem({
                 type: "set-convert-to-ghost-lesson-id",
                 lessonId: open ? lesson.id : null,
               });
+            }}
+            onConvert={() => {
+              dispatch({
+                type: "convert-to-ghost",
+                frontendId: lesson.id,
+              } as any);
             }}
           />
         )}
@@ -598,6 +595,13 @@ export function SortableLessonItem({
               type: "set-create-on-disk-lesson-id",
               lessonId: open ? lesson.id : null,
             });
+          }}
+          onCreateOnDisk={(repoPath) => {
+            dispatch({
+              type: "create-on-disk",
+              frontendId: lesson.id,
+              repoPath,
+            } as any);
           }}
         />
       </div>

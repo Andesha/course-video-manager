@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Ghost, Loader2, AlertTriangle, Code, File } from "lucide-react";
+import { Ghost, AlertTriangle, Code, File } from "lucide-react";
 import { useFetcher } from "react-router";
 
 const formatFileSize = (bytes: number): string => {
@@ -22,8 +22,8 @@ export function ConvertToGhostModal(props: {
   hasVideos: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onConvert: () => void;
 }) {
-  const fetcher = useFetcher();
   const openRepoFetcher = useFetcher();
   const hasFiles = props.filesOnDisk.length > 0;
   const canConvert = !props.hasVideos;
@@ -104,20 +104,11 @@ export function ConvertToGhostModal(props: {
               disabled={!canConvert}
               variant={hasFiles ? "destructive" : "default"}
               onClick={() => {
-                fetcher.submit(null, {
-                  method: "post",
-                  action: `/api/lessons/${props.lessonId}/convert-to-ghost`,
-                });
+                props.onConvert();
                 props.onOpenChange(false);
               }}
             >
-              {fetcher.state === "submitting" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : hasFiles ? (
-                "Delete Files & Convert"
-              ) : (
-                "Convert to Ghost"
-              )}
+              {hasFiles ? "Delete Files & Convert" : "Convert to Ghost"}
             </Button>
           </div>
         </div>

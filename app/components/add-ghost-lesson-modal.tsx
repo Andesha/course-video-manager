@@ -9,50 +9,35 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { capitalizeTitle } from "@/utils/capitalize-title";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useFetcher } from "react-router";
 
 export function AddGhostLessonModal(props: {
   sectionId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fetcher?: ReturnType<typeof useFetcher>;
+  onAddLesson: (opts: {
+    title: string;
+    isReal: boolean;
+    filePath?: string;
+  }) => void;
   adjacentLessonId?: string | null;
   position?: "before" | "after" | null;
   courseFilePath?: string | null;
 }) {
-  const internalFetcher = useFetcher<{ error?: string }>();
-  const fetcher = props.fetcher ?? internalFetcher;
   const [title, setTitle] = useState("");
   const [filePath, setFilePath] = useState("");
   const [isReal, setIsReal] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Reset isReal and error when modal opens/closes
+  // Reset isReal when modal opens/closes
   useEffect(() => {
     if (!props.open) {
       setIsReal(false);
     }
-    if (props.open) {
-      setError(null);
-    }
   }, [props.open]);
 
-  // If the server returns an error after optimistic close, reopen the modal
-  useEffect(() => {
-    const errorMsg = (fetcher.data as { error?: string } | undefined)?.error;
-    if (errorMsg && fetcher.state === "idle") {
-      setError(errorMsg);
-      props.onOpenChange(true);
-    }
-  }, [fetcher.data, fetcher.state, props.onOpenChange]);
   const isGhostCourse = isReal && !props.courseFilePath;
   const isValid =
     title.trim().length > 0 && (!isGhostCourse || filePath.trim().length > 0);
-  const actionUrl = isReal
-    ? "/api/lessons/create-real"
-    : "/api/lessons/add-ghost";
 
   const dialogTitle =
     props.position === "before"
@@ -77,42 +62,22 @@ export function AddGhostLessonModal(props: {
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
-        <fetcher.Form
-          method="post"
-          action={actionUrl}
+        <form
           className="space-y-4 py-4"
           onSubmit={(e) => {
             e.preventDefault();
             if (!isValid) return;
-            setError(null);
-            const formData = new FormData(e.currentTarget);
-            formData.set("title", capitalizeTitle(title.trim()));
-            if (isGhostCourse) {
-              formData.set("filePath", filePath.trim());
-            }
-            fetcher.submit(formData, {
-              method: "post",
-              action: actionUrl,
+            props.onAddLesson({
+              title: capitalizeTitle(title.trim()),
+              isReal,
+              filePath: isGhostCourse ? filePath.trim() : undefined,
             });
-            // Optimistically close modal immediately
             setTitle("");
             setFilePath("");
             setIsReal(false);
-            setError(null);
             props.onOpenChange(false);
           }}
         >
-          <input type="hidden" name="sectionId" value={props.sectionId} />
-          {props.adjacentLessonId && (
-            <input
-              type="hidden"
-              name="adjacentLessonId"
-              value={props.adjacentLessonId}
-            />
-          )}
-          {props.position && (
-            <input type="hidden" name="position" value={props.position} />
-          )}
           <div className="space-y-2">
             <Label htmlFor="ghost-lesson-title">Title</Label>
             <Input
@@ -162,7 +127,6 @@ export function AddGhostLessonModal(props: {
               </p>
             </div>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end space-x-2">
             <Button
               variant="outline"
@@ -176,20 +140,11 @@ export function AddGhostLessonModal(props: {
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={!isValid || fetcher.state !== "idle"}
-            >
-              {fetcher.state !== "idle" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : isGhostCourse ? (
-                "Materialize & Create"
-              ) : (
-                "Add Lesson"
-              )}
+            <Button type="submit" disabled={!isValid}>
+              {isGhostCourse ? "Materialize & Create" : "Add Lesson"}
             </Button>
           </div>
-        </fetcher.Form>
+        </form>
       </DialogContent>
     </Dialog>
   );

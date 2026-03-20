@@ -6,8 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Trash2 } from "lucide-react";
-import { useFetcher } from "react-router";
+import { Trash2 } from "lucide-react";
 
 export function DeleteSectionModal(props: {
   sectionId: string;
@@ -15,9 +14,8 @@ export function DeleteSectionModal(props: {
   lessonCount: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDelete: () => void;
 }) {
-  const fetcher = useFetcher();
-
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -49,20 +47,12 @@ export function DeleteSectionModal(props: {
           </Button>
           <Button
             variant="destructive"
-            disabled={fetcher.state === "submitting"}
             onClick={() => {
-              fetcher.submit(null, {
-                method: "post",
-                action: `/api/sections/${props.sectionId}/delete`,
-              });
+              props.onDelete();
               props.onOpenChange(false);
             }}
           >
-            {fetcher.state === "submitting" ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              "Delete Section"
-            )}
+            Delete Section
           </Button>
         </div>
       </DialogContent>

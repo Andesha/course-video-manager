@@ -15,12 +15,8 @@ import { cn } from "@/lib/utils";
 import { courseViewReducer } from "@/features/course-view/course-view-reducer";
 import { SortableLessonItem } from "./sortable-lesson-item";
 import { SortableSectionItem } from "./sortable-section-item";
-import {
-  applyOptimisticLessonUpdates,
-  filterLessons,
-  calcSectionDuration,
-} from "./section-grid-utils";
-import type { LoaderData, Section } from "./course-view-types";
+import { filterLessons, calcSectionDuration } from "./section-grid-utils";
+import type { LoaderData } from "./course-view-types";
 
 import { formatSecondsToTimeCode } from "@/services/utils";
 import {
@@ -46,20 +42,12 @@ import {
 import { useState, useCallback } from "react";
 import { useNavigate, useFetcher } from "react-router";
 
-type Fetcher = ReturnType<typeof useFetcher>;
-
 export function SectionGrid({
   currentCourse,
   data,
   sensors,
   handleSectionDragEnd,
   handleLessonDragEnd,
-  reorderSectionFetcher,
-  reorderLessonFetcher,
-  deleteLessonFetcher,
-  addGhostFetcher,
-  createSectionFetcher,
-  moveLessonFetcher,
   priorityFilter,
   iconFilter,
   fsStatusFilter,
@@ -105,12 +93,6 @@ export function SectionGrid({
       dependencies?: string[] | null;
     }[]
   ) => (event: DragEndEvent) => void;
-  reorderSectionFetcher: Fetcher;
-  reorderLessonFetcher: Fetcher;
-  deleteLessonFetcher: Fetcher;
-  addGhostFetcher: Fetcher;
-  createSectionFetcher: Fetcher;
-  moveLessonFetcher: Fetcher;
   priorityFilter: number[];
   iconFilter: string[];
   fsStatusFilter: string | null;
@@ -128,11 +110,10 @@ export function SectionGrid({
   dispatch: (action: courseViewReducer.Action) => void;
   navigate: ReturnType<typeof useNavigate>;
   startExportUpload: (videoId: string, path: string) => void;
-  revealVideoFetcher: Fetcher;
-  deleteVideoFileFetcher: Fetcher;
-  deleteVideoFetcher: Fetcher;
+  revealVideoFetcher: ReturnType<typeof useFetcher>;
+  deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
+  deleteVideoFetcher: ReturnType<typeof useFetcher>;
 }) {
-  const deleteSectionFetcher = useFetcher();
   const COLLAPSED_SECTIONS_KEY = "collapsed-sections";
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
@@ -166,43 +147,8 @@ export function SectionGrid({
     });
   }, []);
 
-  // Optimistic section reordering
-  let displaySections = currentCourse.sections;
-  const pendingSectionReorder = reorderSectionFetcher.formData;
-  if (pendingSectionReorder) {
-    const sectionIds = JSON.parse(
-      pendingSectionReorder.get("sectionIds") as string
-    ) as string[];
-    const sectionMap = new Map(currentCourse.sections.map((s) => [s.id, s]));
-    const reordered = sectionIds
-      .map((id) => sectionMap.get(id))
-      .filter(Boolean) as typeof currentCourse.sections;
-    if (reordered.length === currentCourse.sections.length) {
-      displaySections = reordered;
-    }
-  }
-
-  // Optimistic section creation
-  const pendingSectionCreate = createSectionFetcher.formData;
-  if (pendingSectionCreate) {
-    const sectionTitle = pendingSectionCreate.get("title") as string;
-    // Dedup: skip optimistic entry if a real section with the same title already exists
-    const alreadyExists = displaySections.some((s) => s.path === sectionTitle);
-    if (!alreadyExists) {
-      displaySections = [
-        ...displaySections,
-        {
-          id: `optimistic-section-${sectionTitle}`,
-          path: sectionTitle,
-          order: displaySections.length,
-          lessons: [],
-          repoVersionId: data.selectedVersion!.id,
-          createdAt: new Date(),
-          previousVersionSectionId: null,
-        } as Section,
-      ];
-    }
-  }
+  // Reducer owns all section/lesson state — no optimistic overlays needed
+  const displaySections = currentCourse.sections;
 
   // Build flat lessons list for dependency selector
   const allFlatLessons: DependencyLessonItem[] = displaySections.flatMap(
@@ -247,17 +193,7 @@ export function SectionGrid({
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {displaySections.map((section) => {
-            const lessons = applyOptimisticLessonUpdates(
-              section,
-              displaySections,
-              {
-                reorderFormData: reorderLessonFetcher.formData,
-                deleteFormData: deleteLessonFetcher.formData,
-                addFormData: addGhostFetcher.formData,
-                addFormAction: addGhostFetcher.formAction,
-                moveFormData: moveLessonFetcher.formData,
-              }
-            );
+            const lessons = section.lessons;
 
             const { filteredLessons, hasActiveFilters } = filterLessons(
               lessons,
@@ -376,7 +312,6 @@ export function SectionGrid({
                                         deleteVideoFileFetcher
                                       }
                                       deleteVideoFetcher={deleteVideoFetcher}
-                                      deleteLessonFetcher={deleteLessonFetcher}
                                       dependencyMap={dependencyMap}
                                     />
                                   ))}
@@ -434,10 +369,10 @@ export function SectionGrid({
                               className="text-destructive focus:text-destructive"
                               onSelect={() => {
                                 if (lessons.length === 0) {
-                                  deleteSectionFetcher.submit(null, {
-                                    method: "post",
-                                    action: `/api/sections/${section.id}/delete`,
-                                  });
+                                  dispatch({
+                                    type: "delete-section",
+                                    frontendId: section.id,
+                                  } as any);
                                 } else {
                                   dispatch({
                                     type: "set-delete-section-id",
@@ -462,7 +397,21 @@ export function SectionGrid({
                           sectionId: open ? section.id : null,
                         });
                       }}
-                      fetcher={addGhostFetcher}
+                      onAddLesson={({ title, isReal }) => {
+                        dispatch({
+                          type: isReal
+                            ? "create-real-lesson"
+                            : "add-ghost-lesson",
+                          sectionFrontendId: section.id,
+                          title,
+                          ...(insertAdjacentLessonId
+                            ? {
+                                adjacentLessonId: insertAdjacentLessonId,
+                                position: insertPosition,
+                              }
+                            : {}),
+                        } as any);
+                      }}
                       adjacentLessonId={insertAdjacentLessonId}
                       position={insertPosition}
                       courseFilePath={currentCourse.filePath}
@@ -478,6 +427,12 @@ export function SectionGrid({
                           sectionId: open ? section.id : null,
                         });
                       }}
+                      onDelete={() => {
+                        dispatch({
+                          type: "delete-section",
+                          frontendId: section.id,
+                        } as any);
+                      }}
                     />
                     {isGhostSection ? (
                       <EditGhostSectionModal
@@ -490,6 +445,13 @@ export function SectionGrid({
                             sectionId: open ? section.id : null,
                           });
                         }}
+                        onRename={(title) => {
+                          dispatch({
+                            type: "rename-section",
+                            frontendId: section.id,
+                            title,
+                          } as any);
+                        }}
                       />
                     ) : (
                       <EditSectionModal
@@ -501,6 +463,13 @@ export function SectionGrid({
                             type: "set-edit-section-id",
                             sectionId: open ? section.id : null,
                           });
+                        }}
+                        onRename={(title) => {
+                          dispatch({
+                            type: "rename-section",
+                            frontendId: section.id,
+                            title,
+                          } as any);
                         }}
                       />
                     )}

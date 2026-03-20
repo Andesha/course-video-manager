@@ -294,17 +294,9 @@ export default function Component(props: Route.ComponentProps) {
   // Fetchers still needed for video operations and non-entity mutations
   const deleteVideoFetcher = useFetcher();
   const deleteVideoFileFetcher = useFetcher();
-  const deleteLessonFetcher = useFetcher();
   const revealVideoFetcher = useFetcher();
   const archiveCourseFetcher = useFetcher();
   const gitPushFetcher = useFetcher();
-  const moveLessonFetcher = useFetcher();
-
-  // Fetchers still used by existing components during incremental migration
-  const reorderLessonFetcher = useFetcher();
-  const reorderSectionFetcher = useFetcher();
-  const addGhostFetcher = useFetcher();
-  const createSectionFetcher = useFetcher();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -434,7 +426,6 @@ export default function Component(props: Route.ComponentProps) {
                       revealVideoFetcher={revealVideoFetcher}
                       deleteVideoFileFetcher={deleteVideoFileFetcher}
                       deleteVideoFetcher={deleteVideoFetcher}
-                      deleteLessonFetcher={deleteLessonFetcher}
                       allFlatLessons={allFlatLessons}
                       dependencyMap={dependencyMap}
                       dismissed={nextUpDismissed}
@@ -462,12 +453,6 @@ export default function Component(props: Route.ComponentProps) {
                   sensors={sensors}
                   handleSectionDragEnd={handleSectionDragEnd}
                   handleLessonDragEnd={handleLessonDragEnd}
-                  reorderSectionFetcher={reorderSectionFetcher}
-                  reorderLessonFetcher={reorderLessonFetcher}
-                  deleteLessonFetcher={deleteLessonFetcher}
-                  addGhostFetcher={addGhostFetcher}
-                  createSectionFetcher={createSectionFetcher}
-                  moveLessonFetcher={moveLessonFetcher}
                   priorityFilter={priorityFilter}
                   iconFilter={iconFilter}
                   fsStatusFilter={fsStatusFilter}
@@ -560,7 +545,6 @@ export default function Component(props: Route.ComponentProps) {
         viewState={legacyViewState}
         dispatch={legacyDispatch}
         navigate={navigate}
-        moveLessonFetcher={moveLessonFetcher}
       />
     </div>
   );

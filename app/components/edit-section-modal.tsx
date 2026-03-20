@@ -9,9 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parseSectionPath } from "@/services/section-path-service";
 import { toSlug } from "@/services/lesson-path-service";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useFetcher } from "react-router";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -20,8 +18,8 @@ export function EditSectionModal(props: {
   currentPath: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRename: (title: string) => void;
 }) {
-  const fetcher = useFetcher();
   const parsed = parseSectionPath(props.currentPath);
   const prefix = parsed
     ? props.currentPath.slice(0, props.currentPath.length - parsed.slug.length)
@@ -50,18 +48,15 @@ export function EditSectionModal(props: {
         <DialogHeader>
           <DialogTitle>Rename Section</DialogTitle>
         </DialogHeader>
-        <fetcher.Form
-          method="post"
-          action={`/api/sections/${props.sectionId}/update-name`}
+        <form
           className="space-y-4 py-4"
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
             if (!isValid) return;
-            await fetcher.submit(e.currentTarget);
+            props.onRename(input);
             props.onOpenChange(false);
           }}
         >
-          <input type="hidden" name="title" value={input} />
           <div className="space-y-2">
             <Label htmlFor="section-slug">Section Slug</Label>
             <div className="flex items-center space-x-1">
@@ -101,14 +96,10 @@ export function EditSectionModal(props: {
               Cancel
             </Button>
             <Button type="submit" disabled={!isValid}>
-              {fetcher.state === "submitting" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Save"
-              )}
+              Save
             </Button>
           </div>
-        </fetcher.Form>
+        </form>
       </DialogContent>
     </Dialog>
   );

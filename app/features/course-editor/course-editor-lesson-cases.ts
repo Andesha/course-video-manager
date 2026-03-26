@@ -60,8 +60,16 @@ export function findLesson(
   state: courseEditorReducer.State,
   frontendId: FrontendId
 ): { lesson: EditorLesson | undefined; section: EditorSection | undefined } {
+  // Match by frontendId OR databaseId. After an optimistic lesson is persisted,
+  // editorSectionsToLoaderSections exposes lesson.id = databaseId, so components
+  // may dispatch with databaseId as the frontendId parameter.
+  const id = frontendId as string;
   for (const section of state.sections) {
-    const lesson = section.lessons.find((l) => l.frontendId === frontendId);
+    const lesson = section.lessons.find(
+      (l) =>
+        (l.frontendId as string) === id ||
+        (l.databaseId !== null && (l.databaseId as string) === id)
+    );
     if (lesson) return { lesson, section };
   }
   return { lesson: undefined, section: undefined };
@@ -72,10 +80,15 @@ export function updateLesson(
   frontendId: FrontendId,
   updater: (lesson: EditorLesson) => EditorLesson
 ): EditorSection[] {
+  // Match by frontendId OR databaseId — see findLesson for rationale.
+  const id = frontendId as string;
   return state.sections.map((s) => ({
     ...s,
     lessons: s.lessons.map((l) =>
-      l.frontendId === frontendId ? updater(l) : l
+      (l.frontendId as string) === id ||
+      (l.databaseId !== null && (l.databaseId as string) === id)
+        ? updater(l)
+        : l
     ),
   }));
 }
@@ -321,6 +334,7 @@ export function handleLessonCase(
         frontendId: action.frontendId,
         lessonId: lesson.databaseId ?? lesson.frontendId,
       });
+      const deletedFrontendId = lesson.frontendId;
       return {
         ...state,
         sections: state.sections.map((s) =>
@@ -328,7 +342,7 @@ export function handleLessonCase(
             ? {
                 ...s,
                 lessons: s.lessons
-                  .filter((l) => l.frontendId !== action.frontendId)
+                  .filter((l) => l.frontendId !== deletedFrontendId)
                   .map((l, i) => ({ ...l, order: i + 1 })),
               }
             : s
@@ -428,8 +442,9 @@ export function handleLessonCase(
       }
 
       // Check if source section should become ghost (last real lesson leaving)
+      const movedFrontendId = lesson.frontendId;
       const sourceRealAfter = sourceSection.lessons.filter(
-        (l) => l.fsStatus === "real" && l.frontendId !== action.lessonFrontendId
+        (l) => l.fsStatus === "real" && l.frontendId !== movedFrontendId
       );
       const sourceParsed = parseSectionPath(sourceSection.path);
       const sourceBecomesGhost =
@@ -443,7 +458,7 @@ export function handleLessonCase(
         sections: state.sections.map((s) => {
           if (s.frontendId === sourceSection.frontendId) {
             let remainingLessons = s.lessons
-              .filter((l) => l.frontendId !== action.lessonFrontendId)
+              .filter((l) => l.frontendId !== movedFrontendId)
               .map((l, i) => ({ ...l, order: i + 1 }));
 
             // Renumber remaining real lesson paths in source section

@@ -28,7 +28,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Console, Effect } from "effect";
 import { getGitStatusAsync } from "@/services/git-status-service";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Suspense, useContext, useMemo, useState } from "react";
 import { data, useFetcher, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/_index";
@@ -244,7 +244,7 @@ function ComponentInner(props: Route.ComponentProps) {
   const currentCourse = loaderData.selectedCourse;
 
   // Course editor reducer owns entity state + UI state
-  const { state: viewState, dispatch } = useCourseEditor(
+  const { state: viewState, dispatch, pendingCount } = useCourseEditor(
     currentCourse?.sections ?? [],
     { courseFilePath: currentCourse?.filePath }
   );
@@ -297,8 +297,18 @@ function ComponentInner(props: Route.ComponentProps) {
   } = viewState;
 
   const [nextUpDismissed, setNextUpDismissed] = useState(false);
-  const { startExportUpload, startBatchExportUpload } =
-    useContext(UploadContext);
+  const {
+    uploads,
+    startExportUpload,
+    startBatchExportUpload,
+  } = useContext(UploadContext);
+
+  const hasActiveUploads = Object.values(uploads).some(
+    (u) =>
+      u.status === "uploading" ||
+      u.status === "waiting" ||
+      u.status === "retrying"
+  );
 
   useFocusRevalidate({ enabled: !!selectedCourseId, intervalMs: 5000 });
 
@@ -540,6 +550,18 @@ function ComponentInner(props: Route.ComponentProps) {
           )}
         </div>
       </div>
+
+      {pendingCount > 0 && (
+        <div
+          className={`fixed right-4 z-40 flex items-center gap-2 bg-background border rounded-full px-3 py-1.5 shadow-lg text-sm text-muted-foreground transition-all ${hasActiveUploads ? "bottom-[6.5rem]" : "bottom-16"}`}
+          aria-label={`${pendingCount} action${pendingCount === 1 ? "" : "s"} queued`}
+        >
+          <Loader2 className="size-3.5 animate-spin shrink-0" />
+          <span>
+            {pendingCount} {pendingCount === 1 ? "action" : "actions"} saving
+          </span>
+        </div>
+      )}
 
       <VideoModal
         videoId={videoPlayerState.videoId}

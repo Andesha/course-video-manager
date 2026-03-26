@@ -1,4 +1,4 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useState } from "react";
 import { useEffectReducer, type EffectsMap } from "use-effect-reducer";
 import {
   courseEditorReducer,
@@ -125,11 +125,22 @@ export function useCourseEditor(
     ((action: courseEditorReducer.Action) => void) | null
   >(null);
 
+  // Track pending queue size for UI indicator
+  const [pendingCount, setPendingCount] = useState(0);
+  const setPendingCountRef = useRef(setPendingCount);
+  setPendingCountRef.current = setPendingCount;
+
   // Effect queue ref — created once, uses dispatch wrapper
   const queueRef = useRef(
-    new EffectQueue(serviceRef.current, (action) => {
-      dispatchRef.current?.(action);
-    })
+    new EffectQueue(
+      serviceRef.current,
+      (action) => {
+        dispatchRef.current?.(action);
+      },
+      (size) => {
+        setPendingCountRef.current(size);
+      }
+    )
   );
 
   // Transform loader data to editor entity types
@@ -182,5 +193,5 @@ export function useCourseEditor(
   // Keep dispatch ref current for EffectQueue
   dispatchRef.current = dispatch;
 
-  return { state, dispatch };
+  return { state, dispatch, pendingCount };
 }

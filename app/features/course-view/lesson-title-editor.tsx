@@ -3,7 +3,7 @@ import { parseLessonPath, toSlug } from "@/services/lesson-path-service";
 import { capitalizeTitle } from "@/utils/capitalize-title";
 import { courseViewReducer } from "@/features/course-view/course-view-reducer";
 import type { Lesson } from "./course-view-types";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export function useLessonTitleEditor({
   lesson,
@@ -94,6 +94,8 @@ export function LessonTitleEditor({
     ? lesson.title || lesson.path
     : lesson.path;
 
+  const handledRef = useRef(false);
+
   if (!isReadOnly && editingTitle) {
     return (
       <div
@@ -111,10 +113,20 @@ export function LessonTitleEditor({
           autoFocus
           onChange={(e) => onTitleValueChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Escape") onCancel();
-            if (e.key === "Enter") onSave(titleValue);
+            if (e.key === "Escape") {
+              handledRef.current = true;
+              onCancel();
+            }
+            if (e.key === "Enter") {
+              handledRef.current = true;
+              onSave(titleValue);
+            }
           }}
-          onBlur={() => onSave(titleValue)}
+          onBlur={() => {
+            if (!handledRef.current) {
+              onSave(titleValue);
+            }
+          }}
         />
       </div>
     );

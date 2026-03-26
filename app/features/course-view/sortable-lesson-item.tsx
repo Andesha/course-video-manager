@@ -22,7 +22,12 @@ import { cn } from "@/lib/utils";
 import { LessonTitleEditor, useLessonTitleEditor } from "./lesson-title-editor";
 import { courseViewReducer } from "@/features/course-view/course-view-reducer";
 import { VideoThumbnailGrid } from "./video-thumbnail-grid";
-import type { LoaderData, Section, Lesson } from "./course-view-types";
+import {
+  getLessonDndId,
+  type LoaderData,
+  type Section,
+  type Lesson,
+} from "./course-view-types";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -89,7 +94,9 @@ export function SortableLessonItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: lesson.id });
+  } = useSortable({
+    id: getLessonDndId(lesson),
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),

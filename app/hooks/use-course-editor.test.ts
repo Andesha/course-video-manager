@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { editorSectionsToLoaderSections } from "./use-course-editor";
+import { getLessonDndId } from "@/features/course-view/course-view-types";
 import {
   courseEditorReducer,
   createInitialCourseEditorState,
@@ -186,6 +187,45 @@ describe("editorSectionsToLoaderSections", () => {
     // lesson.id still changes (from frontendId to databaseId) for API calls
     expect(before[0]!.lessons[0]!.id).toBe("frontend-temp-uuid");
     expect(after[0]!.lessons[0]!.id).toBe("db-real-uuid");
+  });
+
+  it("dnd-kit item id (frontendId ?? lesson.id) is stable when optimistic lesson gets saved to database", () => {
+    // Simulates: user starts dragging an optimistic lesson, then the
+    // lesson-created action fires assigning a databaseId mid-drag.
+    // dnd-kit must see the same item id before and after to keep the drag alive.
+
+    // Before lesson-created: optimistic lesson, no databaseId
+    const sectionBefore = createEditorSection({
+      lessons: [
+        createEditorLesson({
+          frontendId: fid("temp-frontend-id"),
+          databaseId: null as unknown as DatabaseId,
+        }),
+      ],
+    });
+    const [beforeLesson] = editorSectionsToLoaderSections([sectionBefore])[0]!
+      .lessons;
+    const idBefore = getLessonDndId(beforeLesson!);
+
+    // After lesson-created: databaseId is now set
+    const sectionAfter = {
+      ...sectionBefore,
+      lessons: [
+        { ...sectionBefore.lessons[0]!, databaseId: did("db-real-id") },
+      ],
+    };
+    const [afterLesson] = editorSectionsToLoaderSections([sectionAfter])[0]!
+      .lessons;
+    const idAfter = getLessonDndId(afterLesson!);
+
+    // dnd-kit id must stay the same so the drag is not lost
+    expect(idBefore).toBe("temp-frontend-id");
+    expect(idAfter).toBe("temp-frontend-id");
+    expect(idBefore).toBe(idAfter);
+
+    // lesson.id itself changes (frontendId → databaseId) for API calls
+    expect(beforeLesson!.id).toBe("temp-frontend-id");
+    expect(afterLesson!.id).toBe("db-real-id");
   });
 
   it("should handle empty sections", () => {

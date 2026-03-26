@@ -39,7 +39,12 @@ export class EffectQueue {
       effect.type === "update-lesson-icon"
     ) {
       this.queue = this.queue.filter(
-        (e) => !(e.type === effect.type && "lessonId" in e && e.lessonId === effect.lessonId)
+        (e) =>
+          !(
+            e.type === effect.type &&
+            "lessonId" in e &&
+            e.lessonId === effect.lessonId
+          )
       );
     }
     this.queue.push(effect);
@@ -54,6 +59,10 @@ export class EffectQueue {
 
   getIdMap(): Map<FrontendId, DatabaseId> {
     return new Map(this.idMap);
+  }
+
+  hasUnresolvedItems(): boolean {
+    return this.processing || this.queue.length > 0;
   }
 
   // --------------------------------------------------------------------------

@@ -47,6 +47,8 @@ export const action = async (args: Route.ActionArgs) => {
       title,
       "--body",
       body,
+      "--label",
+      "Sandcastle",
     ]);
 
     // Count open issues to show in the toast

@@ -110,6 +110,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.3.0",
     "prettier": "^3.4.2",
+    "sandcastle": "^1.3.3",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4.1.11",
     "tw-animate-css": "^1.3.5",

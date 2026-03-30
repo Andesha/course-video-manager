@@ -79,9 +79,11 @@ export const loader = async (args: Route.LoaderArgs) => {
     const db = yield* DBFunctionsService;
     const featureFlags = yield* FeatureFlagService;
 
-    const courses = yield* db.getCourses();
-    const standaloneVideos = yield* db.getStandaloneVideosSidebar();
-    const plans = yield* db.getPlans();
+    const [courses, standaloneVideos, plans] = yield* Effect.all([
+      db.getCourses(),
+      db.getStandaloneVideosSidebar(),
+      db.getPlans(),
+    ]);
 
     let versions: Awaited<
       ReturnType<typeof db.getCourseVersions>

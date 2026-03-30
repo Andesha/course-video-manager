@@ -213,7 +213,7 @@ export const loader = async (args: Route.LoaderArgs) => {
     ).pipe(Effect.map(EffectArray.filter((f) => f !== null)));
 
     // Fetch course structure for non-standalone videos
-    const repoWithSections = yield* db.getCourseWithSectionsById(
+    const repoWithSections = yield* db.getCourseStructureById(
       section.repoVersion.repoId
     );
     const matchingVersion = repoWithSections?.versions.find(

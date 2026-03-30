@@ -38,7 +38,7 @@ export const loader = async (args: Route.LoaderArgs) => {
     const courses = yield* db.getCourses();
 
     const coursesWithSections = yield* Effect.all(
-      courses.map((course) => db.getCourseWithSectionsById(course.id))
+      courses.map((course) => db.getCourseStructureById(course.id))
     );
 
     return { video, courses: coursesWithSections };

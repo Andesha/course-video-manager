@@ -159,7 +159,7 @@ export const loader = async (args: Route.LoaderArgs) => {
       nextLessonHasExplainerFolder = yield* fs.exists(explainerPath);
     }
 
-    const repoWithSections = yield* db.getCourseWithSectionsById(
+    const repoWithSections = yield* db.getCourseStructureById(
       section.repoVersion.repoId
     );
     const matchingVersion = repoWithSections?.versions.find(

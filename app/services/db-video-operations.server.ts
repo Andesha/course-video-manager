@@ -19,9 +19,10 @@ export const createVideoOperations = (
   db: DrizzleDB,
   deps: {
     getCourseWithSectionsById: (id: string) => Effect.Effect<any, any>;
+    getCourseNavigationData: (id: string) => Effect.Effect<any, any>;
   }
 ) => {
-  const { getCourseWithSectionsById } = deps;
+  const { getCourseWithSectionsById, getCourseNavigationData } = deps;
 
   const getVideoDeepById = Effect.fn("getVideoById")(function* (id: string) {
     const video = yield* makeDbCall(() =>
@@ -327,21 +328,24 @@ export const createVideoOperations = (
     }
   );
 
-  const getNextVideoId = Effect.fn("getNextVideoId")(function* (
-    currentVideoId: string
-  ) {
-    const currentVideo = yield* getVideoWithClipsById(currentVideoId);
+  const getNextVideoId = Effect.fn("getNextVideoId")(function* (currentVideo: {
+    id: string;
+    lesson: {
+      id: string;
+      videos: Array<{ id: string; path: string }>;
+      section: { repoVersion: { repo: { id: string } } };
+    } | null;
+  }) {
     const currentLesson = currentVideo.lesson;
     if (!currentLesson) return null; // Standalone videos have no next/prev
-    const currentSection = currentLesson.section;
-    const repo = currentSection.repoVersion.repo;
+    const repo = currentLesson.section.repoVersion.repo;
 
     // Get all videos in current lesson sorted by path
-    const videosInLesson = currentLesson.videos.sort(
-      (a: { path: string }, b: { path: string }) => a.path.localeCompare(b.path)
+    const videosInLesson = [...currentLesson.videos].sort((a, b) =>
+      a.path.localeCompare(b.path)
     );
     const currentVideoIndex = videosInLesson.findIndex(
-      (v: { id: string }) => v.id === currentVideoId
+      (v) => v.id === currentVideo.id
     );
 
     // Try next video in current lesson
@@ -350,8 +354,8 @@ export const createVideoOperations = (
     }
 
     // Need to get all sections and lessons to find next
-    const repoWithVersions = yield* getCourseWithSectionsById(repo.id);
-    const latestVersionSections = repoWithVersions.versions[0]?.sections ?? [];
+    const courseNav = yield* getCourseNavigationData(repo.id);
+    const latestVersionSections = courseNav.versions[0]?.sections ?? [];
 
     // Build a flat list of real lessons in order
     const allRealLessons = latestVersionSections.flatMap(
@@ -378,57 +382,62 @@ export const createVideoOperations = (
     return null;
   });
 
-  const getPreviousVideoId = Effect.fn("getPreviousVideoId")(function* (
-    currentVideoId: string
-  ) {
-    const currentVideo = yield* getVideoWithClipsById(currentVideoId);
-    const currentLesson = currentVideo.lesson;
-    if (!currentLesson) return null; // Standalone videos have no next/prev
-    const currentSection = currentLesson.section;
-    const repo = currentSection.repoVersion.repo;
+  const getPreviousVideoId = Effect.fn("getPreviousVideoId")(
+    function* (currentVideo: {
+      id: string;
+      lesson: {
+        id: string;
+        videos: Array<{ id: string; path: string }>;
+        section: { repoVersion: { repo: { id: string } } };
+      } | null;
+    }) {
+      const currentLesson = currentVideo.lesson;
+      if (!currentLesson) return null; // Standalone videos have no next/prev
+      const repo = currentLesson.section.repoVersion.repo;
 
-    // Get all videos in current lesson sorted by path
-    const videosInLesson = currentLesson.videos.sort(
-      (a: { path: string }, b: { path: string }) => a.path.localeCompare(b.path)
-    );
-    const currentVideoIndex = videosInLesson.findIndex(
-      (v: { id: string }) => v.id === currentVideoId
-    );
-
-    // Try previous video in current lesson
-    if (currentVideoIndex > 0) {
-      return videosInLesson[currentVideoIndex - 1]?.id ?? null;
-    }
-
-    // Need to get all sections and lessons to find previous
-    const repoWithVersions = yield* getCourseWithSectionsById(repo.id);
-    const latestVersionSections = repoWithVersions.versions[0]?.sections ?? [];
-
-    // Build a flat list of real lessons in order
-    const allRealLessons = latestVersionSections.flatMap(
-      (s: (typeof latestVersionSections)[number]) =>
-        s.lessons.filter(
-          (l: (typeof s.lessons)[number]) => l.fsStatus === "real"
-        )
-    );
-
-    const currentIndex = allRealLessons.findIndex(
-      (l: (typeof allRealLessons)[number]) => l.id === currentLesson.id
-    );
-
-    // Find previous real lesson with videos
-    for (let i = currentIndex - 1; i >= 0; i--) {
-      const prevLesson = allRealLessons[i]!;
-      const videos = prevLesson.videos.sort(
-        (a: { path: string }, b: { path: string }) =>
-          a.path.localeCompare(b.path)
+      // Get all videos in current lesson sorted by path
+      const videosInLesson = [...currentLesson.videos].sort((a, b) =>
+        a.path.localeCompare(b.path)
       );
-      const lastVideo = videos[videos.length - 1];
-      if (lastVideo) return lastVideo.id;
-    }
+      const currentVideoIndex = videosInLesson.findIndex(
+        (v) => v.id === currentVideo.id
+      );
 
-    return null;
-  });
+      // Try previous video in current lesson
+      if (currentVideoIndex > 0) {
+        return videosInLesson[currentVideoIndex - 1]?.id ?? null;
+      }
+
+      // Need to get all sections and lessons to find previous
+      const courseNav = yield* getCourseNavigationData(repo.id);
+      const latestVersionSections = courseNav.versions[0]?.sections ?? [];
+
+      // Build a flat list of real lessons in order
+      const allRealLessons = latestVersionSections.flatMap(
+        (s: (typeof latestVersionSections)[number]) =>
+          s.lessons.filter(
+            (l: (typeof s.lessons)[number]) => l.fsStatus === "real"
+          )
+      );
+
+      const currentIndex = allRealLessons.findIndex(
+        (l: (typeof allRealLessons)[number]) => l.id === currentLesson.id
+      );
+
+      // Find previous real lesson with videos
+      for (let i = currentIndex - 1; i >= 0; i--) {
+        const prevLesson = allRealLessons[i]!;
+        const videos = prevLesson.videos.sort(
+          (a: { path: string }, b: { path: string }) =>
+            a.path.localeCompare(b.path)
+        );
+        const lastVideo = videos[videos.length - 1];
+        if (lastVideo) return lastVideo.id;
+      }
+
+      return null;
+    }
+  );
 
   /**
    * Gets the next lesson that has no videos, starting from the current video's lesson.

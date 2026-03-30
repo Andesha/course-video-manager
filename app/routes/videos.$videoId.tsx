@@ -33,8 +33,10 @@ export const loader = async (args: Route.LoaderArgs) => {
     const fs = yield* FileSystem.FileSystem;
     const video = yield* db.getVideoWithClipsById(videoId);
 
-    const nextVideoId = yield* db.getNextVideoId(videoId);
-    const previousVideoId = yield* db.getPreviousVideoId(videoId);
+    const [nextVideoId, previousVideoId] = yield* Effect.all([
+      db.getNextVideoId(video),
+      db.getPreviousVideoId(video),
+    ]);
 
     const lesson = video.lesson;
 

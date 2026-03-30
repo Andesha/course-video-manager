@@ -105,6 +105,48 @@ export const createCourseOperations = (db: DrizzleDB) => {
     }
   );
 
+  const getCourseNavigationData = Effect.fn("getCourseNavigationData")(
+    function* (id: string) {
+      const course = yield* makeDbCall(() =>
+        db.query.courses.findFirst({
+          where: eq(courses.id, id),
+          with: {
+            versions: {
+              orderBy: desc(courseVersions.createdAt),
+              limit: 1,
+              with: {
+                sections: {
+                  orderBy: asc(sections.order),
+                  with: {
+                    lessons: {
+                      orderBy: asc(lessons.order),
+                      with: {
+                        videos: {
+                          columns: { id: true, path: true },
+                          orderBy: asc(videos.path),
+                          where: eq(videos.archived, false),
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        })
+      );
+
+      if (!course) {
+        return yield* new NotFoundError({
+          type: "getCourseNavigationData",
+          params: { id },
+        });
+      }
+
+      return course;
+    }
+  );
+
   const getCourseWithSlimClipsById = Effect.fn("getCourseWithSlimClipsById")(
     function* (id: string, versionId?: string) {
       const course = yield* makeDbCall(() =>
@@ -406,6 +448,7 @@ export const createCourseOperations = (db: DrizzleDB) => {
     getCourseById,
     getCourseByFilePath,
     getCourseWithSectionsById,
+    getCourseNavigationData,
     getCourseWithSlimClipsById,
     getVideoTranscripts,
     getCourseWithSectionsByFilePath,

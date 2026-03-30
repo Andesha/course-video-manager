@@ -38,8 +38,10 @@ export const loader = async (args: Route.LoaderArgs) => {
 
     // For standalone videos (no lesson), fetch standalone video files
     if (!lesson) {
-      const nextVideoId = yield* db.getNextVideoId(videoId);
-      const previousVideoId = yield* db.getPreviousVideoId(videoId);
+      const [nextVideoId, previousVideoId] = yield* Effect.all([
+        db.getNextVideoId(video),
+        db.getPreviousVideoId(video),
+      ]);
       const standaloneVideoDir = getStandaloneVideoFilePath(videoId);
       const dirExists = yield* fs.exists(standaloneVideoDir);
 
@@ -145,8 +147,10 @@ export const loader = async (args: Route.LoaderArgs) => {
       }
     ).pipe(Effect.map(EffectArray.filter((f) => f !== null)));
 
-    const nextVideoId = yield* db.getNextVideoId(videoId);
-    const previousVideoId = yield* db.getPreviousVideoId(videoId);
+    const [nextVideoId, previousVideoId] = yield* Effect.all([
+      db.getNextVideoId(video),
+      db.getPreviousVideoId(video),
+    ]);
     const nextLessonWithoutVideo = yield* db.getNextLessonWithoutVideo(videoId);
 
     let nextLessonHasExplainerFolder = false;

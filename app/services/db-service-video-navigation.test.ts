@@ -1,0 +1,457 @@
+import { describe, it, expect } from "@effect/vitest";
+import { beforeAll, beforeEach } from "vitest";
+import { Effect, Layer } from "effect";
+import { DBFunctionsService } from "@/services/db-service.server";
+import { DrizzleService } from "@/services/drizzle-service.server";
+import {
+  createTestDb,
+  truncateAllTables,
+  type TestDb,
+} from "@/test-utils/pglite";
+import * as schema from "@/db/schema";
+
+let testDb: TestDb;
+let testLayer: Layer.Layer<DBFunctionsService>;
+
+beforeAll(async () => {
+  const result = await createTestDb();
+  testDb = result.testDb;
+
+  testLayer = DBFunctionsService.Default.pipe(
+    Layer.provide(Layer.succeed(DrizzleService, testDb as any))
+  );
+});
+
+beforeEach(async () => {
+  await truncateAllTables(testDb);
+});
+
+const buildCourseFixture = async (
+  sections: Array<{
+    path: string;
+    order: number;
+    lessons: Array<{
+      path: string;
+      title: string;
+      order: number;
+      fsStatus?: string;
+      videos: Array<{ path: string; archived?: boolean }>;
+    }>;
+  }>
+) => {
+  const [course] = await testDb
+    .insert(schema.courses)
+    .values({ name: "Test Course", filePath: "/tmp/test-repo" })
+    .returning();
+
+  const [version] = await testDb
+    .insert(schema.courseVersions)
+    .values({ repoId: course!.id, name: "v1" })
+    .returning();
+
+  const allVideos: Array<{ id: string; path: string; lessonId: string }> = [];
+
+  for (const sectionDef of sections) {
+    const [section] = await testDb
+      .insert(schema.sections)
+      .values({
+        repoVersionId: version!.id,
+        path: sectionDef.path,
+        order: sectionDef.order,
+      })
+      .returning();
+
+    for (const lessonDef of sectionDef.lessons) {
+      const [lesson] = await testDb
+        .insert(schema.lessons)
+        .values({
+          sectionId: section!.id,
+          path: lessonDef.path,
+          title: lessonDef.title,
+          order: lessonDef.order,
+          fsStatus: lessonDef.fsStatus ?? "real",
+        })
+        .returning();
+
+      for (const videoDef of lessonDef.videos) {
+        const [video] = await testDb
+          .insert(schema.videos)
+          .values({
+            lessonId: lesson!.id,
+            path: videoDef.path,
+            originalFootagePath: videoDef.path,
+            archived: videoDef.archived ?? false,
+          })
+          .returning();
+
+        allVideos.push({
+          id: video!.id,
+          path: video!.path,
+          lessonId: lesson!.id,
+        });
+      }
+    }
+  }
+
+  return { courseId: course!.id, versionId: version!.id, videos: allVideos };
+};
+
+describe("getNextVideoId / getPreviousVideoId", () => {
+  describe("standalone video", () => {
+    it.effect("returns null for next when video has no lesson", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const video = yield* db.createStandaloneVideo({
+          path: "standalone.mp4",
+        });
+        const fetched = yield* db.getVideoWithClipsById(video.id);
+
+        const nextId = yield* db.getNextVideoId(fetched);
+        expect(nextId).toBeNull();
+      }).pipe(Effect.provide(testLayer))
+    );
+
+    it.effect("returns null for previous when video has no lesson", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const video = yield* db.createStandaloneVideo({
+          path: "standalone.mp4",
+        });
+        const fetched = yield* db.getVideoWithClipsById(video.id);
+
+        const prevId = yield* db.getPreviousVideoId(fetched);
+        expect(prevId).toBeNull();
+      }).pipe(Effect.provide(testLayer))
+    );
+  });
+
+  describe("same lesson navigation", () => {
+    it.effect("returns next video in same lesson sorted by path", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const fixture = yield* Effect.promise(() =>
+          buildCourseFixture([
+            {
+              path: "section-01",
+              order: 1,
+              lessons: [
+                {
+                  path: "lesson-01",
+                  title: "Lesson 1",
+                  order: 1,
+                  videos: [
+                    { path: "a.mp4" },
+                    { path: "b.mp4" },
+                    { path: "c.mp4" },
+                  ],
+                },
+              ],
+            },
+          ])
+        );
+
+        const videoB = fixture.videos.find((v) => v.path === "b.mp4")!;
+        const videoC = fixture.videos.find((v) => v.path === "c.mp4")!;
+        const fetched = yield* db.getVideoWithClipsById(videoB.id);
+
+        const nextId = yield* db.getNextVideoId(fetched);
+        expect(nextId).toBe(videoC.id);
+      }).pipe(Effect.provide(testLayer))
+    );
+
+    it.effect("returns previous video in same lesson sorted by path", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const fixture = yield* Effect.promise(() =>
+          buildCourseFixture([
+            {
+              path: "section-01",
+              order: 1,
+              lessons: [
+                {
+                  path: "lesson-01",
+                  title: "Lesson 1",
+                  order: 1,
+                  videos: [
+                    { path: "a.mp4" },
+                    { path: "b.mp4" },
+                    { path: "c.mp4" },
+                  ],
+                },
+              ],
+            },
+          ])
+        );
+
+        const videoA = fixture.videos.find((v) => v.path === "a.mp4")!;
+        const videoB = fixture.videos.find((v) => v.path === "b.mp4")!;
+        const fetched = yield* db.getVideoWithClipsById(videoB.id);
+
+        const prevId = yield* db.getPreviousVideoId(fetched);
+        expect(prevId).toBe(videoA.id);
+      }).pipe(Effect.provide(testLayer))
+    );
+  });
+
+  describe("cross-lesson navigation", () => {
+    it.effect(
+      "next returns first video of next lesson when at end of current lesson",
+      () =>
+        Effect.gen(function* () {
+          const db = yield* DBFunctionsService;
+          const fixture = yield* Effect.promise(() =>
+            buildCourseFixture([
+              {
+                path: "section-01",
+                order: 1,
+                lessons: [
+                  {
+                    path: "lesson-01",
+                    title: "Lesson 1",
+                    order: 1,
+                    videos: [{ path: "a.mp4" }],
+                  },
+                  {
+                    path: "lesson-02",
+                    title: "Lesson 2",
+                    order: 2,
+                    videos: [{ path: "b.mp4" }],
+                  },
+                ],
+              },
+            ])
+          );
+
+          const videoA = fixture.videos.find((v) => v.path === "a.mp4")!;
+          const videoB = fixture.videos.find((v) => v.path === "b.mp4")!;
+          const fetched = yield* db.getVideoWithClipsById(videoA.id);
+
+          const nextId = yield* db.getNextVideoId(fetched);
+          expect(nextId).toBe(videoB.id);
+        }).pipe(Effect.provide(testLayer))
+    );
+
+    it.effect(
+      "previous returns last video of previous lesson when at start of current lesson",
+      () =>
+        Effect.gen(function* () {
+          const db = yield* DBFunctionsService;
+          const fixture = yield* Effect.promise(() =>
+            buildCourseFixture([
+              {
+                path: "section-01",
+                order: 1,
+                lessons: [
+                  {
+                    path: "lesson-01",
+                    title: "Lesson 1",
+                    order: 1,
+                    videos: [{ path: "a.mp4" }, { path: "b.mp4" }],
+                  },
+                  {
+                    path: "lesson-02",
+                    title: "Lesson 2",
+                    order: 2,
+                    videos: [{ path: "c.mp4" }],
+                  },
+                ],
+              },
+            ])
+          );
+
+          const videoB = fixture.videos.find((v) => v.path === "b.mp4")!;
+          const videoC = fixture.videos.find((v) => v.path === "c.mp4")!;
+          const fetched = yield* db.getVideoWithClipsById(videoC.id);
+
+          const prevId = yield* db.getPreviousVideoId(fetched);
+          expect(prevId).toBe(videoB.id);
+        }).pipe(Effect.provide(testLayer))
+    );
+
+    it.effect("skips ghost lessons when navigating next", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const fixture = yield* Effect.promise(() =>
+          buildCourseFixture([
+            {
+              path: "section-01",
+              order: 1,
+              lessons: [
+                {
+                  path: "lesson-01",
+                  title: "Lesson 1",
+                  order: 1,
+                  videos: [{ path: "a.mp4" }],
+                },
+                {
+                  path: "lesson-02-ghost",
+                  title: "Ghost Lesson",
+                  order: 2,
+                  fsStatus: "ghost",
+                  videos: [{ path: "ghost.mp4" }],
+                },
+                {
+                  path: "lesson-03",
+                  title: "Lesson 3",
+                  order: 3,
+                  videos: [{ path: "b.mp4" }],
+                },
+              ],
+            },
+          ])
+        );
+
+        const videoA = fixture.videos.find((v) => v.path === "a.mp4")!;
+        const videoB = fixture.videos.find((v) => v.path === "b.mp4")!;
+        const fetched = yield* db.getVideoWithClipsById(videoA.id);
+
+        const nextId = yield* db.getNextVideoId(fetched);
+        expect(nextId).toBe(videoB.id);
+      }).pipe(Effect.provide(testLayer))
+    );
+
+    it.effect("crosses section boundaries", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const fixture = yield* Effect.promise(() =>
+          buildCourseFixture([
+            {
+              path: "section-01",
+              order: 1,
+              lessons: [
+                {
+                  path: "lesson-01",
+                  title: "Lesson 1",
+                  order: 1,
+                  videos: [{ path: "a.mp4" }],
+                },
+              ],
+            },
+            {
+              path: "section-02",
+              order: 2,
+              lessons: [
+                {
+                  path: "lesson-02",
+                  title: "Lesson 2",
+                  order: 1,
+                  videos: [{ path: "b.mp4" }],
+                },
+              ],
+            },
+          ])
+        );
+
+        const videoA = fixture.videos.find((v) => v.path === "a.mp4")!;
+        const videoB = fixture.videos.find((v) => v.path === "b.mp4")!;
+
+        // Next from last video of section 1 → first video of section 2
+        const fetchedA = yield* db.getVideoWithClipsById(videoA.id);
+        const nextId = yield* db.getNextVideoId(fetchedA);
+        expect(nextId).toBe(videoB.id);
+
+        // Previous from first video of section 2 → last video of section 1
+        const fetchedB = yield* db.getVideoWithClipsById(videoB.id);
+        const prevId = yield* db.getPreviousVideoId(fetchedB);
+        expect(prevId).toBe(videoA.id);
+      }).pipe(Effect.provide(testLayer))
+    );
+
+    it.effect("returns null for next at last video in course", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const fixture = yield* Effect.promise(() =>
+          buildCourseFixture([
+            {
+              path: "section-01",
+              order: 1,
+              lessons: [
+                {
+                  path: "lesson-01",
+                  title: "Lesson 1",
+                  order: 1,
+                  videos: [{ path: "a.mp4" }],
+                },
+              ],
+            },
+          ])
+        );
+
+        const videoA = fixture.videos.find((v) => v.path === "a.mp4")!;
+        const fetched = yield* db.getVideoWithClipsById(videoA.id);
+
+        const nextId = yield* db.getNextVideoId(fetched);
+        expect(nextId).toBeNull();
+      }).pipe(Effect.provide(testLayer))
+    );
+
+    it.effect("returns null for previous at first video in course", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const fixture = yield* Effect.promise(() =>
+          buildCourseFixture([
+            {
+              path: "section-01",
+              order: 1,
+              lessons: [
+                {
+                  path: "lesson-01",
+                  title: "Lesson 1",
+                  order: 1,
+                  videos: [{ path: "a.mp4" }],
+                },
+              ],
+            },
+          ])
+        );
+
+        const videoA = fixture.videos.find((v) => v.path === "a.mp4")!;
+        const fetched = yield* db.getVideoWithClipsById(videoA.id);
+
+        const prevId = yield* db.getPreviousVideoId(fetched);
+        expect(prevId).toBeNull();
+      }).pipe(Effect.provide(testLayer))
+    );
+
+    it.effect("skips archived videos in next lesson", () =>
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        const fixture = yield* Effect.promise(() =>
+          buildCourseFixture([
+            {
+              path: "section-01",
+              order: 1,
+              lessons: [
+                {
+                  path: "lesson-01",
+                  title: "Lesson 1",
+                  order: 1,
+                  videos: [{ path: "a.mp4" }],
+                },
+                {
+                  path: "lesson-02",
+                  title: "Lesson 2 (all archived)",
+                  order: 2,
+                  videos: [{ path: "b.mp4", archived: true }],
+                },
+                {
+                  path: "lesson-03",
+                  title: "Lesson 3",
+                  order: 3,
+                  videos: [{ path: "c.mp4" }],
+                },
+              ],
+            },
+          ])
+        );
+
+        const videoA = fixture.videos.find((v) => v.path === "a.mp4")!;
+        const videoC = fixture.videos.find((v) => v.path === "c.mp4")!;
+        const fetched = yield* db.getVideoWithClipsById(videoA.id);
+
+        const nextId = yield* db.getNextVideoId(fetched);
+        expect(nextId).toBe(videoC.id);
+      }).pipe(Effect.provide(testLayer))
+    );
+  });
+});

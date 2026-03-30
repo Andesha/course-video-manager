@@ -147,4 +147,90 @@ describe("getCourseStructureById", () => {
       expect(result._tag).toBe("NotFoundError");
     }).pipe(Effect.provide(testLayer))
   );
+
+  it.effect("includes the memory column on the course", () =>
+    Effect.gen(function* () {
+      const [course] = yield* Effect.promise(() =>
+        testDb
+          .insert(schema.courses)
+          .values({
+            name: "Memory Course",
+            filePath: "/tmp/memory-repo",
+            memory: "This is the AI context for the course",
+          })
+          .returning()
+      );
+      yield* Effect.promise(() =>
+        testDb
+          .insert(schema.courseVersions)
+          .values({ repoId: course!.id, name: "v1" })
+      );
+
+      const db = yield* DBFunctionsService;
+      const result = yield* db.getCourseStructureById(course!.id);
+
+      expect(result.memory).toBe("This is the AI context for the course");
+    }).pipe(Effect.provide(testLayer))
+  );
+
+  it.effect("orders sections and lessons by their order field", () =>
+    Effect.gen(function* () {
+      const [course] = yield* Effect.promise(() =>
+        testDb
+          .insert(schema.courses)
+          .values({ name: "Ordered Course", filePath: "/tmp/ordered" })
+          .returning()
+      );
+      const [version] = yield* Effect.promise(() =>
+        testDb
+          .insert(schema.courseVersions)
+          .values({ repoId: course!.id, name: "v1" })
+          .returning()
+      );
+
+      // Insert sections out of order
+      yield* Effect.promise(() =>
+        testDb
+          .insert(schema.sections)
+          .values({ repoVersionId: version!.id, path: "02-advanced", order: 2 })
+      );
+      const [sectionA] = yield* Effect.promise(() =>
+        testDb
+          .insert(schema.sections)
+          .values({ repoVersionId: version!.id, path: "01-basics", order: 1 })
+          .returning()
+      );
+
+      // Insert lessons out of order in first section
+      yield* Effect.promise(() =>
+        testDb.insert(schema.lessons).values([
+          {
+            sectionId: sectionA!.id,
+            path: "02-second",
+            title: "Second",
+            order: 2,
+            fsStatus: "real",
+          },
+          {
+            sectionId: sectionA!.id,
+            path: "01-first",
+            title: "First",
+            order: 1,
+            fsStatus: "real",
+          },
+        ])
+      );
+
+      const db = yield* DBFunctionsService;
+      const result = yield* db.getCourseStructureById(course!.id);
+
+      const sections = result.versions[0]!.sections;
+      expect(sections[0]!.path).toBe("01-basics");
+      expect(sections[1]!.path).toBe("02-advanced");
+
+      const lessons = sections[0]!.lessons;
+      expect(lessons[0]!.path).toBe("01-first");
+      expect(lessons[1]!.path).toBe("02-second");
+    }).pipe(Effect.provide(testLayer))
+  );
 });

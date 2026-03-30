@@ -36,5 +36,5 @@ export const withDatabaseDump = Effect.tap(() =>
   Effect.gen(function* () {
     const dbService = yield* DatabaseDumpService;
     yield* dbService.dump();
-  })
+  }).pipe(Effect.ignore)
 );

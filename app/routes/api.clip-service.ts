@@ -68,7 +68,7 @@ export const action = async (args: Route.ActionArgs) => {
     Effect.catchTag("ParseError", () => {
       return Effect.die(data("Invalid request", { status: 400 }));
     }),
-    Effect.catchAll((error) => {
+    Effect.catchAll((error: unknown) => {
       // Check if it's a "not found" type error
       if (
         error instanceof Error &&

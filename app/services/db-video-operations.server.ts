@@ -149,6 +149,7 @@ export const createVideoOperations = (
                 },
               },
               videos: {
+                columns: { id: true, path: true },
                 where: eq(videos.archived, false),
               },
             },

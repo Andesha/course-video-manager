@@ -46,6 +46,44 @@ describe("writePageReducer - files-loaded", () => {
     );
   });
 
+  it("replaces existing enabledFiles when files arrive", () => {
+    const initialState = createInitialState({
+      files: [],
+      clipSections: [],
+      initialMemory: "",
+    });
+    // Simulate user having manually toggled some files
+    const stateWithFiles = writePageReducer(initialState, {
+      type: "set-enabled-files",
+      files: new Set(["stale-file.ts"]),
+    });
+
+    const state = writePageReducer(stateWithFiles, {
+      type: "files-loaded",
+      files: [
+        { path: "readme.md", defaultEnabled: true },
+        { path: "index.ts", defaultEnabled: false },
+      ],
+    });
+
+    expect(state.enabledFiles).toEqual(new Set(["readme.md"]));
+  });
+
+  it("handles empty files array (directory not found)", () => {
+    const initialState = createInitialState({
+      files: [],
+      clipSections: [],
+      initialMemory: "",
+    });
+
+    const state = writePageReducer(initialState, {
+      type: "files-loaded",
+      files: [],
+    });
+
+    expect(state.enabledFiles).toEqual(new Set());
+  });
+
   it("enables no files when all have defaultEnabled=false", () => {
     const initialState = createInitialState({
       files: [],

@@ -266,7 +266,15 @@ function WritePageWithDeferredFiles({
   const [files, setFiles] = useState<FileMetadata[]>([]);
 
   useEffect(() => {
-    filesPromise.then(setFiles).catch(console.error);
+    let cancelled = false;
+    filesPromise
+      .then((resolved) => {
+        if (!cancelled) setFiles(resolved);
+      })
+      .catch(console.error);
+    return () => {
+      cancelled = true;
+    };
   }, [filesPromise]);
 
   return <WritePage videoId={videoId} loaderData={{ ...restData, files }} />;

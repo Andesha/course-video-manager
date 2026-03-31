@@ -80,6 +80,23 @@ export function useVideoContextHandlers({
     [dispatch]
   );
 
+  const handleEditFile = useCallback(
+    async (filename: string) => {
+      try {
+        const response = await fetch(
+          `/api/standalone-files/read?videoId=${videoId}&filename=${encodeURIComponent(filename)}`
+        );
+        if (response.ok) {
+          const content = await response.text();
+          dispatch({ type: "open-file-modal", filename, content });
+        }
+      } catch (error) {
+        console.error("Failed to read file:", error);
+      }
+    },
+    [videoId, dispatch]
+  );
+
   return {
     handleCopyTranscript,
     handleIncludeCourseStructureChange,
@@ -90,5 +107,6 @@ export function useVideoContextHandlers({
     handleDeleteLink,
     handleAddLinkClick,
     handleMemoryEnabledChange,
+    handleEditFile,
   };
 }

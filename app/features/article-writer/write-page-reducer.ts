@@ -40,6 +40,10 @@ export type WritePageAction =
   | { type: "set-model"; model: Model }
   | { type: "set-enabled-files"; files: Set<string> }
   | { type: "add-enabled-file"; filename: string }
+  | {
+      type: "files-loaded";
+      files: Array<{ path: string; defaultEnabled: boolean }>;
+    }
   | { type: "set-include-transcript"; value: boolean }
   | { type: "set-enabled-sections"; sections: Set<string> }
   | { type: "set-include-course-structure"; value: boolean }
@@ -84,6 +88,18 @@ export function writePageReducer(
     }
     case "set-enabled-files":
       return { ...state, enabledFiles: action.files };
+    case "files-loaded": {
+      const { files } = action;
+      const enabledFiles =
+        state.mode === "style-guide-skill-building"
+          ? new Set(
+              files
+                .filter((f) => f.path.toLowerCase().endsWith("readme.md"))
+                .map((f) => f.path)
+            )
+          : new Set(files.filter((f) => f.defaultEnabled).map((f) => f.path));
+      return { ...state, enabledFiles };
+    }
     case "add-enabled-file":
       return {
         ...state,

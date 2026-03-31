@@ -102,6 +102,16 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     createInitialState
   );
 
+  // When files arrive asynchronously (deferred from loader), sync enabledFiles.
+  // Only fires once: when files go from empty (initial deferred state) to populated.
+  const prevFilesLengthRef = useRef(files.length);
+  useEffect(() => {
+    if (prevFilesLengthRef.current === 0 && files.length > 0) {
+      dispatch({ type: "files-loaded", files });
+    }
+    prevFilesLengthRef.current = files.length;
+  }, [files]);
+
   const {
     mode,
     model,
@@ -448,6 +458,7 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
     handleDeleteLink,
     handleAddLinkClick,
     handleMemoryEnabledChange,
+    handleEditFile,
   } = useVideoContextHandlers({
     videoId,
     transcript,
@@ -499,20 +510,6 @@ export function WritePage({ videoId, loaderData }: WritePageProps) {
         },
       }
     );
-  };
-
-  const handleEditFile = async (filename: string) => {
-    try {
-      const response = await fetch(
-        `/api/standalone-files/read?videoId=${videoId}&filename=${encodeURIComponent(filename)}`
-      );
-      if (response.ok) {
-        const content = await response.text();
-        dispatch({ type: "open-file-modal", filename, content });
-      }
-    } catch (error) {
-      console.error("Failed to read file:", error);
-    }
   };
 
   const toolbarProps = useToolbarProps({

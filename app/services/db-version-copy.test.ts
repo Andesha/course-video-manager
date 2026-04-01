@@ -111,6 +111,47 @@ describe("copyVersionStructure", () => {
     expect(newSections[0]!.description).toBe("This is a section description");
   });
 
+  it("skips archived sections when copying a version", async () => {
+    const [course] = await testDb
+      .insert(schema.courses)
+      .values({ name: "Archive Copy Test", filePath: "/tmp/archive-copy" })
+      .returning();
+
+    const [version] = await testDb
+      .insert(schema.courseVersions)
+      .values({ repoId: course!.id, name: "v1" })
+      .returning();
+
+    // One active section, one archived
+    await testDb.insert(schema.sections).values([
+      { repoVersionId: version!.id, path: "01-active", order: 1 },
+      {
+        repoVersionId: version!.id,
+        path: "02-archived",
+        order: 2,
+        archivedAt: new Date(),
+      },
+    ]);
+
+    const result = await run(
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        return yield* db.copyVersionStructure({
+          sourceVersionId: version!.id,
+          repoId: course!.id,
+          newVersionName: "v2",
+        });
+      })
+    );
+
+    const newSections = await testDb.query.sections.findMany({
+      where: (s, { eq }) => eq(s.repoVersionId, result.version.id),
+    });
+
+    expect(newSections).toHaveLength(1);
+    expect(newSections[0]!.path).toBe("01-active");
+  });
+
   it("preserves lesson fsStatus (ghost/real) when copying a version", async () => {
     const [course] = await testDb
       .insert(schema.courses)

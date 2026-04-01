@@ -106,6 +106,31 @@ describe("getCourseWithSectionsByVersionSlim", () => {
     }).pipe(Effect.provide(testLayer))
   );
 
+  it.effect("excludes archived sections", () =>
+    Effect.gen(function* () {
+      const { course, version } = yield* buildFixture();
+
+      // buildFixture already inserted one active section; add an archived one
+      yield* Effect.promise(() =>
+        testDb.insert(schema.sections).values({
+          repoVersionId: version.id,
+          path: "02-archived",
+          order: 2,
+          archivedAt: new Date(),
+        })
+      );
+
+      const db = yield* DBFunctionsService;
+      const result = yield* db.getCourseWithSectionsByVersionSlim({
+        repoId: course.id,
+        versionId: version.id,
+      });
+
+      expect(result.sections).toHaveLength(1);
+      expect(result.sections[0]!.path).toBe("01-intro");
+    }).pipe(Effect.provide(testLayer))
+  );
+
   it.effect("excludes archived clips", () =>
     Effect.gen(function* () {
       const { course, version, video } = yield* buildFixture();

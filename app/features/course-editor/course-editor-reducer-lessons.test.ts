@@ -473,6 +473,80 @@ describe("courseEditorReducer — lesson operations", () => {
       expect(lessons[2]!.path).toBe("01.02-third");
     });
 
+    it("should renumber when converting the first lesson to ghost", () => {
+      const l1 = createLesson({
+        order: 1,
+        path: "02.01-alpha",
+        fsStatus: "real",
+      });
+      const l2 = createLesson({
+        order: 2,
+        path: "02.02-beta",
+        fsStatus: "real",
+      });
+      const section = createSection({ lessons: [l1, l2] });
+      const state = createTester([section])
+        .send({ type: "convert-to-ghost", frontendId: l1.frontendId })
+        .getState();
+      const lessons = state.sections[0]!.lessons;
+      expect(lessons[0]!.fsStatus).toBe("ghost");
+      // l2 renumbered: 02.02 → 02.01
+      expect(lessons[1]!.path).toBe("02.01-beta");
+    });
+
+    it("should not change paths when converting the last lesson to ghost", () => {
+      const l1 = createLesson({
+        order: 1,
+        path: "01.01-first",
+        fsStatus: "real",
+      });
+      const l2 = createLesson({
+        order: 2,
+        path: "01.02-second",
+        fsStatus: "real",
+      });
+      const section = createSection({ lessons: [l1, l2] });
+      const state = createTester([section])
+        .send({ type: "convert-to-ghost", frontendId: l2.frontendId })
+        .getState();
+      const lessons = state.sections[0]!.lessons;
+      expect(lessons[0]!.path).toBe("01.01-first");
+      expect(lessons[1]!.fsStatus).toBe("ghost");
+    });
+
+    it("should renumber correctly with existing ghosts interspersed", () => {
+      const l1 = createLesson({
+        order: 1,
+        path: "01.01-first",
+        fsStatus: "real",
+      });
+      const ghost = createLesson({
+        order: 2,
+        path: "My Ghost",
+        fsStatus: "ghost",
+      });
+      const l2 = createLesson({
+        order: 3,
+        path: "01.02-second",
+        fsStatus: "real",
+      });
+      const l3 = createLesson({
+        order: 4,
+        path: "01.03-third",
+        fsStatus: "real",
+      });
+      const section = createSection({ lessons: [l1, ghost, l2, l3] });
+      const state = createTester([section])
+        .send({ type: "convert-to-ghost", frontendId: l2.frontendId })
+        .getState();
+      const lessons = state.sections[0]!.lessons;
+      expect(lessons[0]!.path).toBe("01.01-first");
+      expect(lessons[1]!.path).toBe("My Ghost");
+      expect(lessons[2]!.fsStatus).toBe("ghost");
+      // l3 renumbered: 01.03 → 01.02
+      expect(lessons[3]!.path).toBe("01.02-third");
+    });
+
     it("should set fsStatus to real optimistically", () => {
       const lesson = createLesson({ fsStatus: "ghost" });
       const section = createSection({ lessons: [lesson] });

@@ -12,7 +12,7 @@ import {
   NotFoundError,
   UnknownDBServiceError,
 } from "@/services/db-service-errors";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, isNull } from "drizzle-orm";
 import { Effect } from "effect";
 
 const makeDbCall = <T>(fn: () => Promise<T>) => {
@@ -69,6 +69,7 @@ export const createCourseOperations = (db: DrizzleDB) => {
               orderBy: desc(courseVersions.createdAt),
               with: {
                 sections: {
+                  where: isNull(sections.archivedAt),
                   with: {
                     lessons: {
                       with: {
@@ -116,6 +117,7 @@ export const createCourseOperations = (db: DrizzleDB) => {
               limit: 1,
               with: {
                 sections: {
+                  where: isNull(sections.archivedAt),
                   orderBy: asc(sections.order),
                   with: {
                     lessons: {
@@ -160,6 +162,7 @@ export const createCourseOperations = (db: DrizzleDB) => {
             columns: { id: true },
             with: {
               sections: {
+                where: isNull(sections.archivedAt),
                 orderBy: asc(sections.order),
                 columns: { id: true, path: true },
                 with: {
@@ -203,6 +206,7 @@ export const createCourseOperations = (db: DrizzleDB) => {
                 : { limit: 1 }),
               with: {
                 sections: {
+                  where: isNull(sections.archivedAt),
                   with: {
                     lessons: {
                       with: {
@@ -260,6 +264,7 @@ export const createCourseOperations = (db: DrizzleDB) => {
             limit: 1,
             with: {
               sections: {
+                where: isNull(sections.archivedAt),
                 columns: { id: true },
                 with: {
                   lessons: {

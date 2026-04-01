@@ -15,7 +15,7 @@ import {
   NotLatestVersionError,
   UnknownDBServiceError,
 } from "@/services/db-service-errors";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, and, desc, eq, isNull } from "drizzle-orm";
 import { Effect } from "effect";
 
 const makeDbCall = <T>(fn: () => Promise<T>) => {
@@ -88,7 +88,10 @@ export const createVersionOperations = (db: DrizzleDB) => {
 
     const versionSections = yield* makeDbCall(() =>
       db.query.sections.findMany({
-        where: eq(sections.repoVersionId, versionId),
+        where: and(
+          eq(sections.repoVersionId, versionId),
+          isNull(sections.archivedAt)
+        ),
         orderBy: asc(sections.order),
         with: {
           lessons: {
@@ -134,7 +137,10 @@ export const createVersionOperations = (db: DrizzleDB) => {
 
     const versionSections = yield* makeDbCall(() =>
       db.query.sections.findMany({
-        where: eq(sections.repoVersionId, versionId),
+        where: and(
+          eq(sections.repoVersionId, versionId),
+          isNull(sections.archivedAt)
+        ),
         orderBy: asc(sections.order),
         with: {
           lessons: {
@@ -174,6 +180,7 @@ export const createVersionOperations = (db: DrizzleDB) => {
         with: {
           repo: true,
           sections: {
+            where: isNull(sections.archivedAt),
             orderBy: asc(sections.order),
             with: {
               lessons: {
@@ -313,7 +320,10 @@ export const createVersionOperations = (db: DrizzleDB) => {
 
       const sourceSections = yield* makeDbCall(() =>
         db.query.sections.findMany({
-          where: eq(sections.repoVersionId, input.sourceVersionId),
+          where: and(
+            eq(sections.repoVersionId, input.sourceVersionId),
+            isNull(sections.archivedAt)
+          ),
           orderBy: asc(sections.order),
           with: {
             lessons: {
@@ -459,7 +469,10 @@ export const createVersionOperations = (db: DrizzleDB) => {
   ) {
     const versionSections = yield* makeDbCall(() =>
       db.query.sections.findMany({
-        where: eq(sections.repoVersionId, versionId),
+        where: and(
+          eq(sections.repoVersionId, versionId),
+          isNull(sections.archivedAt)
+        ),
         with: {
           lessons: {
             with: {
@@ -523,7 +536,10 @@ export const createVersionOperations = (db: DrizzleDB) => {
       for (const version of versions) {
         const versionSections = yield* makeDbCall(() =>
           db.query.sections.findMany({
-            where: eq(sections.repoVersionId, version.id),
+            where: and(
+              eq(sections.repoVersionId, version.id),
+              isNull(sections.archivedAt)
+            ),
             orderBy: asc(sections.order),
             with: {
               lessons: {

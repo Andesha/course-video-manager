@@ -94,6 +94,90 @@ const buildCourseWithVideos = async () => {
   };
 };
 
+describe("getCourseStructureById - archived section filtering", () => {
+  it.effect("excludes archived sections from results", () =>
+    Effect.gen(function* () {
+      const [course] = yield* Effect.promise(() =>
+        testDb
+          .insert(schema.courses)
+          .values({
+            name: "Archive Test Course",
+            filePath: "/tmp/archive-test",
+          })
+          .returning()
+      );
+      const [version] = yield* Effect.promise(() =>
+        testDb
+          .insert(schema.courseVersions)
+          .values({ repoId: course!.id, name: "v1" })
+          .returning()
+      );
+
+      // Insert one active and one archived section
+      yield* Effect.promise(() =>
+        testDb.insert(schema.sections).values([
+          { repoVersionId: version!.id, path: "01-active", order: 1 },
+          {
+            repoVersionId: version!.id,
+            path: "02-archived",
+            order: 2,
+            archivedAt: new Date(),
+          },
+        ])
+      );
+
+      const db = yield* DBFunctionsService;
+      const result = yield* db.getCourseStructureById(course!.id);
+
+      const sections = result.versions[0]!.sections;
+      expect(sections).toHaveLength(1);
+      expect(sections[0]!.path).toBe("01-active");
+    }).pipe(Effect.provide(testLayer))
+  );
+
+  it.effect("returns empty sections when all are archived", () =>
+    Effect.gen(function* () {
+      const [course] = yield* Effect.promise(() =>
+        testDb
+          .insert(schema.courses)
+          .values({
+            name: "All Archived Course",
+            filePath: "/tmp/all-archived",
+          })
+          .returning()
+      );
+      const [version] = yield* Effect.promise(() =>
+        testDb
+          .insert(schema.courseVersions)
+          .values({ repoId: course!.id, name: "v1" })
+          .returning()
+      );
+
+      yield* Effect.promise(() =>
+        testDb.insert(schema.sections).values([
+          {
+            repoVersionId: version!.id,
+            path: "01-archived",
+            order: 1,
+            archivedAt: new Date(),
+          },
+          {
+            repoVersionId: version!.id,
+            path: "02-archived",
+            order: 2,
+            archivedAt: new Date(),
+          },
+        ])
+      );
+
+      const db = yield* DBFunctionsService;
+      const result = yield* db.getCourseStructureById(course!.id);
+
+      expect(result.versions[0]!.sections).toHaveLength(0);
+    }).pipe(Effect.provide(testLayer))
+  );
+});
+
 describe("getCourseStructureById", () => {
   it.effect("returns course with versions, sections, and lessons", () =>
     Effect.gen(function* () {

@@ -426,6 +426,7 @@ export function RouteModals({
     isCopyTranscriptModalOpen: boolean;
     copySectionTranscriptState: {
       sectionPath: string;
+      sectionDescription: string | undefined;
       lessons: import("./course-view-types").Lesson[];
     } | null;
     moveVideoState: {
@@ -511,6 +512,9 @@ export function RouteModals({
           <CopyTranscriptModal
             mode="section"
             sectionPath={viewState.copySectionTranscriptState.sectionPath}
+            sectionDescription={
+              viewState.copySectionTranscriptState.sectionDescription
+            }
             lessons={viewState.copySectionTranscriptState.lessons}
             videoTranscripts={data.videoTranscripts}
             open={true}

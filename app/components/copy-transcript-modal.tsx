@@ -28,6 +28,7 @@ type CourseMode = {
 type SectionMode = {
   mode: "section";
   sectionPath: string;
+  sectionDescription?: string;
   lessons: Lesson[];
 };
 
@@ -44,6 +45,7 @@ export function CopyTranscriptModal(
     includeLessonTitles: true,
     includePriority: false,
     includeExerciseType: false,
+    includeSectionDescription: false,
   });
 
   const resolvedTranscripts = use(props.videoTranscripts);
@@ -61,7 +63,8 @@ export function CopyTranscriptModal(
       props.sectionPath,
       props.lessons,
       options,
-      resolvedTranscripts
+      resolvedTranscripts,
+      props.sectionDescription
     );
   }, [props, options, resolvedTranscripts]);
 
@@ -100,6 +103,28 @@ export function CopyTranscriptModal(
 
         <div className="space-y-4">
           <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="include-section-description"
+                checked={options.includeSectionDescription}
+                onCheckedChange={(checked) =>
+                  setOptions((o) => ({
+                    ...o,
+                    includeSectionDescription: checked === true,
+                  }))
+                }
+              />
+              <Label
+                htmlFor="include-section-description"
+                className="cursor-pointer"
+              >
+                Section description
+              </Label>
+              <span className="text-xs text-muted-foreground">
+                Section-level description
+              </span>
+            </div>
+
             <div className="flex items-center gap-2">
               <Checkbox
                 id="include-lesson-titles"

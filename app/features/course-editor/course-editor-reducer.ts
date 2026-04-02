@@ -52,6 +52,7 @@ export namespace courseEditorReducer {
     isCopyTranscriptModalOpen: boolean;
     copySectionTranscriptState: {
       sectionPath: string;
+      sectionDescription: string | undefined;
       lessons: Lesson[];
     } | null;
     addGhostLessonSectionId: FrontendId | null;
@@ -174,6 +175,7 @@ export namespace courseEditorReducer {
     | {
         type: "open-copy-section-transcript";
         sectionPath: string;
+        sectionDescription?: string;
         lessons: Lesson[];
       }
     | { type: "close-copy-section-transcript" }
@@ -532,6 +534,7 @@ export const courseEditorReducer: EffectReducer<
         ...state,
         copySectionTranscriptState: {
           sectionPath: action.sectionPath,
+          sectionDescription: action.sectionDescription,
           lessons: action.lessons,
         },
       };

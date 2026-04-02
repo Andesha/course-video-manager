@@ -6,6 +6,7 @@ export type TranscriptOptions = {
   includeLessonTitles: boolean;
   includePriority: boolean;
   includeExerciseType: boolean;
+  includeSectionDescription: boolean;
 };
 
 const defaultOptions: TranscriptOptions = {
@@ -14,6 +15,7 @@ const defaultOptions: TranscriptOptions = {
   includeLessonTitles: true,
   includePriority: false,
   includeExerciseType: false,
+  includeSectionDescription: false,
 };
 
 export function buildCourseTranscript(
@@ -28,7 +30,8 @@ export function buildCourseTranscript(
       section.path,
       section.lessons,
       options,
-      videoTranscripts
+      videoTranscripts,
+      section.description ?? undefined
     );
     // Indent each line of the section transcript by 2 spaces
     for (const line of sectionLines.split("\n")) {
@@ -43,9 +46,15 @@ export function buildSectionTranscript(
   sectionPath: string,
   lessons: Lesson[],
   options: TranscriptOptions = defaultOptions,
-  videoTranscripts: Record<string, string> = {}
+  videoTranscripts: Record<string, string> = {},
+  sectionDescription?: string
 ) {
   const lines: string[] = [`<section title="${escapeAttr(sectionPath)}">`];
+  if (options.includeSectionDescription && sectionDescription) {
+    lines.push(
+      `  <description>${escapeAttr(sectionDescription)}</description>`
+    );
+  }
   for (const lesson of lessons) {
     const lessonAttrs = [
       `title="${escapeAttr(lesson.path)}"`,

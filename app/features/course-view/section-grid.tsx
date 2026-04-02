@@ -421,6 +421,8 @@ export function SectionGrid({
                               dispatch({
                                 type: "open-copy-section-transcript",
                                 sectionPath: section.path,
+                                sectionDescription:
+                                  section.description ?? undefined,
                                 lessons,
                               })
                             }

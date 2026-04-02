@@ -36,6 +36,7 @@ export namespace courseViewReducer {
     isCopyTranscriptModalOpen: boolean;
     copySectionTranscriptState: {
       sectionPath: string;
+      sectionDescription: string | undefined;
       lessons: import("./course-view-types").Lesson[];
     } | null;
 
@@ -77,6 +78,7 @@ export namespace courseViewReducer {
     | {
         type: "open-copy-section-transcript";
         sectionPath: string;
+        sectionDescription?: string;
         lessons: import("./course-view-types").Lesson[];
       }
     | { type: "close-copy-section-transcript" }
@@ -190,6 +192,7 @@ export const courseViewReducer: EffectReducer<
         ...state,
         copySectionTranscriptState: {
           sectionPath: action.sectionPath,
+          sectionDescription: action.sectionDescription,
           lessons: action.lessons,
         },
       };

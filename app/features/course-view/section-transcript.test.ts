@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildSectionTranscript,
   buildCourseTranscript,
+  filterSectionsForTranscript,
   type TranscriptOptions,
 } from "./section-transcript";
 import type { Lesson, Section } from "./course-view-types";
@@ -148,5 +149,137 @@ describe("buildCourseTranscript", () => {
     // The second section should not have a description tag
     const descriptionCount = (result.match(/<description>/g) || []).length;
     expect(descriptionCount).toBe(1);
+  });
+});
+
+describe("filterSectionsForTranscript", () => {
+  const noFilters = {
+    priorityFilter: [] as number[],
+    iconFilter: [] as string[],
+    fsStatusFilter: null as string | null,
+    searchQuery: "",
+  };
+
+  it("9. returns all sections/lessons when no filters active", () => {
+    const sections = [
+      makeSection({
+        lessons: [
+          makeLesson({ id: "l1", fsStatus: "real" as never }),
+          makeLesson({ id: "l2", fsStatus: "ghost" as never }),
+        ],
+      }),
+    ];
+    const result = filterSectionsForTranscript(sections, noFilters);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.lessons).toHaveLength(2);
+  });
+
+  it("10. filters out ghost lessons when fsStatus filter is 'real'", () => {
+    const sections = [
+      makeSection({
+        lessons: [
+          makeLesson({ id: "l1", fsStatus: "real" as never }),
+          makeLesson({ id: "l2", fsStatus: "ghost" as never }),
+        ],
+      }),
+    ];
+    const result = filterSectionsForTranscript(sections, {
+      ...noFilters,
+      fsStatusFilter: "real",
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.lessons).toHaveLength(1);
+    expect((result[0]!.lessons[0] as unknown as { id: string }).id).toBe("l1");
+  });
+
+  it("11. filters out real lessons when fsStatus filter is 'ghost'", () => {
+    const sections = [
+      makeSection({
+        lessons: [
+          makeLesson({ id: "l1", fsStatus: "real" as never }),
+          makeLesson({ id: "l2", fsStatus: "ghost" as never }),
+        ],
+      }),
+    ];
+    const result = filterSectionsForTranscript(sections, {
+      ...noFilters,
+      fsStatusFilter: "ghost",
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.lessons).toHaveLength(1);
+    expect((result[0]!.lessons[0] as unknown as { id: string }).id).toBe("l2");
+  });
+
+  it("12. removes sections that have no lessons after filtering", () => {
+    const sections = [
+      makeSection({
+        path: "01-all-ghost",
+        lessons: [makeLesson({ id: "l1", fsStatus: "ghost" as never })],
+      }),
+      makeSection({
+        path: "02-has-real",
+        lessons: [makeLesson({ id: "l2", fsStatus: "real" as never })],
+      }),
+    ];
+    const result = filterSectionsForTranscript(sections, {
+      ...noFilters,
+      fsStatusFilter: "real",
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.path).toBe("02-has-real");
+  });
+
+  it("13. filters by priority", () => {
+    const sections = [
+      makeSection({
+        lessons: [
+          makeLesson({ id: "l1", priority: 1 }),
+          makeLesson({ id: "l2", priority: 2 }),
+          makeLesson({ id: "l3", priority: 3 }),
+        ],
+      }),
+    ];
+    const result = filterSectionsForTranscript(sections, {
+      ...noFilters,
+      priorityFilter: [1],
+    });
+    expect(result[0]!.lessons).toHaveLength(1);
+    expect((result[0]!.lessons[0] as unknown as { id: string }).id).toBe("l1");
+  });
+
+  it("14. filters by icon type", () => {
+    const sections = [
+      makeSection({
+        lessons: [
+          makeLesson({ id: "l1", icon: "watch" }),
+          makeLesson({ id: "l2", icon: "code" }),
+        ],
+      }),
+    ];
+    const result = filterSectionsForTranscript(sections, {
+      ...noFilters,
+      iconFilter: ["code"],
+    });
+    expect(result[0]!.lessons).toHaveLength(1);
+    expect((result[0]!.lessons[0] as unknown as { id: string }).id).toBe("l2");
+  });
+
+  it("15. combines multiple filters", () => {
+    const sections = [
+      makeSection({
+        lessons: [
+          makeLesson({ id: "l1", priority: 1, fsStatus: "real" as never }),
+          makeLesson({ id: "l2", priority: 2, fsStatus: "real" as never }),
+          makeLesson({ id: "l3", priority: 1, fsStatus: "ghost" as never }),
+        ],
+      }),
+    ];
+    const result = filterSectionsForTranscript(sections, {
+      ...noFilters,
+      priorityFilter: [1],
+      fsStatusFilter: "real",
+    });
+    expect(result[0]!.lessons).toHaveLength(1);
+    expect((result[0]!.lessons[0] as unknown as { id: string }).id).toBe("l1");
   });
 });

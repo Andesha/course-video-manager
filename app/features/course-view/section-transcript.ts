@@ -1,4 +1,5 @@
 import type { Lesson, Section } from "./course-view-types";
+import { filterLessons } from "./section-grid-utils";
 
 export type TranscriptOptions = {
   includeTranscripts: boolean;
@@ -96,6 +97,25 @@ export function buildSectionTranscript(
   }
   lines.push("</section>");
   return lines.join("\n");
+}
+
+export type TranscriptFilterOptions = {
+  priorityFilter: number[];
+  iconFilter: string[];
+  fsStatusFilter: string | null;
+  searchQuery: string;
+};
+
+export function filterSectionsForTranscript(
+  sections: Section[],
+  filters: TranscriptFilterOptions
+): Section[] {
+  return sections
+    .map((section) => {
+      const { filteredLessons } = filterLessons(section.lessons, filters);
+      return { ...section, lessons: filteredLessons } as Section;
+    })
+    .filter((section) => section.lessons.length > 0);
 }
 
 function escapeAttr(value: string): string {

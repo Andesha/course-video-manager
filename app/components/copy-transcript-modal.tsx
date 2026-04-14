@@ -13,11 +13,31 @@ import type { Lesson, Section } from "@/features/course-view/course-view-types";
 import {
   buildCourseTranscript,
   buildSectionTranscript,
+  filterSectionsForTranscript,
+  type TranscriptFilterOptions,
   type TranscriptOptions,
 } from "@/features/course-view/section-transcript";
-import { ClipboardCopy } from "lucide-react";
+import { filterLessons } from "@/features/course-view/section-grid-utils";
+import {
+  ClipboardCopy,
+  Code,
+  FileVideo,
+  Ghost,
+  ListChecks,
+  MessageCircle,
+  Play,
+} from "lucide-react";
 import { use, useMemo, useState } from "react";
 import { toast } from "sonner";
+
+type FilterProps = {
+  priorityFilter: number[];
+  iconFilter: string[];
+  fsStatusFilter: string | null;
+  onTogglePriority: (priority: number) => void;
+  onToggleIcon: (icon: string) => void;
+  onToggleFsStatus: (status: string) => void;
+};
 
 type CourseMode = {
   mode: "course";
@@ -37,7 +57,8 @@ export function CopyTranscriptModal(
     open: boolean;
     onOpenChange: (open: boolean) => void;
     videoTranscripts: Promise<Record<string, string>>;
-  } & (CourseMode | SectionMode)
+  } & FilterProps &
+    (CourseMode | SectionMode)
 ) {
   const [options, setOptions] = useState<TranscriptOptions>({
     includeTranscripts: false,
@@ -50,23 +71,35 @@ export function CopyTranscriptModal(
 
   const resolvedTranscripts = use(props.videoTranscripts);
 
+  const filters: TranscriptFilterOptions = {
+    priorityFilter: props.priorityFilter,
+    iconFilter: props.iconFilter,
+    fsStatusFilter: props.fsStatusFilter,
+    searchQuery: "",
+  };
+
   const preview = useMemo(() => {
     if (props.mode === "course") {
+      const filteredSections = filterSectionsForTranscript(
+        props.sections,
+        filters
+      );
       return buildCourseTranscript(
         props.courseName,
-        props.sections,
+        filteredSections,
         options,
         resolvedTranscripts
       );
     }
+    const { filteredLessons } = filterLessons(props.lessons, filters);
     return buildSectionTranscript(
       props.sectionPath,
-      props.lessons,
+      filteredLessons,
       options,
       resolvedTranscripts,
       props.sectionDescription
     );
-  }, [props, options, resolvedTranscripts]);
+  }, [props, options, resolvedTranscripts, filters]);
 
   const byteCount = new TextEncoder().encode(preview).length;
   const approxTokens = Math.ceil(byteCount / 4);
@@ -102,6 +135,117 @@ export function CopyTranscriptModal(
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Filters */}
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Filters
+            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {([1, 2, 3] as const).map((priority) => {
+                const isSelected = props.priorityFilter.includes(priority);
+                const showAsActive =
+                  props.priorityFilter.length === 0 || isSelected;
+                return (
+                  <button
+                    key={priority}
+                    className={`text-xs px-2 py-0.5 rounded-sm font-medium transition-colors ${
+                      showAsActive
+                        ? priority === 1
+                          ? "bg-red-500/20 text-red-600"
+                          : priority === 2
+                            ? "bg-yellow-500/20 text-yellow-600"
+                            : "bg-sky-500/20 text-sky-500"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    } ${isSelected ? "ring-1 ring-current" : ""}`}
+                    onClick={() => props.onTogglePriority(priority)}
+                  >
+                    P{priority}
+                  </button>
+                );
+              })}
+
+              <span className="text-muted-foreground mx-0.5">|</span>
+              {(["code", "discussion", "watch"] as const).map((icon) => {
+                const isSelected = props.iconFilter.includes(icon);
+                const showAsActive =
+                  props.iconFilter.length === 0 || isSelected;
+                return (
+                  <button
+                    key={icon}
+                    className={`flex items-center justify-center w-6 h-6 rounded-full transition-colors ${
+                      icon === "code"
+                        ? showAsActive
+                          ? "bg-yellow-500/20 text-yellow-600"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        : icon === "discussion"
+                          ? showAsActive
+                            ? "bg-green-500/20 text-green-600"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          : showAsActive
+                            ? "bg-purple-500/20 text-purple-600"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    } ${isSelected ? "ring-1 ring-current" : ""}`}
+                    onClick={() => props.onToggleIcon(icon)}
+                    title={
+                      icon === "code"
+                        ? "Interactive"
+                        : icon === "discussion"
+                          ? "Discussion"
+                          : "Watch"
+                    }
+                  >
+                    {icon === "code" ? (
+                      <Code className="w-3 h-3" />
+                    ) : icon === "discussion" ? (
+                      <MessageCircle className="w-3 h-3" />
+                    ) : (
+                      <Play className="w-3 h-3" />
+                    )}
+                  </button>
+                );
+              })}
+
+              <span className="text-muted-foreground mx-0.5">|</span>
+              {(["ghost", "real", "todo"] as const).map((status) => {
+                const isSelected = props.fsStatusFilter === status;
+                const showAsActive =
+                  props.fsStatusFilter === null || isSelected;
+                return (
+                  <button
+                    key={status}
+                    className={`text-xs px-2 py-0.5 rounded-sm font-medium transition-colors flex items-center gap-1 ${
+                      showAsActive
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    } ${isSelected ? "ring-1 ring-current" : ""}`}
+                    onClick={() => props.onToggleFsStatus(status)}
+                    title={
+                      status === "ghost"
+                        ? "Ghost"
+                        : status === "real"
+                          ? "Real"
+                          : "Todo"
+                    }
+                  >
+                    {status === "ghost" ? (
+                      <Ghost className="w-3 h-3" />
+                    ) : status === "real" ? (
+                      <FileVideo className="w-3 h-3" />
+                    ) : (
+                      <ListChecks className="w-3 h-3" />
+                    )}
+                    {status === "ghost"
+                      ? "Ghost"
+                      : status === "real"
+                        ? "Real"
+                        : "Todo"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Options */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Checkbox

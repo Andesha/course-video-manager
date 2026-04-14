@@ -440,6 +440,9 @@ export function RouteModals({
       videoId: string;
       videoPath: string;
     } | null;
+    priorityFilter: number[];
+    iconFilter: string[];
+    fsStatusFilter: string | null;
   };
   dispatch: (action: courseViewReducer.Action) => void;
   navigate: ReturnType<typeof useNavigate>;
@@ -519,6 +522,18 @@ export function RouteModals({
             onOpenChange={(open) =>
               dispatch({ type: "set-copy-transcript-modal-open", open })
             }
+            priorityFilter={viewState.priorityFilter}
+            iconFilter={viewState.iconFilter}
+            fsStatusFilter={viewState.fsStatusFilter}
+            onTogglePriority={(priority) =>
+              dispatch({ type: "toggle-priority-filter", priority })
+            }
+            onToggleIcon={(icon) =>
+              dispatch({ type: "toggle-icon-filter", icon })
+            }
+            onToggleFsStatus={(status) =>
+              dispatch({ type: "toggle-fs-status-filter", status })
+            }
           />
         )}
 
@@ -535,6 +550,18 @@ export function RouteModals({
             onOpenChange={(open) => {
               if (!open) dispatch({ type: "close-copy-section-transcript" });
             }}
+            priorityFilter={viewState.priorityFilter}
+            iconFilter={viewState.iconFilter}
+            fsStatusFilter={viewState.fsStatusFilter}
+            onTogglePriority={(priority) =>
+              dispatch({ type: "toggle-priority-filter", priority })
+            }
+            onToggleIcon={(icon) =>
+              dispatch({ type: "toggle-icon-filter", icon })
+            }
+            onToggleFsStatus={(status) =>
+              dispatch({ type: "toggle-fs-status-filter", status })
+            }
           />
         )}
       </Suspense>

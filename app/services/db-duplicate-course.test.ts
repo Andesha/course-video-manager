@@ -478,4 +478,148 @@ describe("duplicateCourse", () => {
     expect(newSections[2]!.path).toBe("03-third");
     expect(newSections[2]!.order).toBe(3);
   });
+
+  it("fails with NotFoundError for non-existent source course", async () => {
+    await expect(
+      run(
+        Effect.gen(function* () {
+          const db = yield* DBFunctionsService;
+          return yield* db.duplicateCourse({
+            sourceCourseId: "non-existent-id",
+            name: "Dup",
+            filePath: "/tmp/dup",
+          });
+        })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("fails with NotFoundError when source course has no versions", async () => {
+    const [course] = await testDb
+      .insert(schema.courses)
+      .values({ name: "No Versions", filePath: "/tmp/no-versions" })
+      .returning();
+
+    await expect(
+      run(
+        Effect.gen(function* () {
+          const db = yield* DBFunctionsService;
+          return yield* db.duplicateCourse({
+            sourceCourseId: course!.id,
+            name: "Dup",
+            filePath: "/tmp/dup",
+          });
+        })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("handles course with sections but no lessons", async () => {
+    const [course] = await testDb
+      .insert(schema.courses)
+      .values({ name: "Empty Sections", filePath: "/tmp/empty" })
+      .returning();
+
+    const [version] = await testDb
+      .insert(schema.courseVersions)
+      .values({ repoId: course!.id, name: "v1" })
+      .returning();
+
+    await testDb.insert(schema.sections).values({
+      repoVersionId: version!.id,
+      path: "01-empty",
+      order: 1,
+    });
+
+    const result = await run(
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        return yield* db.duplicateCourse({
+          sourceCourseId: course!.id,
+          name: "Dup",
+          filePath: "/tmp/dup",
+        });
+      })
+    );
+
+    const newSections = await testDb.query.sections.findMany({
+      where: (s, { eq }) => eq(s.repoVersionId, result.version.id),
+      with: { lessons: true },
+    });
+
+    expect(newSections).toHaveLength(1);
+    expect(newSections[0]!.path).toBe("01-empty");
+    expect(newSections[0]!.lessons).toHaveLength(0);
+  });
+
+  it("copies null memory field", async () => {
+    const [course] = await testDb
+      .insert(schema.courses)
+      .values({ name: "No Memory", filePath: "/tmp/no-memory" })
+      .returning();
+
+    await testDb
+      .insert(schema.courseVersions)
+      .values({ repoId: course!.id, name: "v1" });
+
+    const result = await run(
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        return yield* db.duplicateCourse({
+          sourceCourseId: course!.id,
+          name: "Dup",
+          filePath: "/tmp/dup",
+        });
+      })
+    );
+
+    expect(result.course.memory).toBe("");
+  });
+
+  it("uses the latest version when multiple versions exist", async () => {
+    const [course] = await testDb
+      .insert(schema.courses)
+      .values({ name: "Multi Version", filePath: "/tmp/multi" })
+      .returning();
+
+    const [oldVersion] = await testDb
+      .insert(schema.courseVersions)
+      .values({ repoId: course!.id, name: "v1" })
+      .returning();
+
+    await testDb.insert(schema.sections).values({
+      repoVersionId: oldVersion!.id,
+      path: "01-old-section",
+      order: 1,
+    });
+
+    const [newVersion] = await testDb
+      .insert(schema.courseVersions)
+      .values({ repoId: course!.id, name: "v2" })
+      .returning();
+
+    await testDb.insert(schema.sections).values({
+      repoVersionId: newVersion!.id,
+      path: "01-new-section",
+      order: 1,
+    });
+
+    const result = await run(
+      Effect.gen(function* () {
+        const db = yield* DBFunctionsService;
+        return yield* db.duplicateCourse({
+          sourceCourseId: course!.id,
+          name: "Dup",
+          filePath: "/tmp/dup",
+        });
+      })
+    );
+
+    const newSections = await testDb.query.sections.findMany({
+      where: (s, { eq }) => eq(s.repoVersionId, result.version.id),
+    });
+
+    expect(newSections).toHaveLength(1);
+    expect(newSections[0]!.path).toBe("01-new-section");
+  });
 });

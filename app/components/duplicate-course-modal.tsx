@@ -18,14 +18,22 @@ export function DuplicateCourseModal(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const fetcher = useFetcher<{ id: string }>();
+  const fetcher = useFetcher<{ id: string } | { error: string }>();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!props.open) {
+      setError(null);
+    }
+  }, [props.open]);
 
   useEffect(() => {
     if (fetcher.data && "id" in fetcher.data) {
       props.onOpenChange(false);
       navigate(`/?courseId=${fetcher.data.id}`);
+    } else if (fetcher.data && "error" in fetcher.data) {
+      setError(fetcher.data.error);
     }
   }, [fetcher.data]);
 

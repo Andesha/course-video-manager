@@ -35,7 +35,7 @@ execFileSync(
     "-pix_fmt",
     "yuv420p",
     "-af",
-    "volume=-14dB",
+    "volume=-18dB",
     "-c:a",
     "aac",
     "-b:a",

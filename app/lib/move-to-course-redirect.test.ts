@@ -10,11 +10,13 @@ describe("buildMoveToCourseRedirectUrl", () => {
     expect(url).toBe("/?courseId=course-123#lesson-456");
   });
 
-  it("should handle special characters in IDs", () => {
+  it("should produce correct URL with UUID-style IDs", () => {
     const url = buildMoveToCourseRedirectUrl({
-      courseId: "abc-def-ghi",
-      lessonId: "xyz-123-456",
+      courseId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      lessonId: "f0e1d2c3-b4a5-6789-0123-456789abcdef",
     });
-    expect(url).toBe("/?courseId=abc-def-ghi#xyz-123-456");
+    expect(url).toBe(
+      "/?courseId=a1b2c3d4-e5f6-7890-abcd-ef1234567890#f0e1d2c3-b4a5-6789-0123-456789abcdef"
+    );
   });
 });

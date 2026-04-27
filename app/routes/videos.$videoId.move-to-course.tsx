@@ -23,7 +23,7 @@ import path from "node:path";
 import { useState } from "react";
 import { data, redirect, Form, useNavigation } from "react-router";
 import type { Route } from "./+types/videos.$videoId.move-to-course";
-import { buildMoveToCourseRedirectUrl } from "./move-to-course-redirect";
+import { buildMoveToCourseRedirectUrl } from "@/lib/move-to-course-redirect";
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: "CVM - Move Video to Course" }];

@@ -39,8 +39,10 @@ export function AddVideoModal(props: {
     navigate,
   ]);
 
-  // Don't render if no lessonId (standalone videos use different flow)
-  if (!props.lessonId) return null;
+  if (!props.open) return null;
+
+  const isPending = !props.lessonId;
+  const isSubmitting = addVideoFetcher.state !== "idle";
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -50,10 +52,16 @@ export function AddVideoModal(props: {
         </DialogHeader>
         <addVideoFetcher.Form
           method="post"
-          action={`/api/lessons/${props.lessonId}/add-video`}
+          action={
+            props.lessonId
+              ? `/api/lessons/${props.lessonId}/add-video`
+              : undefined
+          }
+          onSubmit={(e) => {
+            if (isPending) e.preventDefault();
+          }}
           className="space-y-4 py-4"
         >
-          <input type="hidden" name="lessonId" value={props.lessonId} />
           <div className="space-y-2">
             <Label htmlFor="video-path">Video Name</Label>
             <Input
@@ -74,9 +82,14 @@ export function AddVideoModal(props: {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={addVideoFetcher.state !== "idle"}>
-              {addVideoFetcher.state !== "idle" ? (
+            <Button type="submit" disabled={isPending || isSubmitting}>
+              {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving Lesson…
+                </>
               ) : (
                 "Add Video"
               )}

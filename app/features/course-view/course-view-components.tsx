@@ -576,13 +576,8 @@ export function RouteModals({
           onOpenChange={(open) => {
             if (!open) dispatch({ type: "close-move-video" });
           }}
-          onAfterMove={(targetLessonId) => {
-            dispatch({
-              type: "video-moved",
-              videoId: viewState.moveVideoState!.videoId,
-              fromLessonId: viewState.moveVideoState!.currentLessonId,
-              toLessonId: targetLessonId,
-            });
+          onAfterMove={() => {
+            dispatch({ type: "close-move-video" });
           }}
         />
       )}
@@ -595,12 +590,8 @@ export function RouteModals({
           onOpenChange={(open) => {
             if (!open) dispatch({ type: "close-rename-video" });
           }}
-          onRename={(newName) => {
-            dispatch({
-              type: "rename-video-optimistic",
-              videoId: viewState.renameVideoState!.videoId,
-              newName,
-            });
+          onRename={() => {
+            dispatch({ type: "close-rename-video" });
           }}
         />
       )}

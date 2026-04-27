@@ -3,12 +3,12 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { CreateSectionModal } from "@/components/create-section-modal";
 import { VideoModal } from "@/components/video-player";
-import {
-  useCourseEditor,
-  editorSectionsToLoaderSections,
-} from "@/hooks/use-course-editor";
 import { useFocusRevalidate } from "@/hooks/use-focus-revalidate";
-import type { courseViewReducer } from "@/features/course-view/course-view-reducer";
+import {
+  courseViewReducer,
+  createInitialCourseViewState,
+} from "@/features/course-view/course-view-reducer";
+import type { CourseEditorEvent } from "@/services/course-editor-service";
 import { Button } from "@/components/ui/button";
 import { DBFunctionsService } from "@/services/db-service.server";
 import {
@@ -27,11 +27,11 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Console, Effect } from "effect";
-import { toast } from "sonner";
 import { getGitStatusAsync } from "@/services/git-status-service.server";
-import { Loader2, Plus } from "lucide-react";
-import { Suspense, useContext, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import { Suspense, useCallback, useContext, useMemo, useState } from "react";
 import { data, useFetcher, useNavigate, useSearchParams } from "react-router";
+import { useEffectReducer } from "use-effect-reducer";
 import type { Route } from "./+types/_index";
 import { UploadContext } from "@/features/upload-manager/upload-context";
 import { ActionsDropdown } from "@/features/course-view/actions-menu";
@@ -245,50 +245,29 @@ function ComponentInner(props: Route.ComponentProps) {
   const courses = loaderData.courses;
   const currentCourse = loaderData.selectedCourse;
 
-  // Course editor reducer owns entity state + UI state
-  const {
-    state: viewState,
-    dispatch,
-    pendingCount,
-  } = useCourseEditor(currentCourse?.sections ?? [], {
-    courseFilePath: currentCourse?.filePath,
-    onError: (effectType, message) => {
-      if (effectType === "create-on-disk") {
-        // Extract user-facing message: strip the HTTP prefix if present
-        const match = message.match(
-          /^CourseEditorService request failed: \d+ (.+)$/
-        );
-        const userMessage = match ? match[1] : message;
-        toast.error(userMessage);
-      }
+  // UI state reducer — no entity state, just modals/selections/filters
+  const [viewState, dispatch] = useEffectReducer(
+    courseViewReducer,
+    createInitialCourseViewState(),
+    {}
+  );
+
+  // Entity mutations go through useFetcher against /api/course-editor.
+  // React Router auto-revalidates the page loader when the fetcher settles.
+  const courseEditorFetcher = useFetcher();
+
+  const submitEvent = useCallback(
+    (event: CourseEditorEvent) => {
+      courseEditorFetcher.submit(JSON.stringify(event), {
+        method: "post",
+        encType: "application/json",
+        action: "/api/course-editor",
+      });
     },
-  });
-
-  // Adapter: convert reducer-owned sections back to loader Section[] shape
-  // for existing components that haven't been migrated yet
-  const displaySections = useMemo(
-    () => editorSectionsToLoaderSections(viewState.sections),
-    [viewState.sections]
+    [courseEditorFetcher]
   );
 
-  // Build a course object with reducer-owned sections for existing components
-  const courseWithEditorSections = useMemo(
-    () =>
-      currentCourse
-        ? { ...currentCourse, sections: displaySections }
-        : undefined,
-    [currentCourse, displaySections]
-  );
-
-  // Cast dispatch for backward compatibility with components that expect
-  // courseViewReducer.Action. Safe because action shapes are structurally
-  // identical at runtime — only the branded ID types differ nominally.
-  const legacyDispatch = dispatch as unknown as (
-    action: courseViewReducer.Action
-  ) => void;
-
-  // Wrap viewState for RouteModals which expects courseViewReducer.State
-  const legacyViewState = viewState as unknown as courseViewReducer.State;
+  const displaySections = currentCourse?.sections ?? [];
 
   const {
     isAddCourseModalOpen,
@@ -311,15 +290,8 @@ function ComponentInner(props: Route.ComponentProps) {
   } = viewState;
 
   const [nextUpDismissed, setNextUpDismissed] = useState(false);
-  const { uploads, startExportUpload, startBatchExportUpload } =
+  const { startExportUpload, startBatchExportUpload } =
     useContext(UploadContext);
-
-  const hasActiveUploads = Object.values(uploads).some(
-    (u) =>
-      u.status === "uploading" ||
-      u.status === "waiting" ||
-      u.status === "retrying"
-  );
 
   useFocusRevalidate({ enabled: !!selectedCourseId, intervalMs: 5000 });
 
@@ -340,13 +312,13 @@ function ComponentInner(props: Route.ComponentProps) {
   );
 
   const handleLessonDragEnd = useMemo(
-    () => createLessonDragHandler(dispatch),
-    [dispatch]
+    () => createLessonDragHandler(submitEvent),
+    [submitEvent]
   );
 
   const handleSectionDragEnd = useMemo(
-    () => createSectionDragHandler(dispatch),
-    [dispatch]
+    () => createSectionDragHandler(submitEvent),
+    [submitEvent]
   );
 
   const allFlatLessons = useMemo(
@@ -395,12 +367,12 @@ function ComponentInner(props: Route.ComponentProps) {
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6">
-          {courseWithEditorSections ? (
+          {currentCourse ? (
             <>
               {/* Title + version + actions */}
               <div className="flex items-center gap-2 mb-2">
                 <h1 className="text-2xl font-bold flex items-center gap-2">
-                  {courseWithEditorSections.name}
+                  {currentCourse.name}
                   {loaderData.selectedVersion &&
                     loaderData.versions.length > 1 && (
                       <button
@@ -417,9 +389,9 @@ function ComponentInner(props: Route.ComponentProps) {
                     )}
                 </h1>
                 <ActionsDropdown
-                  currentCourse={courseWithEditorSections}
+                  currentCourse={currentCourse}
                   data={loaderData}
-                  dispatch={legacyDispatch}
+                  dispatch={dispatch}
                   archiveCourseFetcher={archiveCourseFetcher}
                   gitPushFetcher={gitPushFetcher}
                   handleBatchExport={handleBatchExport}
@@ -444,15 +416,12 @@ function ComponentInner(props: Route.ComponentProps) {
                       sections={displaySections}
                       data={loaderData}
                       navigate={navigate}
-                      addVideoToLessonId={addVideoToLessonId as string | null}
-                      convertToGhostLessonId={
-                        convertToGhostLessonId as string | null
-                      }
-                      deleteLessonId={deleteLessonId as string | null}
-                      createOnDiskLessonId={
-                        createOnDiskLessonId as string | null
-                      }
-                      dispatch={legacyDispatch}
+                      addVideoToLessonId={addVideoToLessonId}
+                      convertToGhostLessonId={convertToGhostLessonId}
+                      deleteLessonId={deleteLessonId}
+                      createOnDiskLessonId={createOnDiskLessonId}
+                      dispatch={dispatch}
+                      submitEvent={submitEvent}
                       startExportUpload={startExportUpload}
                       revealVideoFetcher={revealVideoFetcher}
                       deleteVideoFileFetcher={deleteVideoFileFetcher}
@@ -473,15 +442,15 @@ function ComponentInner(props: Route.ComponentProps) {
                     fsStatusFilter={fsStatusFilter}
                     fsStatusCounts={fsStatusCounts}
                     searchQuery={searchQuery}
-                    dispatch={legacyDispatch}
-                    isRealCourse={courseWithEditorSections?.filePath != null}
+                    dispatch={dispatch}
+                    isRealCourse={currentCourse?.filePath != null}
                   />
                 </div>
 
                 <SectionGrid
-                  currentCourse={courseWithEditorSections}
+                  currentCourse={currentCourse}
                   data={loaderData}
-                  isGhostCourse={!viewState.courseFilePath}
+                  isGhostCourse={!currentCourse?.filePath}
                   sensors={sensors}
                   handleSectionDragEnd={handleSectionDragEnd}
                   handleLessonDragEnd={handleLessonDragEnd}
@@ -489,22 +458,17 @@ function ComponentInner(props: Route.ComponentProps) {
                   iconFilter={iconFilter}
                   fsStatusFilter={fsStatusFilter}
                   searchQuery={searchQuery}
-                  addGhostLessonSectionId={
-                    addGhostLessonSectionId as string | null
-                  }
-                  insertAdjacentLessonId={
-                    insertAdjacentLessonId as string | null
-                  }
+                  addGhostLessonSectionId={addGhostLessonSectionId}
+                  insertAdjacentLessonId={insertAdjacentLessonId}
                   insertPosition={insertPosition}
-                  editSectionId={editSectionId as string | null}
-                  addVideoToLessonId={addVideoToLessonId as string | null}
-                  convertToGhostLessonId={
-                    convertToGhostLessonId as string | null
-                  }
-                  deleteLessonId={deleteLessonId as string | null}
-                  createOnDiskLessonId={createOnDiskLessonId as string | null}
-                  archiveSectionId={archiveSectionId as string | null}
-                  dispatch={legacyDispatch}
+                  editSectionId={editSectionId}
+                  addVideoToLessonId={addVideoToLessonId}
+                  convertToGhostLessonId={convertToGhostLessonId}
+                  deleteLessonId={deleteLessonId}
+                  createOnDiskLessonId={createOnDiskLessonId}
+                  archiveSectionId={archiveSectionId}
+                  dispatch={dispatch}
+                  submitEvent={submitEvent}
                   navigate={navigate}
                   startExportUpload={startExportUpload}
                   revealVideoFetcher={revealVideoFetcher}
@@ -540,10 +504,15 @@ function ComponentInner(props: Route.ComponentProps) {
                     dispatch({ type: "set-create-section-modal-open", open })
                   }
                   onCreateSection={(title) => {
-                    dispatch({
-                      type: "add-section",
-                      title,
+                    const maxOrder = displaySections.reduce(
+                      (max, s) => Math.max(max, s.order ?? 0),
+                      0
+                    );
+                    submitEvent({
+                      type: "create-section",
                       repoVersionId: loaderData.selectedVersion!.id,
+                      title,
+                      maxOrder,
                     });
                   }}
                 />
@@ -553,23 +522,11 @@ function ComponentInner(props: Route.ComponentProps) {
             <NoCourseView
               courses={courses}
               standaloneVideos={loaderData.standaloneVideos}
-              dispatch={legacyDispatch}
+              dispatch={dispatch}
             />
           )}
         </div>
       </div>
-
-      {pendingCount > 0 && (
-        <div
-          className={`fixed right-4 z-40 flex items-center gap-2 bg-background border rounded-full px-3 py-1.5 shadow-lg text-sm text-muted-foreground transition-all ${hasActiveUploads ? "bottom-[6.5rem]" : "bottom-16"}`}
-          aria-label={`${pendingCount} action${pendingCount === 1 ? "" : "s"} queued`}
-        >
-          <Loader2 className="size-3.5 animate-spin shrink-0" />
-          <span>
-            {pendingCount} {pendingCount === 1 ? "action" : "actions"} saving
-          </span>
-        </div>
-      )}
 
       <VideoModal
         videoId={videoPlayerState.videoId}
@@ -581,11 +538,11 @@ function ComponentInner(props: Route.ComponentProps) {
       />
 
       <RouteModals
-        currentCourse={courseWithEditorSections}
+        currentCourse={currentCourse}
         data={loaderData}
         selectedCourseId={selectedCourseId}
-        viewState={legacyViewState}
-        dispatch={legacyDispatch}
+        viewState={viewState}
+        dispatch={dispatch}
         navigate={navigate}
       />
     </div>

@@ -1,18 +1,18 @@
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { courseViewReducer } from "@/features/course-view/course-view-reducer";
+import type { CourseEditorEvent } from "@/services/course-editor-service";
 import { useState, useCallback } from "react";
 
 export function SectionDescriptionEditor({
   sectionId,
   description,
   isReadOnly,
-  dispatch,
+  submitEvent,
 }: {
   sectionId: string;
   description: string;
   isReadOnly: boolean;
-  dispatch: (action: courseViewReducer.Action) => void;
+  submitEvent: (event: CourseEditorEvent) => void;
 }) {
   const currentDescription = description;
   const [editingDesc, setEditingDesc] = useState(false);
@@ -22,14 +22,14 @@ export function SectionDescriptionEditor({
     (value: string) => {
       setEditingDesc(false);
       if (value !== currentDescription) {
-        dispatch({
+        submitEvent({
           type: "update-section-description",
-          frontendId: sectionId,
+          sectionId,
           description: value,
-        } as any);
+        });
       }
     },
-    [currentDescription, sectionId, dispatch]
+    [currentDescription, sectionId, submitEvent]
   );
 
   if (!isReadOnly && editingDesc) {

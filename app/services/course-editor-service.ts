@@ -373,28 +373,3 @@ export function createCourseEditorService(
     },
   };
 }
-
-// ============================================================================
-// HTTP Transport Factory (for frontend)
-// ============================================================================
-
-export function createHttpCourseEditorService(): CourseEditorService {
-  const send = async (event: CourseEditorEvent): Promise<unknown> => {
-    const response = await fetch("/api/course-editor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(event),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(
-        `CourseEditorService request failed: ${response.status} ${text}`
-      );
-    }
-
-    return response.json();
-  };
-
-  return createCourseEditorService(send);
-}

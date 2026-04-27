@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { courseViewReducer } from "@/features/course-view/course-view-reducer";
+import type { CourseEditorEvent } from "@/services/course-editor-service";
 import { SortableLessonItem } from "./sortable-lesson-item";
 import { SortableSectionItem } from "./sortable-section-item";
 import { SectionDescriptionEditor } from "./section-description-editor";
@@ -19,7 +20,7 @@ import {
   SectionTitleEditor,
 } from "./section-title-editor";
 import { filterLessons, calcSectionDuration } from "./section-grid-utils";
-import { getLessonDndId, type LoaderData } from "./course-view-types";
+import { type LoaderData } from "./course-view-types";
 
 import { formatSecondsToTimeCode } from "@/services/utils";
 import {
@@ -52,6 +53,7 @@ function SectionTitleRow({
   isReadOnly,
   editSectionId,
   dispatch,
+  submitEvent,
 }: {
   section: { id: string; path: string };
   isGhostSection: boolean;
@@ -59,6 +61,7 @@ function SectionTitleRow({
   isReadOnly: boolean;
   editSectionId: string | null;
   dispatch: (action: courseViewReducer.Action) => void;
+  submitEvent: (event: CourseEditorEvent) => void;
 }) {
   const {
     editingTitle,
@@ -73,6 +76,7 @@ function SectionTitleRow({
     sectionPath: section.path,
     isGhostSection,
     dispatch,
+    submitEvent,
     editSectionId,
   });
 
@@ -113,6 +117,7 @@ export function SectionGrid({
   createOnDiskLessonId,
   archiveSectionId,
   dispatch,
+  submitEvent,
   navigate,
   startExportUpload,
   revealVideoFetcher,
@@ -160,6 +165,7 @@ export function SectionGrid({
   createOnDiskLessonId: string | null;
   archiveSectionId: string | null;
   dispatch: (action: courseViewReducer.Action) => void;
+  submitEvent: (event: CourseEditorEvent) => void;
   navigate: ReturnType<typeof useNavigate>;
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
@@ -199,7 +205,6 @@ export function SectionGrid({
     });
   }, []);
 
-  // Reducer owns all section/lesson state — no optimistic overlays needed
   const displaySections = currentCourse.sections;
 
   // Build flat lessons list for dependency selector
@@ -285,6 +290,7 @@ export function SectionGrid({
                                     isReadOnly={isReadOnly}
                                     editSectionId={editSectionId}
                                     dispatch={dispatch}
+                                    submitEvent={submitEvent}
                                   />
                                   {showGhostSectionStyle && (
                                     <Ghost className="w-3.5 h-3.5 text-muted-foreground/40" />
@@ -323,7 +329,7 @@ export function SectionGrid({
                               sectionId={section.id}
                               description={section.description ?? ""}
                               isReadOnly={isReadOnly}
-                              dispatch={dispatch}
+                              submitEvent={submitEvent}
                             />
                           </div>
                           {(!collapsedSections.has(section.id) ||
@@ -338,7 +344,7 @@ export function SectionGrid({
                                 )}
                               >
                                 <SortableContext
-                                  items={lessons.map(getLessonDndId)}
+                                  items={lessons.map((l) => l.id)}
                                   strategy={verticalListSortingStrategy}
                                 >
                                   {hasActiveFilters &&
@@ -349,13 +355,7 @@ export function SectionGrid({
                                     )}
                                   {filteredLessons.map((lesson, li) => (
                                     <SortableLessonItem
-                                      key={
-                                        (
-                                          lesson as unknown as {
-                                            frontendId?: string;
-                                          }
-                                        ).frontendId ?? lesson.id
-                                      }
+                                      key={lesson.id}
                                       lesson={lesson}
                                       lessonIndex={li}
                                       section={section}
@@ -371,6 +371,7 @@ export function SectionGrid({
                                         createOnDiskLessonId
                                       }
                                       dispatch={dispatch}
+                                      submitEvent={submitEvent}
                                       startExportUpload={startExportUpload}
                                       revealVideoFetcher={revealVideoFetcher}
                                       deleteVideoFileFetcher={
@@ -438,10 +439,10 @@ export function SectionGrid({
                               className="text-destructive focus:text-destructive"
                               onSelect={() => {
                                 if (lessons.length === 0) {
-                                  dispatch({
+                                  submitEvent({
                                     type: "archive-section",
-                                    frontendId: section.id,
-                                  } as any);
+                                    sectionId: section.id,
+                                  });
                                 } else {
                                   dispatch({
                                     type: "set-archive-section-id",
@@ -467,19 +468,19 @@ export function SectionGrid({
                         });
                       }}
                       onAddLesson={({ title, isReal }) => {
-                        dispatch({
+                        submitEvent({
                           type: isReal
                             ? "create-real-lesson"
                             : "add-ghost-lesson",
-                          sectionFrontendId: section.id,
+                          sectionId: section.id,
                           title,
                           ...(insertAdjacentLessonId
                             ? {
                                 adjacentLessonId: insertAdjacentLessonId,
-                                position: insertPosition,
+                                position: insertPosition ?? undefined,
                               }
                             : {}),
-                        } as any);
+                        });
                       }}
                       adjacentLessonId={insertAdjacentLessonId}
                       position={insertPosition}
@@ -497,10 +498,10 @@ export function SectionGrid({
                         });
                       }}
                       onArchive={() => {
-                        dispatch({
+                        submitEvent({
                           type: "archive-section",
-                          frontendId: section.id,
-                        } as any);
+                          sectionId: section.id,
+                        });
                       }}
                     />
                   </>

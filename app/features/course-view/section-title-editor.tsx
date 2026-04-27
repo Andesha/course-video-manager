@@ -3,13 +3,14 @@ import { parseSectionPath } from "@/services/section-path-service";
 import { toSlug } from "@/services/lesson-path-service";
 import { capitalizeTitle } from "@/utils/capitalize-title";
 import type { courseViewReducer } from "@/features/course-view/course-view-reducer";
+import type { CourseEditorEvent } from "@/services/course-editor-service";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Pure helper: given an edit value, returns the rename action payload
- * to dispatch, or null if no change is needed.
+ * Pure helper: given an edit value, returns the rename event payload
+ * to submit, or null if no change is needed.
  */
-export function buildSectionRenameAction({
+export function buildSectionRenameEvent({
   value,
   isGhostSection,
   sectionPath,
@@ -21,16 +22,20 @@ export function buildSectionRenameAction({
   sectionPath: string;
   currentSlug: string;
   sectionId: string;
-}): { type: "rename-section"; frontendId: string; title: string } | null {
+}): CourseEditorEvent | null {
   if (isGhostSection) {
     const newTitle = capitalizeTitle(value.trim());
     if (newTitle && newTitle !== sectionPath) {
-      return { type: "rename-section", frontendId: sectionId, title: newTitle };
+      return {
+        type: "update-section-name",
+        sectionId,
+        title: newTitle,
+      };
     }
   } else {
     const newSlug = toSlug(value);
     if (newSlug && newSlug !== currentSlug) {
-      return { type: "rename-section", frontendId: sectionId, title: newSlug };
+      return { type: "update-section-name", sectionId, title: newSlug };
     }
   }
   return null;
@@ -41,12 +46,14 @@ export function useSectionTitleEditor({
   sectionPath,
   isGhostSection,
   dispatch,
+  submitEvent,
   editSectionId,
 }: {
   sectionId: string;
   sectionPath: string;
   isGhostSection: boolean;
   dispatch: (action: courseViewReducer.Action) => void;
+  submitEvent: (event: CourseEditorEvent) => void;
   editSectionId: string | null;
 }) {
   const parsedPath = !isGhostSection ? parseSectionPath(sectionPath) : null;
@@ -81,18 +88,18 @@ export function useSectionTitleEditor({
     (value: string) => {
       setEditingTitle(false);
       dispatch({ type: "set-edit-section-id", sectionId: null });
-      const action = buildSectionRenameAction({
+      const event = buildSectionRenameEvent({
         value,
         isGhostSection,
         sectionPath,
         currentSlug,
         sectionId,
       });
-      if (action) {
-        dispatch(action as any);
+      if (event) {
+        submitEvent(event);
       }
     },
-    [isGhostSection, sectionId, sectionPath, currentSlug, dispatch]
+    [isGhostSection, sectionId, sectionPath, currentSlug, dispatch, submitEvent]
   );
 
   const cancelEditing = useCallback(() => {

@@ -1,5 +1,4 @@
-import type { FrontendId } from "@/features/course-editor/course-editor-types";
-import type { courseEditorReducer } from "@/features/course-editor/course-editor-reducer";
+import type { CourseEditorEvent } from "@/services/course-editor-service";
 import type { Section } from "./course-view-types";
 import { arrayMove } from "@dnd-kit/sortable";
 import { toast } from "sonner";
@@ -18,7 +17,7 @@ type DragItem = {
 };
 
 export function createLessonDragHandler(
-  dispatch: (action: courseEditorReducer.Action) => void
+  submitEvent: (event: CourseEditorEvent) => void
 ) {
   return (sectionId: string, lessons: DragItem[]) => (event: DragEndEvent) => {
     const { active, over } = event;
@@ -44,16 +43,16 @@ export function createLessonDragHandler(
       });
     }
 
-    dispatch({
+    submitEvent({
       type: "reorder-lessons",
-      sectionFrontendId: sectionId as FrontendId,
-      lessonFrontendIds: newOrder.map((l) => l.id as FrontendId),
+      sectionId,
+      lessonIds: newOrder.map((l) => l.id),
     });
   };
 }
 
 export function createSectionDragHandler(
-  dispatch: (action: courseEditorReducer.Action) => void
+  submitEvent: (event: CourseEditorEvent) => void
 ) {
   return (
       sections: { id: string; lessons: DragItem[] }[],
@@ -79,9 +78,9 @@ export function createSectionDragHandler(
         });
       }
 
-      dispatch({
+      submitEvent({
         type: "reorder-sections",
-        frontendIds: newOrder.map((s) => s.id as FrontendId),
+        sectionIds: newOrder.map((s) => s.id),
       });
     };
 }

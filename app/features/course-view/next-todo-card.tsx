@@ -1,5 +1,6 @@
 import { type DependencyLessonItem } from "@/components/dependency-selector";
 import { courseViewReducer } from "@/features/course-view/course-view-reducer";
+import type { CourseEditorEvent } from "@/services/course-editor-service";
 import { SortableLessonItem } from "./sortable-lesson-item";
 import type { LoaderData, Section, Lesson } from "./course-view-types";
 import { DndContext } from "@dnd-kit/core";
@@ -26,6 +27,7 @@ export function NextTodoCard({
   deleteLessonId,
   createOnDiskLessonId,
   dispatch,
+  submitEvent,
   startExportUpload,
   revealVideoFetcher,
   deleteVideoFileFetcher,
@@ -43,6 +45,7 @@ export function NextTodoCard({
   deleteLessonId: string | null;
   createOnDiskLessonId: string | null;
   dispatch: (action: courseViewReducer.Action) => void;
+  submitEvent: (event: CourseEditorEvent) => void;
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
@@ -103,6 +106,7 @@ export function NextTodoCard({
                 deleteLessonId={deleteLessonId}
                 createOnDiskLessonId={createOnDiskLessonId}
                 dispatch={dispatch}
+                submitEvent={submitEvent}
                 startExportUpload={startExportUpload}
                 revealVideoFetcher={revealVideoFetcher}
                 deleteVideoFileFetcher={deleteVideoFileFetcher}

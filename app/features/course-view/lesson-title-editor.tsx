@@ -1,18 +1,18 @@
 import { cn } from "@/lib/utils";
 import { parseLessonPath, toSlug } from "@/services/lesson-path-service";
 import { capitalizeTitle } from "@/utils/capitalize-title";
-import { courseViewReducer } from "@/features/course-view/course-view-reducer";
+import type { CourseEditorEvent } from "@/services/course-editor-service";
 import type { Lesson } from "./course-view-types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useLessonTitleEditor({
   lesson,
   isGhost,
-  dispatch,
+  submitEvent,
 }: {
   lesson: Lesson;
   isGhost: boolean;
-  dispatch: (action: courseViewReducer.Action) => void;
+  submitEvent: (event: CourseEditorEvent) => void;
 }) {
   const parsedPath = !isGhost ? parseLessonPath(lesson.path) : null;
   const currentSlug = parsedPath?.slug ?? lesson.path;
@@ -29,24 +29,24 @@ export function useLessonTitleEditor({
       if (isGhost) {
         const newTitle = capitalizeTitle(value.trim());
         if (newTitle && newTitle !== (lesson.title || lesson.path)) {
-          dispatch({
+          submitEvent({
             type: "update-lesson-title",
-            frontendId: lesson.id,
+            lessonId: lesson.id,
             title: newTitle,
-          } as any);
+          });
         }
       } else {
         const newSlug = toSlug(value);
         if (newSlug && newSlug !== currentSlug) {
-          dispatch({
+          submitEvent({
             type: "update-lesson-name",
-            frontendId: lesson.id,
+            lessonId: lesson.id,
             newSlug,
-          } as any);
+          });
         }
       }
     },
-    [isGhost, lesson, currentSlug, dispatch]
+    [isGhost, lesson, currentSlug, submitEvent]
   );
 
   const startEditingTitle = useCallback(() => {
@@ -96,9 +96,6 @@ export function LessonTitleEditor({
 
   const handledRef = useRef(false);
 
-  // Reset handledRef at the start of each editing session so that
-  // blur-to-save works correctly even after a previous Enter/Escape
-  // closed the editor (issue #703).
   useEffect(() => {
     if (editingTitle) {
       handledRef.current = false;

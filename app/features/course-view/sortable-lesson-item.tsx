@@ -21,9 +21,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { LessonTitleEditor, useLessonTitleEditor } from "./lesson-title-editor";
 import { courseViewReducer } from "@/features/course-view/course-view-reducer";
+import type { CourseEditorEvent } from "@/services/course-editor-service";
 import { VideoThumbnailGrid } from "./video-thumbnail-grid";
 import {
-  getLessonDndId,
   type LoaderData,
   type Section,
   type Lesson,
@@ -57,6 +57,7 @@ export function SortableLessonItem({
   deleteLessonId,
   createOnDiskLessonId,
   dispatch,
+  submitEvent,
   startExportUpload,
   revealVideoFetcher,
   deleteVideoFileFetcher,
@@ -77,6 +78,7 @@ export function SortableLessonItem({
   deleteLessonId: string | null;
   createOnDiskLessonId: string | null;
   dispatch: (action: courseViewReducer.Action) => void;
+  submitEvent: (event: CourseEditorEvent) => void;
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
@@ -95,7 +97,7 @@ export function SortableLessonItem({
     transition,
     isDragging,
   } = useSortable({
-    id: getLessonDndId(lesson),
+    id: lesson.id,
   });
 
   const style = {
@@ -122,7 +124,7 @@ export function SortableLessonItem({
     saveTitle,
     startEditingTitle,
     pathPrefix,
-  } = useLessonTitleEditor({ lesson, isGhost, dispatch });
+  } = useLessonTitleEditor({ lesson, isGhost, submitEvent });
 
   const currentIcon = (lesson.icon ?? "watch") as
     | "watch"
@@ -137,22 +139,22 @@ export function SortableLessonItem({
         : currentIcon === "code"
           ? "discussion"
           : "watch";
-    dispatch({
+    submitEvent({
       type: "update-lesson-icon",
-      frontendId: lesson.id,
+      lessonId: lesson.id,
       icon: nextIcon,
-    } as any);
-  }, [currentIcon, lesson.id, dispatch]);
+    });
+  }, [currentIcon, lesson.id, submitEvent]);
 
   const handlePriorityCycle = useCallback(() => {
     const nextPriority =
       currentPriority === 2 ? 3 : currentPriority === 3 ? 1 : 2;
-    dispatch({
+    submitEvent({
       type: "update-lesson-priority",
-      frontendId: lesson.id,
+      lessonId: lesson.id,
       priority: nextPriority,
-    } as any);
-  }, [currentPriority, lesson.id, dispatch]);
+    });
+  }, [currentPriority, lesson.id, submitEvent]);
 
   // Dependency violation checking
   const lessonDeps = lesson.dependencies ?? [];
@@ -185,27 +187,27 @@ export function SortableLessonItem({
 
   const handleDependenciesChange = useCallback(
     (newDeps: string[]) => {
-      dispatch({
+      submitEvent({
         type: "update-lesson-dependencies",
-        frontendId: lesson.id,
+        lessonId: lesson.id,
         dependencies: newDeps,
-      } as any);
+      });
     },
-    [lesson.id, dispatch]
+    [lesson.id, submitEvent]
   );
 
   const saveDescription = useCallback(
     (value: string) => {
       setEditingDesc(false);
       if (value !== currentDescription) {
-        dispatch({
+        submitEvent({
           type: "update-lesson-description",
-          frontendId: lesson.id,
+          lessonId: lesson.id,
           description: value,
-        } as any);
+        });
       }
     },
-    [currentDescription, lesson.id, dispatch]
+    [currentDescription, lesson.id, submitEvent]
   );
 
   return (
@@ -380,10 +382,10 @@ export function SortableLessonItem({
                             lessonId: lesson.id,
                           });
                         } else {
-                          dispatch({
+                          submitEvent({
                             type: "create-on-disk",
-                            frontendId: lesson.id,
-                          } as any);
+                            lessonId: lesson.id,
+                          });
                         }
                       }}
                     >
@@ -402,7 +404,7 @@ export function SortableLessonItem({
                       onSelect={() =>
                         dispatch({
                           type: "set-add-video-to-lesson-id",
-                          lessonId: getLessonDndId(lesson),
+                          lessonId: lesson.id,
                         })
                       }
                     >
@@ -467,11 +469,11 @@ export function SortableLessonItem({
                         <ContextMenuItem
                           key={targetSection.id}
                           onSelect={() =>
-                            dispatch({
+                            submitEvent({
                               type: "move-lesson-to-section",
-                              lessonFrontendId: lesson.id,
-                              targetSectionFrontendId: targetSection.id,
-                            } as any)
+                              lessonId: lesson.id,
+                              targetSectionId: targetSection.id,
+                            })
                           }
                         >
                           {targetSection.path}
@@ -489,10 +491,10 @@ export function SortableLessonItem({
                   variant="destructive"
                   onSelect={() => {
                     if (isGhost) {
-                      dispatch({
+                      submitEvent({
                         type: "delete-lesson",
-                        frontendId: lesson.id,
-                      } as any);
+                        lessonId: lesson.id,
+                      });
                     } else {
                       dispatch({
                         type: "set-delete-lesson-id",
@@ -509,19 +511,16 @@ export function SortableLessonItem({
           </ContextMenuContent>
         </ContextMenu>
         <AddVideoModal
-          lessonId={
-            (lesson as unknown as { databaseId: string | null }).databaseId ??
-            undefined
-          }
+          lessonId={lesson.id}
           videoCount={lesson.videos.length}
           hasExplainerFolder={
             lessonFsMaps.hasExplainerFolderMap[lesson.id] ?? false
           }
-          open={addVideoToLessonId === getLessonDndId(lesson)}
+          open={addVideoToLessonId === lesson.id}
           onOpenChange={(open) => {
             dispatch({
               type: "set-add-video-to-lesson-id",
-              lessonId: open ? getLessonDndId(lesson) : null,
+              lessonId: open ? lesson.id : null,
             });
           }}
         />
@@ -538,10 +537,10 @@ export function SortableLessonItem({
               });
             }}
             onDelete={() => {
-              dispatch({
+              submitEvent({
                 type: "delete-lesson",
-                frontendId: lesson.id,
-              } as any);
+                lessonId: lesson.id,
+              });
             }}
           />
         )}
@@ -559,10 +558,10 @@ export function SortableLessonItem({
               });
             }}
             onConvert={() => {
-              dispatch({
+              submitEvent({
                 type: "convert-to-ghost",
-                frontendId: lesson.id,
-              } as any);
+                lessonId: lesson.id,
+              });
             }}
           />
         )}
@@ -590,11 +589,11 @@ export function SortableLessonItem({
             });
           }}
           onCreateOnDisk={(repoPath) => {
-            dispatch({
+            submitEvent({
               type: "create-on-disk",
-              frontendId: lesson.id,
+              lessonId: lesson.id,
               repoPath,
-            } as any);
+            });
           }}
         />
       </div>

@@ -23,6 +23,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Console, Effect } from "effect";
 import { GripVertical, Loader2, Plus, Trash2, VideoIcon } from "lucide-react";
+import { buildQueueTreeLines } from "./videos.concatenate.queue-tree";
 import { useState, useCallback } from "react";
 import { data, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/videos.concatenate";
@@ -36,6 +37,7 @@ interface VideoItem {
   path: string;
   duration: number;
   contextPath?: string;
+  contextParts?: string[];
 }
 
 interface CourseVideoSection {
@@ -91,6 +93,7 @@ export const loader = async () => {
             path: v.path,
             duration: computeDuration(v.clips),
             contextPath: `${course.name} / ${section.path} / ${lesson.path}`,
+            contextParts: [course.name, section.path, lesson.path],
           }));
           if (lessonVideos.length > 0) {
             lessons.push({
@@ -133,6 +136,7 @@ interface QueueItem {
   path: string;
   duration: number;
   contextPath?: string;
+  contextParts?: string[];
 }
 
 function SortableQueueItem({
@@ -157,33 +161,53 @@ function SortableQueueItem({
     opacity: isDragging ? 0.5 : undefined,
   };
 
+  const treeLines = buildQueueTreeLines(item.contextParts, item.path);
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-background"
+      className="flex items-start gap-2 border rounded-lg px-3 py-2 bg-background"
     >
       <button
-        className="cursor-grab text-muted-foreground hover:text-foreground"
+        className="cursor-grab text-muted-foreground hover:text-foreground mt-0.5"
         {...attributes}
         {...listeners}
       >
         <GripVertical className="w-4 h-4" />
       </button>
       <div className="flex-1 min-w-0">
-        {item.contextPath && (
-          <span className="text-xs text-muted-foreground break-all">
-            {item.contextPath}
-          </span>
-        )}
-        <span className="text-sm font-medium break-all">{item.path}</span>
-        <span className="text-xs text-muted-foreground">
-          {formatSecondsToTimeCode(item.duration)}
-        </span>
+        {treeLines.map((line, i) => (
+          <div
+            key={i}
+            className="flex items-baseline gap-1"
+            style={{ paddingLeft: `${line.level * 12}px` }}
+          >
+            {line.level > 0 && (
+              <span className="text-muted-foreground text-xs select-none">
+                └
+              </span>
+            )}
+            {line.isVideo ? (
+              <div className="flex items-baseline gap-2 min-w-0">
+                <span className="text-sm font-medium break-all">
+                  {line.label}
+                </span>
+                <span className="text-xs text-muted-foreground flex-shrink-0">
+                  {formatSecondsToTimeCode(item.duration)}
+                </span>
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground break-all">
+                {line.label}
+              </span>
+            )}
+          </div>
+        ))}
       </div>
       <button
         onClick={onRemove}
-        className="text-muted-foreground hover:text-destructive"
+        className="text-muted-foreground hover:text-destructive mt-0.5"
       >
         <Trash2 className="w-4 h-4" />
       </button>

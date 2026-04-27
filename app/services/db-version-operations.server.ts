@@ -505,90 +505,57 @@ export const createVersionOperations = (db: DrizzleDB) => {
         db.query.courseVersions.findMany({
           where: eq(courseVersions.repoId, repoId),
           orderBy: desc(courseVersions.createdAt),
-        })
-      );
-
-      const versionsWithStructure: Array<{
-        id: string;
-        name: string;
-        description: string;
-        createdAt: Date;
-        sections: Array<{
-          id: string;
-          path: string;
-          previousVersionSectionId: string | null;
-          lessons: Array<{
-            id: string;
-            path: string;
-            previousVersionLessonId: string | null;
-            videos: Array<{
-              id: string;
-              path: string;
-              clips: Array<{
-                id: string;
-                text: string;
-              }>;
-            }>;
-          }>;
-        }>;
-      }> = [];
-
-      for (const version of versions) {
-        const versionSections = yield* makeDbCall(() =>
-          db.query.sections.findMany({
-            where: and(
-              eq(sections.repoVersionId, version.id),
-              isNull(sections.archivedAt)
-            ),
-            orderBy: asc(sections.order),
-            with: {
-              lessons: {
-                orderBy: asc(lessons.order),
-                with: {
-                  videos: {
-                    orderBy: asc(videos.path),
-                    with: {
-                      clips: {
-                        orderBy: asc(clips.order),
-                        where: eq(clips.archived, false),
+          with: {
+            sections: {
+              where: isNull(sections.archivedAt),
+              orderBy: asc(sections.order),
+              with: {
+                lessons: {
+                  orderBy: asc(lessons.order),
+                  with: {
+                    videos: {
+                      orderBy: asc(videos.path),
+                      with: {
+                        clips: {
+                          orderBy: asc(clips.order),
+                          where: eq(clips.archived, false),
+                        },
                       },
                     },
                   },
                 },
               },
             },
-          })
-        );
+          },
+        })
+      );
 
-        versionsWithStructure.push({
-          id: version.id,
-          name: version.name,
-          description: version.description,
-          createdAt: version.createdAt,
-          sections: versionSections.map((s) => ({
-            id: s.id,
-            path: s.path,
-            previousVersionSectionId: s.previousVersionSectionId,
-            lessons: s.lessons
-              .filter((l) => l.fsStatus !== "ghost")
-              .map((l) => ({
-                id: l.id,
-                path: l.path,
-                previousVersionLessonId: l.previousVersionLessonId,
-                videos: l.videos.map((v) => ({
-                  id: v.id,
-                  path: v.path,
-                  clips: v.clips.map((c) => ({
-                    id: c.id,
-                    text: c.text,
-                  })),
+      return versions.map((version) => ({
+        id: version.id,
+        name: version.name,
+        description: version.description,
+        createdAt: version.createdAt,
+        sections: version.sections.map((s) => ({
+          id: s.id,
+          path: s.path,
+          previousVersionSectionId: s.previousVersionSectionId,
+          lessons: s.lessons
+            .filter((l) => l.fsStatus !== "ghost")
+            .map((l) => ({
+              id: l.id,
+              path: l.path,
+              previousVersionLessonId: l.previousVersionLessonId,
+              videos: l.videos.map((v) => ({
+                id: v.id,
+                path: v.path,
+                clips: v.clips.map((c) => ({
+                  id: c.id,
+                  text: c.text,
                 })),
               })),
-          })),
-        });
-      }
-
-      return versionsWithStructure;
+            })),
+        })),
+      }));
     }
   );
 

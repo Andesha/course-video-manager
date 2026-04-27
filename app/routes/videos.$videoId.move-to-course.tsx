@@ -23,6 +23,7 @@ import path from "node:path";
 import { useState } from "react";
 import { data, redirect, Form, useNavigation } from "react-router";
 import type { Route } from "./+types/videos.$videoId.move-to-course";
+import { buildMoveToCourseRedirectUrl } from "./move-to-course-redirect";
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: "CVM - Move Video to Course" }];
@@ -116,6 +117,7 @@ export const action = async (args: Route.ActionArgs) => {
       yield* Schema.decodeUnknown(moveToCourseSchema)(formDataObject);
 
     let targetLessonId: string;
+    let targetCourseId: string;
     let lessonDirPath: string;
 
     if (lessonId && lessonId !== "new") {
@@ -124,6 +126,7 @@ export const action = async (args: Route.ActionArgs) => {
       const repo = lesson.section.repoVersion.repo;
       const section = lesson.section;
       targetLessonId = lesson.id;
+      targetCourseId = section.repoVersion.repoId;
       lessonDirPath = path.join(repo.filePath!, section.path, lesson.path);
     } else {
       // Create a new real lesson at end of section
@@ -151,6 +154,7 @@ export const action = async (args: Route.ActionArgs) => {
       }
 
       targetLessonId = newLesson.id;
+      targetCourseId = section.repoVersion.repoId;
       lessonDirPath = path.join(repo.filePath!, section.path, lessonDirName);
     }
 
@@ -199,7 +203,12 @@ export const action = async (args: Route.ActionArgs) => {
     // Update video's lessonId in the database
     yield* db.updateVideoLesson({ videoId, lessonId: targetLessonId });
 
-    return redirect("/videos");
+    return redirect(
+      buildMoveToCourseRedirectUrl({
+        courseId: targetCourseId,
+        lessonId: targetLessonId,
+      })
+    );
   }).pipe(
     withDatabaseDump,
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),

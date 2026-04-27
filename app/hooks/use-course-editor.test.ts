@@ -232,6 +232,42 @@ describe("editorSectionsToLoaderSections", () => {
     const result = editorSectionsToLoaderSections([]);
     expect(result).toEqual([]);
   });
+
+  it("should expose databaseId on lesson for add-video guard (null before reconciliation)", () => {
+    const section = createEditorSection({
+      lessons: [
+        createEditorLesson({
+          frontendId: fid("optimistic-uuid"),
+          databaseId: null as unknown as DatabaseId,
+        }),
+      ],
+    });
+
+    const result = editorSectionsToLoaderSections([section]);
+    const lesson = result[0]!.lessons[0]! as unknown as {
+      databaseId: string | null;
+    };
+
+    expect(lesson.databaseId).toBeNull();
+  });
+
+  it("should expose databaseId on lesson after reconciliation", () => {
+    const section = createEditorSection({
+      lessons: [
+        createEditorLesson({
+          frontendId: fid("optimistic-uuid"),
+          databaseId: did("db-real-id"),
+        }),
+      ],
+    });
+
+    const result = editorSectionsToLoaderSections([section]);
+    const lesson = result[0]!.lessons[0]! as unknown as {
+      databaseId: string | null;
+    };
+
+    expect(lesson.databaseId).toBe("db-real-id");
+  });
 });
 
 describe("useCourseEditor integration (reducer + queue)", () => {

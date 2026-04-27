@@ -402,7 +402,7 @@ export function SortableLessonItem({
                       onSelect={() =>
                         dispatch({
                           type: "set-add-video-to-lesson-id",
-                          lessonId: lesson.id,
+                          lessonId: getLessonDndId(lesson),
                         })
                       }
                     >
@@ -509,16 +509,19 @@ export function SortableLessonItem({
           </ContextMenuContent>
         </ContextMenu>
         <AddVideoModal
-          lessonId={lesson.id}
+          lessonId={
+            (lesson as unknown as { databaseId: string | null }).databaseId ??
+            undefined
+          }
           videoCount={lesson.videos.length}
           hasExplainerFolder={
             lessonFsMaps.hasExplainerFolderMap[lesson.id] ?? false
           }
-          open={addVideoToLessonId === lesson.id}
+          open={addVideoToLessonId === getLessonDndId(lesson)}
           onOpenChange={(open) => {
             dispatch({
               type: "set-add-video-to-lesson-id",
-              lessonId: open ? lesson.id : null,
+              lessonId: open ? getLessonDndId(lesson) : null,
             });
           }}
         />

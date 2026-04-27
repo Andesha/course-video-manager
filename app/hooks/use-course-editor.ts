@@ -79,6 +79,7 @@ export function editorSectionsToLoaderSections(
         lessons: s.lessons.map((l) => ({
           id: (l.databaseId ?? l.frontendId) as string,
           frontendId: l.frontendId as string,
+          databaseId: (l.databaseId as string) ?? null,
           path: l.path,
           title: l.title,
           fsStatus: l.fsStatus,

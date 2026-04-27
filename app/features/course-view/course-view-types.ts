@@ -6,7 +6,3 @@ export type Section = NonNullable<
 >["sections"][number];
 export type Lesson = Section["lessons"][number];
 export type Video = Lesson["videos"][number];
-
-export function getLessonDndId(lesson: Lesson): string {
-  return lesson.id;
-}

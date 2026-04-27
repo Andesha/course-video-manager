@@ -23,14 +23,14 @@ function makeDragEndEvent(activeId: string, overId: string): DragEndEvent {
 }
 
 describe("createLessonDragHandler", () => {
-  it("reorders when active/over IDs are databaseIds (pre-existing lessons)", () => {
+  it("reorders lessons and submits the new order", () => {
     const submitEvent = vi.fn();
     const handler = createLessonDragHandler(submitEvent);
 
     const lessons = [
-      { id: "db-1", frontendId: "db-1", path: "first", title: "First" },
-      { id: "db-2", frontendId: "db-2", path: "second", title: "Second" },
-      { id: "db-3", frontendId: "db-3", path: "third", title: "Third" },
+      { id: "db-1", path: "first", title: "First" },
+      { id: "db-2", path: "second", title: "Second" },
+      { id: "db-3", path: "third", title: "Third" },
     ];
 
     const dragEnd = handler("section-1", lessons);
@@ -44,40 +44,19 @@ describe("createLessonDragHandler", () => {
     );
   });
 
-  it("reorders when active/over IDs are frontendIds (reconciled lessons)", () => {
+  it("submits correct new lesson order after drag", () => {
     const submitEvent = vi.fn();
     const handler = createLessonDragHandler(submitEvent);
 
     const lessons = [
-      { id: "db-1", frontendId: "fe-1", path: "first", title: "First" },
-      { id: "db-2", frontendId: "fe-2", path: "second", title: "Second" },
-      { id: "db-3", frontendId: "fe-3", path: "third", title: "Third" },
+      { id: "db-1", path: "first", title: "First" },
+      { id: "db-2", path: "second", title: "Second" },
+      { id: "db-3", path: "third", title: "Third" },
     ];
 
+    // Drag "db-1" to position of "db-3" → results in [second, third, first]
     const dragEnd = handler("section-1", lessons);
-    dragEnd(makeDragEndEvent("fe-1", "fe-3"));
-
-    expect(submitEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "reorder-lessons",
-        sectionId: "section-1",
-      })
-    );
-  });
-
-  it("submits correct new lesson order when using frontendIds as drag IDs", () => {
-    const submitEvent = vi.fn();
-    const handler = createLessonDragHandler(submitEvent);
-
-    const lessons = [
-      { id: "db-1", frontendId: "fe-1", path: "first", title: "First" },
-      { id: "db-2", frontendId: "fe-2", path: "second", title: "Second" },
-      { id: "db-3", frontendId: "fe-3", path: "third", title: "Third" },
-    ];
-
-    // Drag "fe-1" to position of "fe-3" → results in [second, third, first]
-    const dragEnd = handler("section-1", lessons);
-    dragEnd(makeDragEndEvent("fe-1", "fe-3"));
+    dragEnd(makeDragEndEvent("db-1", "db-3"));
 
     const event = submitEvent.mock.calls[0]![0] as CourseEditorEvent & {
       type: "reorder-lessons";
@@ -90,12 +69,10 @@ describe("createLessonDragHandler", () => {
   it("returns without submitting when active and over are the same", () => {
     const submitEvent = vi.fn();
     const handler = createLessonDragHandler(submitEvent);
-    const lessons = [
-      { id: "db-1", frontendId: "fe-1", path: "first", title: "First" },
-    ];
+    const lessons = [{ id: "db-1", path: "first", title: "First" }];
 
     const dragEnd = handler("section-1", lessons);
-    dragEnd(makeDragEndEvent("fe-1", "fe-1"));
+    dragEnd(makeDragEndEvent("db-1", "db-1"));
 
     expect(submitEvent).not.toHaveBeenCalled();
   });
@@ -103,13 +80,11 @@ describe("createLessonDragHandler", () => {
   it("returns without submitting when over is null", () => {
     const submitEvent = vi.fn();
     const handler = createLessonDragHandler(submitEvent);
-    const lessons = [
-      { id: "db-1", frontendId: "fe-1", path: "first", title: "First" },
-    ];
+    const lessons = [{ id: "db-1", path: "first", title: "First" }];
 
     const dragEnd = handler("section-1", lessons);
     dragEnd({
-      active: { id: "fe-1" },
+      active: { id: "db-1" },
       over: null,
       activatorEvent: {} as Event,
       collisions: null,
@@ -123,12 +98,12 @@ describe("createLessonDragHandler", () => {
     const submitEvent = vi.fn();
     const handler = createLessonDragHandler(submitEvent);
     const lessons = [
-      { id: "db-1", frontendId: "fe-1", path: "first", title: "First" },
-      { id: "db-2", frontendId: "fe-2", path: "second", title: "Second" },
+      { id: "db-1", path: "first", title: "First" },
+      { id: "db-2", path: "second", title: "Second" },
     ];
 
     const dragEnd = handler("section-1", lessons);
-    dragEnd(makeDragEndEvent("nonexistent", "fe-2"));
+    dragEnd(makeDragEndEvent("nonexistent", "db-2"));
 
     expect(submitEvent).not.toHaveBeenCalled();
   });
@@ -136,33 +111,12 @@ describe("createLessonDragHandler", () => {
   it("returns without submitting when over ID is not found", () => {
     const submitEvent = vi.fn();
     const handler = createLessonDragHandler(submitEvent);
-    const lessons = [
-      { id: "db-1", frontendId: "fe-1", path: "first", title: "First" },
-    ];
+    const lessons = [{ id: "db-1", path: "first", title: "First" }];
 
     const dragEnd = handler("section-1", lessons);
-    dragEnd(makeDragEndEvent("fe-1", "nonexistent"));
+    dragEnd(makeDragEndEvent("db-1", "nonexistent"));
 
     expect(submitEvent).not.toHaveBeenCalled();
-  });
-
-  it("falls back to id when frontendId is omitted", () => {
-    const submitEvent = vi.fn();
-    const handler = createLessonDragHandler(submitEvent);
-    const lessons = [
-      { id: "db-1", path: "first", title: "First" },
-      { id: "db-2", path: "second", title: "Second" },
-    ];
-
-    const dragEnd = handler("section-1", lessons);
-    dragEnd(makeDragEndEvent("db-1", "db-2"));
-
-    expect(submitEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "reorder-lessons",
-        lessonIds: ["db-2", "db-1"],
-      })
-    );
   });
 
   it("returns without submitting on empty lessons array", () => {
@@ -170,8 +124,47 @@ describe("createLessonDragHandler", () => {
     const handler = createLessonDragHandler(submitEvent);
 
     const dragEnd = handler("section-1", []);
-    dragEnd(makeDragEndEvent("fe-1", "fe-2"));
+    dragEnd(makeDragEndEvent("db-1", "db-2"));
 
     expect(submitEvent).not.toHaveBeenCalled();
+  });
+
+  it("handles two-element reorder correctly", () => {
+    const submitEvent = vi.fn();
+    const handler = createLessonDragHandler(submitEvent);
+
+    const lessons = [
+      { id: "a", path: "first", title: "First" },
+      { id: "b", path: "second", title: "Second" },
+    ];
+
+    const dragEnd = handler("section-1", lessons);
+    dragEnd(makeDragEndEvent("a", "b"));
+
+    const event = submitEvent.mock.calls[0]![0] as CourseEditorEvent & {
+      type: "reorder-lessons";
+      lessonIds: string[];
+    };
+    expect(event.lessonIds).toEqual(["b", "a"]);
+  });
+
+  it("handles dragging last element to first position", () => {
+    const submitEvent = vi.fn();
+    const handler = createLessonDragHandler(submitEvent);
+
+    const lessons = [
+      { id: "a", path: "first", title: "First" },
+      { id: "b", path: "second", title: "Second" },
+      { id: "c", path: "third", title: "Third" },
+    ];
+
+    const dragEnd = handler("section-1", lessons);
+    dragEnd(makeDragEndEvent("c", "a"));
+
+    const event = submitEvent.mock.calls[0]![0] as CourseEditorEvent & {
+      type: "reorder-lessons";
+      lessonIds: string[];
+    };
+    expect(event.lessonIds).toEqual(["c", "a", "b"]);
   });
 });

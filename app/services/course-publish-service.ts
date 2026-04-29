@@ -63,6 +63,10 @@ const toExportClips = (
     order: c.order,
   }));
 
+export class ExportError extends Data.TaggedError("ExportError")<{
+  message: string;
+}> {}
+
 export class CoursePublishService extends Effect.Service<CoursePublishService>()(
   "CoursePublishService",
   {
@@ -107,15 +111,15 @@ export class CoursePublishService extends Effect.Service<CoursePublishService>()
         onStage?: (stage: "concatenating-clips" | "normalizing-audio") => void
       ) {
         const video = yield* db.getVideoWithClipsById(videoId);
-        const courseId = video.lesson?.section.repoVersion.repo.id;
-        if (!courseId) {
-          return yield* Effect.die(new Error("Video is not part of a course"));
-        }
+        const courseId =
+          video.lesson?.section.repoVersion.repo.id ?? "standalone";
 
         const exportClips = toExportClips(video.clips);
         const hash = computeExportHash(exportClips);
         if (!hash) {
-          return yield* Effect.die(new Error("Video has no clips"));
+          return yield* Effect.fail(
+            new ExportError({ message: "Video has no clips to export" })
+          );
         }
 
         const targetPath = resolveExportPathPure(

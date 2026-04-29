@@ -13,6 +13,12 @@ const PRIORITY_STYLES = {
   3: "bg-sky-500/20 text-sky-500",
 } as const;
 
+const PRIORITY_DOT_COLORS = {
+  1: "bg-red-500",
+  2: "bg-yellow-500",
+  3: "bg-sky-500",
+} as const;
+
 const PRIORITY_LABELS = {
   1: "P1 — High",
   2: "P2 — Medium",
@@ -64,11 +70,7 @@ export function PrioritySelector({
             <span
               className={cn(
                 "inline-block w-2 h-2 rounded-full mr-1",
-                p === 1
-                  ? "bg-red-500"
-                  : p === 2
-                    ? "bg-yellow-500"
-                    : "bg-sky-500"
+                PRIORITY_DOT_COLORS[p]
               )}
             />
             {PRIORITY_LABELS[p]}

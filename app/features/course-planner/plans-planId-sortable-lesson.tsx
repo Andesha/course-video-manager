@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Lesson, LessonPriority } from "@/features/course-planner/types";
+import type { Lesson } from "@/features/course-planner/types";
 import type { planStateReducer } from "@/features/course-planner/plan-state-reducer";
 import type { FlattenedLesson } from "./plans-planId-utils";
 import {
@@ -196,7 +196,7 @@ export function SortableLesson({
                   />
                   {/* Priority selector */}
                   <PrioritySelector
-                    priority={(lesson.priority ?? 2) as LessonPriority}
+                    priority={lesson.priority ?? 2}
                     onSelect={(priority) =>
                       dispatch({
                         type: "lesson-priority-set",

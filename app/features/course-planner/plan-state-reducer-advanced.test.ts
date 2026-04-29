@@ -239,17 +239,19 @@ describe("planStateReducer", () => {
         createInitialState(plan)
       );
 
-      // Pin some lessons by toggling priority
+      // Pin some lessons by setting priority
       const stateWithPins = tester
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l1",
+          priority: 3,
         })
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l2",
+          priority: 1,
         })
         .getState();
 

@@ -16,6 +16,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { PrioritySelector } from "@/components/priority-selector";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -146,15 +147,16 @@ export function SortableLessonItem({
     });
   }, [currentIcon, lesson.id, submitEvent]);
 
-  const handlePriorityCycle = useCallback(() => {
-    const nextPriority =
-      currentPriority === 2 ? 3 : currentPriority === 3 ? 1 : 2;
-    submitEvent({
-      type: "update-lesson-priority",
-      lessonId: lesson.id,
-      priority: nextPriority,
-    });
-  }, [currentPriority, lesson.id, submitEvent]);
+  const handlePrioritySelect = useCallback(
+    (priority: 1 | 2 | 3) => {
+      submitEvent({
+        type: "update-lesson-priority",
+        lessonId: lesson.id,
+        priority,
+      });
+    },
+    [lesson.id, submitEvent]
+  );
 
   // Dependency violation checking
   const lessonDeps = lesson.dependencies ?? [];
@@ -287,27 +289,11 @@ export function SortableLessonItem({
                     <Ghost className="w-3 h-3" />
                   </span>
                 )}
-                <button
-                  className={cn(
-                    "flex-shrink-0 text-xs px-2 py-0.5 rounded-sm font-medium",
-                    currentPriority === 1
-                      ? "bg-red-500/20 text-red-600"
-                      : currentPriority === 3
-                        ? "bg-sky-500/20 text-sky-500"
-                        : "bg-yellow-500/20 text-yellow-600"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isReadOnly) handlePriorityCycle();
-                  }}
-                  title={
-                    isReadOnly
-                      ? `P${currentPriority}`
-                      : "Click to toggle priority (P2 → P3 → P1 → P2)"
-                  }
-                >
-                  P{currentPriority}
-                </button>
+                <PrioritySelector
+                  priority={currentPriority}
+                  onSelect={handlePrioritySelect}
+                  readOnly={isReadOnly}
+                />
                 <DependencySelector
                   lessonId={lesson.id}
                   dependencies={lessonDeps}

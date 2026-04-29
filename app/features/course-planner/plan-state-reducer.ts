@@ -9,7 +9,6 @@ import {
   generateId,
   getTimestamp,
   capitalizeTitle,
-  getNextPriority,
   handleSectionReordered,
   handleLessonReordered,
 } from "./plan-state-reducer.helpers";
@@ -544,7 +543,7 @@ export const planStateReducer: EffectReducer<
     }
 
     // Lesson Priority
-    case "lesson-priority-toggled": {
+    case "lesson-priority-set": {
       const updatedPlan: Plan = {
         ...state.plan,
         sections: state.plan.sections.map((section) =>
@@ -555,7 +554,7 @@ export const planStateReducer: EffectReducer<
                   lesson.id === action.lessonId
                     ? {
                         ...lesson,
-                        priority: getNextPriority(lesson.priority),
+                        priority: action.priority,
                       }
                     : lesson
                 ),

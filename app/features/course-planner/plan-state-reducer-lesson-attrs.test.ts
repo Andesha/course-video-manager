@@ -51,14 +51,14 @@ describe("planStateReducer", () => {
   });
 
   describe("Lesson Priority", () => {
-    it("lesson-priority-toggled: cycle from P2 (default) to P3 + emit plan-changed", () => {
+    it("lesson-priority-set: sets priority to P1 + emit plan-changed", () => {
       const plan = createTestPlan({
         sections: [
           {
             id: "s1",
             title: "Section 1",
             order: 0,
-            lessons: [{ id: "l1", title: "Lesson 1", order: 0 }], // no priority = P2
+            lessons: [{ id: "l1", title: "Lesson 1", order: 0 }],
           },
         ],
       });
@@ -69,19 +69,20 @@ describe("planStateReducer", () => {
 
       const state = tester
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l1",
+          priority: 1,
         })
         .getState();
 
-      expect(state.plan.sections[0]?.lessons[0]?.priority).toBe(3);
+      expect(state.plan.sections[0]?.lessons[0]?.priority).toBe(1);
       expect(tester.getExec()).toHaveBeenCalledWith(
         expect.objectContaining({ type: "plan-changed" })
       );
     });
 
-    it("lesson-priority-toggled: cycle from P3 to P1 + emit plan-changed", () => {
+    it("lesson-priority-set: sets priority to P2 + emit plan-changed", () => {
       const plan = createTestPlan({
         sections: [
           {
@@ -99,39 +100,10 @@ describe("planStateReducer", () => {
 
       const state = tester
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l1",
-        })
-        .getState();
-
-      expect(state.plan.sections[0]?.lessons[0]?.priority).toBe(1);
-      expect(tester.getExec()).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "plan-changed" })
-      );
-    });
-
-    it("lesson-priority-toggled: cycle from P1 to P2 + emit plan-changed", () => {
-      const plan = createTestPlan({
-        sections: [
-          {
-            id: "s1",
-            title: "Section 1",
-            order: 0,
-            lessons: [{ id: "l1", title: "Lesson 1", order: 0, priority: 1 }],
-          },
-        ],
-      });
-      const tester = new ReducerTester(
-        planStateReducer,
-        createInitialState(plan)
-      );
-
-      const state = tester
-        .send({
-          type: "lesson-priority-toggled",
-          sectionId: "s1",
-          lessonId: "l1",
+          priority: 2,
         })
         .getState();
 
@@ -141,14 +113,14 @@ describe("planStateReducer", () => {
       );
     });
 
-    it("lesson-priority-toggled: explicit P2 cycles to P3", () => {
+    it("lesson-priority-set: sets priority to P3 + emit plan-changed", () => {
       const plan = createTestPlan({
         sections: [
           {
             id: "s1",
             title: "Section 1",
             order: 0,
-            lessons: [{ id: "l1", title: "Lesson 1", order: 0, priority: 2 }],
+            lessons: [{ id: "l1", title: "Lesson 1", order: 0, priority: 1 }],
           },
         ],
       });
@@ -159,9 +131,10 @@ describe("planStateReducer", () => {
 
       const state = tester
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l1",
+          priority: 3,
         })
         .getState();
 
@@ -171,7 +144,7 @@ describe("planStateReducer", () => {
       );
     });
 
-    it("lesson-priority-toggled: pins the lesson to prevent filter removal", () => {
+    it("lesson-priority-set: pins the lesson to prevent filter removal", () => {
       const plan = createTestPlan({
         sections: [
           {
@@ -189,16 +162,17 @@ describe("planStateReducer", () => {
 
       const state = tester
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l1",
+          priority: 3,
         })
         .getState();
 
       expect(state.pinnedLessonIds).toContain("l1");
     });
 
-    it("lesson-priority-toggled: does not duplicate pinned lesson on multiple toggles", () => {
+    it("lesson-priority-set: does not duplicate pinned lesson on multiple sets", () => {
       const plan = createTestPlan({
         sections: [
           {
@@ -216,19 +190,22 @@ describe("planStateReducer", () => {
 
       const state = tester
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l1",
+          priority: 2,
         })
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l1",
+          priority: 3,
         })
         .send({
-          type: "lesson-priority-toggled",
+          type: "lesson-priority-set",
           sectionId: "s1",
           lessonId: "l1",
+          priority: 1,
         })
         .getState();
 

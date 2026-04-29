@@ -1,4 +1,4 @@
-import type { Lesson, LessonPriority, Plan, Section } from "./types";
+import type { Lesson, Plan, Section } from "./types";
 import type {
   PlanReducerState,
   PlanReducerEffect,
@@ -20,15 +20,6 @@ export function capitalizeTitle(title: string): string {
       return firstChar ? firstChar.toUpperCase() + word.slice(1) : word;
     })
     .join(" ");
-}
-
-export function getNextPriority(
-  current: LessonPriority | undefined
-): LessonPriority {
-  // Cycle: P2 (default) -> P3 -> P1 -> P2
-  if (current === undefined || current === 2) return 3;
-  if (current === 3) return 1;
-  return 2; // current === 1
 }
 
 export function handleSectionReordered(

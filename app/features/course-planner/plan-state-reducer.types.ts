@@ -81,9 +81,10 @@ export type PlanReducerAction =
     }
   // Lesson Priority
   | {
-      type: "lesson-priority-toggled";
+      type: "lesson-priority-set";
       sectionId: string;
       lessonId: string;
+      priority: LessonPriority;
     }
   // Lesson Dependencies (27)
   | {

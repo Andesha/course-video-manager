@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { DependencySelector } from "@/components/dependency-selector";
+import { PrioritySelector } from "@/components/priority-selector";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -193,26 +194,18 @@ export function SortableLesson({
                     lessonPriority={lesson.priority ?? 2}
                     dependencyMap={dependencyMap}
                   />
-                  {/* Priority pill */}
-                  <button
-                    className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-sm font-medium ${
-                      lesson.priority === 1
-                        ? "bg-red-500/20 text-red-600"
-                        : lesson.priority === 3
-                          ? "bg-sky-500/20 text-sky-500"
-                          : "bg-yellow-500/20 text-yellow-600"
-                    }`}
-                    onClick={() =>
+                  {/* Priority selector */}
+                  <PrioritySelector
+                    priority={lesson.priority ?? 2}
+                    onSelect={(priority) =>
                       dispatch({
-                        type: "lesson-priority-toggled",
+                        type: "lesson-priority-set",
                         sectionId,
                         lessonId: lesson.id,
+                        priority,
                       })
                     }
-                    title="Click to toggle priority (P2 → P3 → P1 → P2)"
-                  >
-                    P{lesson.priority ?? 2}
-                  </button>
+                  />
                   {/* Status pill */}
                   <button
                     className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-sm font-medium flex items-center gap-1 ${

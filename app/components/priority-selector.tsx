@@ -1,0 +1,82 @@
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import type { LessonPriority } from "@/features/course-planner/types";
+
+const PRIORITY_STYLES = {
+  1: "bg-red-500/20 text-red-600",
+  2: "bg-yellow-500/20 text-yellow-600",
+  3: "bg-sky-500/20 text-sky-500",
+} as const;
+
+const PRIORITY_DOT_COLORS = {
+  1: "bg-red-500",
+  2: "bg-yellow-500",
+  3: "bg-sky-500",
+} as const;
+
+const PRIORITY_LABELS = {
+  1: "P1 — High",
+  2: "P2 — Medium",
+  3: "P3 — Low",
+} as const;
+
+interface PrioritySelectorProps {
+  priority: LessonPriority;
+  onSelect: (priority: LessonPriority) => void;
+  readOnly?: boolean;
+}
+
+export function PrioritySelector({
+  priority,
+  onSelect,
+  readOnly,
+}: PrioritySelectorProps) {
+  const trigger = (
+    <button
+      className={cn(
+        "flex-shrink-0 text-xs px-2 py-0.5 rounded-sm font-medium",
+        PRIORITY_STYLES[priority]
+      )}
+      title={readOnly ? `P${priority}` : "Click to set priority"}
+    >
+      P{priority}
+    </button>
+  );
+
+  if (readOnly) {
+    return trigger;
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+        {trigger}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[120px]">
+        {([1, 2, 3] as const).map((p) => (
+          <DropdownMenuItem
+            key={p}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(p);
+            }}
+            className={cn("text-xs font-medium", priority === p && "bg-accent")}
+          >
+            <span
+              className={cn(
+                "inline-block w-2 h-2 rounded-full mr-1",
+                PRIORITY_DOT_COLORS[p]
+              )}
+            />
+            {PRIORITY_LABELS[p]}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

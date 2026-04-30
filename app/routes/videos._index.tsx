@@ -88,6 +88,7 @@ export default function Component(props: Route.ComponentProps) {
     plans,
   } = props.loaderData;
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
+  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState<{
     id: string;
     path: string;
@@ -110,6 +111,8 @@ export default function Component(props: Route.ComponentProps) {
         courses={courses}
         standaloneVideos={sidebarVideos}
         plans={plans}
+        isAddCourseModalOpen={isAddCourseModalOpen}
+        setIsAddCourseModalOpen={setIsAddCourseModalOpen}
         isAddStandaloneVideoModalOpen={isAddVideoOpen}
         setIsAddStandaloneVideoModalOpen={setIsAddVideoOpen}
       />

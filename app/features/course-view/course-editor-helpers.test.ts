@@ -267,4 +267,44 @@ describe("computeFsStatusCounts", () => {
     const counts = computeFsStatusCounts(sections, noFilters);
     expect(counts.todo).toBe(3);
   });
+
+  it("counts todo lessons as both real and todo", () => {
+    const sections = [makeSection([makeLesson({ authoringStatus: "todo" })])];
+    const counts = computeFsStatusCounts(sections, noFilters);
+    expect(counts.real).toBe(1);
+    expect(counts.todo).toBe(1);
+  });
+
+  it("returns all zeros for empty sections", () => {
+    const counts = computeFsStatusCounts([], noFilters);
+    expect(counts).toEqual({ ghost: 0, real: 0, todo: 0 });
+  });
+
+  it("excludes todo lessons that do not match priority filter", () => {
+    const sections = [
+      makeSection([
+        makeLesson({ id: "p1", authoringStatus: "todo", priority: 1 }),
+        makeLesson({ id: "p2", authoringStatus: "todo", priority: 2 }),
+      ]),
+    ];
+    const counts = computeFsStatusCounts(sections, {
+      ...noFilters,
+      priorityFilter: [1],
+    });
+    expect(counts.todo).toBe(1);
+  });
+
+  it("treats null fsStatus as real", () => {
+    const sections = [
+      makeSection([
+        makeLesson({
+          fsStatus: null as unknown as string,
+          authoringStatus: "todo",
+        }),
+      ]),
+    ];
+    const counts = computeFsStatusCounts(sections, noFilters);
+    expect(counts.real).toBe(1);
+    expect(counts.todo).toBe(1);
+  });
 });

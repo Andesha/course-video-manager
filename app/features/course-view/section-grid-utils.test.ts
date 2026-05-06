@@ -76,4 +76,46 @@ describe("filterLessons", () => {
     });
     expect(filteredLessons).toHaveLength(3);
   });
+
+  it("todo filter combined with priority filter excludes non-matching priorities", () => {
+    const lessons = [
+      makeLesson({ id: "p1", authoringStatus: "todo", priority: 1 }),
+      makeLesson({ id: "p2", authoringStatus: "todo", priority: 2 }),
+    ];
+    const { filteredLessons } = filterLessons(lessons, {
+      ...noFilters,
+      fsStatusFilter: "todo",
+      priorityFilter: [1],
+    });
+    expect(filteredLessons).toHaveLength(1);
+    expect(filteredLessons[0]!.id).toBe("p1");
+  });
+
+  it("treats null fsStatus as real for todo filter", () => {
+    const lessons = [
+      makeLesson({
+        fsStatus: null as unknown as string,
+        authoringStatus: "todo",
+      }),
+    ];
+    const { filteredLessons } = filterLessons(lessons, {
+      ...noFilters,
+      fsStatusFilter: "todo",
+    });
+    expect(filteredLessons).toHaveLength(1);
+  });
+
+  it("returns all lessons when no filters are active", () => {
+    const lessons = [
+      makeLesson({ id: "l1", authoringStatus: "todo" }),
+      makeLesson({ id: "l2", authoringStatus: "done" }),
+      makeLesson({ id: "l3", fsStatus: "ghost", authoringStatus: null }),
+    ];
+    const { filteredLessons, hasActiveFilters } = filterLessons(
+      lessons,
+      noFilters
+    );
+    expect(hasActiveFilters).toBe(false);
+    expect(filteredLessons).toHaveLength(3);
+  });
 });

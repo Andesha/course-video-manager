@@ -60,6 +60,12 @@ export function applyOptimisticEvent(
   switch (event.type) {
     case "update-lesson-icon":
       return applyUpdateLessonIcon(loaderData, event);
+    case "reorder-sections":
+      return applyReorderSections(loaderData, event);
+    case "reorder-lessons":
+      return applyReorderLessons(loaderData, event);
+    case "move-lesson-to-section":
+      return applyMoveLessonToSection(loaderData, event);
     default:
       return loaderData;
   }
@@ -88,6 +94,132 @@ function applyUpdateLessonIcon(
   });
 
   if (!found) return loaderData;
+
+  return {
+    ...loaderData,
+    selectedCourse: { ...course, sections },
+  };
+}
+
+function applyReorderSections(
+  loaderData: LoaderData,
+  event: Extract<CourseEditorEvent, { type: "reorder-sections" }>
+): LoaderData {
+  const course = loaderData.selectedCourse;
+  if (!course) return loaderData;
+
+  const { sectionIds } = event;
+  if (sectionIds.length === 0) return loaderData;
+
+  const sectionMap = new Map(course.sections.map((s) => [s.id, s]));
+  const ordered: typeof course.sections = [];
+
+  for (const id of sectionIds) {
+    const section = sectionMap.get(id);
+    if (section) {
+      ordered.push(section);
+      sectionMap.delete(id);
+    }
+  }
+
+  for (const section of sectionMap.values()) {
+    ordered.push(section);
+  }
+
+  if (ordered.every((s, i) => s === course.sections[i])) return loaderData;
+
+  return {
+    ...loaderData,
+    selectedCourse: { ...course, sections: ordered },
+  };
+}
+
+function applyReorderLessons(
+  loaderData: LoaderData,
+  event: Extract<CourseEditorEvent, { type: "reorder-lessons" }>
+): LoaderData {
+  const course = loaderData.selectedCourse;
+  if (!course) return loaderData;
+
+  const sectionIndex = course.sections.findIndex(
+    (s) => s.id === event.sectionId
+  );
+  if (sectionIndex === -1) return loaderData;
+
+  const section = course.sections[sectionIndex]!;
+  const { lessonIds } = event;
+
+  const lessonMap = new Map(section.lessons.map((l) => [l.id, l]));
+  const ordered: typeof section.lessons = [];
+
+  for (const id of lessonIds) {
+    const lesson = lessonMap.get(id);
+    if (lesson) {
+      ordered.push(lesson);
+      lessonMap.delete(id);
+    }
+  }
+
+  for (const lesson of lessonMap.values()) {
+    ordered.push(lesson);
+  }
+
+  if (ordered.every((l, i) => l === section.lessons[i])) return loaderData;
+
+  const sections = course.sections.map((s, i) =>
+    i === sectionIndex ? { ...s, lessons: ordered } : s
+  );
+
+  return {
+    ...loaderData,
+    selectedCourse: { ...course, sections },
+  };
+}
+
+function applyMoveLessonToSection(
+  loaderData: LoaderData,
+  event: Extract<CourseEditorEvent, { type: "move-lesson-to-section" }>
+): LoaderData {
+  const course = loaderData.selectedCourse;
+  if (!course) return loaderData;
+
+  const { lessonId, targetSectionId } = event;
+
+  let movedLesson: (typeof course.sections)[number]["lessons"][number] | null =
+    null;
+  let sourceIndex = -1;
+
+  for (let i = 0; i < course.sections.length; i++) {
+    const found = course.sections[i]!.lessons.find((l) => l.id === lessonId);
+    if (found) {
+      movedLesson = found;
+      sourceIndex = i;
+      break;
+    }
+  }
+
+  if (!movedLesson || sourceIndex === -1) return loaderData;
+
+  const targetIndex = course.sections.findIndex(
+    (s) => s.id === targetSectionId
+  );
+  if (targetIndex === -1) return loaderData;
+
+  const sections = course.sections.map((section, i) => {
+    if (i === sourceIndex && i === targetIndex) {
+      return section;
+    }
+    if (i === sourceIndex) {
+      return {
+        ...section,
+        lessons: section.lessons.filter((l) => l.id !== lessonId),
+      };
+    }
+    if (i === targetIndex) {
+      return { ...section, lessons: [...section.lessons, movedLesson] };
+    }
+    return section;
+  });
 
   return {
     ...loaderData,

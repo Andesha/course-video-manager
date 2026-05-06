@@ -32,6 +32,7 @@ export function filterLessons(
         return (lesson.fsStatus ?? "real") === "real";
       // "todo" filter
       if ((lesson.fsStatus ?? "real") !== "real") return false;
+      if (lesson.authoringStatus !== "todo") return false;
       if (lesson.videos.length === 0) return true;
       if (lesson.videos.every((v) => v.clipCount > 1)) return false;
       return lesson.videos.some((v) => v.clipCount === 0);

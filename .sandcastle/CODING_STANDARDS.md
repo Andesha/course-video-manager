@@ -14,6 +14,10 @@ Context menu items should always include a leading icon (from `lucide-react`), m
 
 ---
 
+Filters must stay in sync with the shape of the data they filter. When a new field is added to an entity that affects what something "is" (status, category, state), every filter, count, and badge that surfaces that concept must be updated to take the new field into account. Filters are part of the entity's definition, not a one-time UI feature — drift between them and the data shape produces silently-wrong results.
+
+---
+
 ## Testing
 
 ### Core Principle

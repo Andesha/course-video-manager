@@ -79,8 +79,8 @@ export const loader = async (args: Route.LoaderArgs) => {
     const db = yield* DBFunctionsService;
     const featureFlags = yield* FeatureFlagService;
 
-    const [courses, standaloneVideos, plans] = yield* Effect.all(
-      [db.getCourses(), db.getStandaloneVideosSidebar(), db.getPlans()],
+    const [courses, standaloneVideos] = yield* Effect.all(
+      [db.getCourses(), db.getStandaloneVideosSidebar()],
       { concurrency: "unbounded" }
     );
 
@@ -210,10 +210,8 @@ export const loader = async (args: Route.LoaderArgs) => {
       hasExportedVideoMap,
       lessonFsMaps,
       videoTranscripts,
-      plans,
       gitStatus,
       showMediaFilesList: featureFlags.isEnabled("ENABLE_MEDIA_FILES_LIST"),
-      showPlansSection: featureFlags.isEnabled("ENABLE_PLANS_SECTION"),
     };
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
@@ -360,8 +358,6 @@ function ComponentInner(props: Route.ComponentProps) {
         setIsAddStandaloneVideoModalOpen={(open) =>
           dispatch({ type: "set-add-standalone-video-modal-open", open })
         }
-        plans={loaderData.plans}
-        showPlansSection={loaderData.showPlansSection}
       />
 
       {/* Main Content Area */}

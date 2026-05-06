@@ -5,7 +5,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { LessonPriority } from "@/features/course-planner/types";
+import type { LessonPriority } from "@/features/ghost-lessons/ghost-lessons-reducer";
 
 const PRIORITY_STYLES = {
   1: "bg-red-500/20 text-red-600",

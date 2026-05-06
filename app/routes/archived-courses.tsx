@@ -19,22 +19,19 @@ export const meta: Route.MetaFunction = () => {
 export const loader = async (_args: Route.LoaderArgs) => {
   return Effect.gen(function* () {
     const db = yield* DBFunctionsService;
-    const [archivedCourses, courses, standaloneVideos, plans] =
-      yield* Effect.all(
-        [
-          db.getArchivedCourses(),
-          db.getCourses(),
-          db.getStandaloneVideosSidebar(),
-          db.getPlans(),
-        ],
-        { concurrency: "unbounded" }
-      );
+    const [archivedCourses, courses, standaloneVideos] = yield* Effect.all(
+      [
+        db.getArchivedCourses(),
+        db.getCourses(),
+        db.getStandaloneVideosSidebar(),
+      ],
+      { concurrency: "unbounded" }
+    );
 
     return {
       archivedCourses,
       courses,
       standaloneVideos,
-      plans,
     };
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
@@ -62,7 +59,6 @@ export default function ArchivedCourses(props: Route.ComponentProps) {
         setIsAddCourseModalOpen={setIsAddCourseModalOpen}
         isAddStandaloneVideoModalOpen={isAddStandaloneVideoModalOpen}
         setIsAddStandaloneVideoModalOpen={setIsAddStandaloneVideoModalOpen}
-        plans={data.plans}
       />
 
       {/* Main Content Area */}

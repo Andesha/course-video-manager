@@ -1,7 +1,6 @@
 import { DrizzleService } from "@/services/drizzle-service.server";
 import { createClipOperations } from "@/services/db-clip-operations.server";
 import { createVideoOperations } from "@/services/db-video-operations.server";
-import { createPlanOperations } from "@/services/db-plan-operations.server";
 import { createCourseOperations } from "@/services/db-course-operations.server";
 import { createVersionOperations } from "@/services/db-version-operations.server";
 import { createLessonSectionOperations } from "@/services/db-lesson-section-operations.server";
@@ -75,15 +74,6 @@ export class DBFunctionsService extends Effect.Service<DBFunctionsService>()(
       } = createVideoOperations(db, {
         getCourseNavigationData,
       });
-
-      const {
-        getPlans,
-        syncPlan,
-        deletePlan,
-        renamePlan,
-        getArchivedPlans,
-        updatePlanArchiveStatus,
-      } = createPlanOperations(db);
 
       const {
         getCourseVersions,
@@ -223,12 +213,6 @@ export class DBFunctionsService extends Effect.Service<DBFunctionsService>()(
         copyVersionStructure,
         getVideoIdsForVersion,
         getAllVersionsWithStructure,
-        getPlans,
-        syncPlan,
-        deletePlan,
-        renamePlan,
-        getArchivedPlans,
-        updatePlanArchiveStatus,
         getLinks,
         createLink,
         deleteLink,

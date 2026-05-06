@@ -41,17 +41,15 @@ export const loader = async () => {
     const db = yield* DBFunctionsService;
     const publishService = yield* CoursePublishService;
 
-    const [courses, videos, sidebarVideos, archivedVideos, plans] =
-      yield* Effect.all(
-        [
-          db.getCourses(),
-          db.getAllStandaloneVideos(),
-          db.getStandaloneVideosSidebar(),
-          db.getArchivedStandaloneVideos(),
-          db.getPlans(),
-        ],
-        { concurrency: "unbounded" }
-      );
+    const [courses, videos, sidebarVideos, archivedVideos] = yield* Effect.all(
+      [
+        db.getCourses(),
+        db.getAllStandaloneVideos(),
+        db.getStandaloneVideosSidebar(),
+        db.getArchivedStandaloneVideos(),
+      ],
+      { concurrency: "unbounded" }
+    );
 
     // Check export status for each video
     const hasExportedVideoMap: Record<string, boolean> = {};
@@ -67,7 +65,6 @@ export const loader = async () => {
       sidebarVideos,
       archivedVideos,
       hasExportedVideoMap,
-      plans,
     };
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
@@ -85,7 +82,6 @@ export default function Component(props: Route.ComponentProps) {
     sidebarVideos,
     archivedVideos,
     hasExportedVideoMap,
-    plans,
   } = props.loaderData;
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
@@ -110,7 +106,6 @@ export default function Component(props: Route.ComponentProps) {
       <AppSidebar
         courses={courses}
         standaloneVideos={sidebarVideos}
-        plans={plans}
         isAddCourseModalOpen={isAddCourseModalOpen}
         setIsAddCourseModalOpen={setIsAddCourseModalOpen}
         isAddStandaloneVideoModalOpen={isAddVideoOpen}

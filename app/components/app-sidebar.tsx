@@ -1,9 +1,7 @@
 import { AddCourseModal } from "@/components/add-course-modal";
 import { AddStandaloneVideoModal } from "@/components/add-standalone-video-modal";
-import { CreatePlanModal } from "@/components/create-plan-modal";
 import { RenameVideoModal } from "@/components/rename-video-modal";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -16,21 +14,18 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { Plan } from "@/features/course-planner/types";
 import { cn } from "@/lib/utils";
 import {
   Archive,
-  ClipboardList,
   Eye,
   FolderGit2,
   FolderOpen,
   Menu,
   PencilIcon,
   Plus,
-  Trash2,
   VideoIcon,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useFetcher, useLocation } from "react-router";
 
 export interface AppSidebarProps {
@@ -42,8 +37,6 @@ export interface AppSidebarProps {
     id: string;
     path: string;
   }>;
-  plans: Plan[];
-  showPlansSection?: boolean;
   selectedCourseId?: string | null;
   isAddCourseModalOpen?: boolean;
   setIsAddCourseModalOpen?: (open: boolean) => void;
@@ -54,8 +47,6 @@ export interface AppSidebarProps {
 export function AppSidebar({
   courses,
   standaloneVideos,
-  plans,
-  showPlansSection = false,
   selectedCourseId = null,
   isAddCourseModalOpen = false,
   setIsAddCourseModalOpen,
@@ -66,50 +57,19 @@ export function AppSidebar({
   const archiveCourseFetcher = useFetcher();
   const archiveVideoFetcher = useFetcher();
   const revealVideoFetcher = useFetcher();
-  const deletePlanFetcher = useFetcher();
-  const renamePlanFetcher = useFetcher();
-  const archivePlanFetcher = useFetcher();
 
-  const [isCreatePlanModalOpen, setIsCreatePlanModalOpen] = useState(false);
   const [isInternalAddVideoModalOpen, setIsInternalAddVideoModalOpen] =
     useState(false);
   const [videoToRename, setVideoToRename] = useState<{
     id: string;
     path: string;
   } | null>(null);
-  const [renamingPlanId, setRenamingPlanId] = useState<string | null>(null);
-  const [renamingPlanTitle, setRenamingPlanTitle] = useState("");
-  const renameInputRef = useRef<HTMLInputElement>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-
-  // Focus rename input when it appears
-  useEffect(() => {
-    if (renamingPlanId && renameInputRef.current) {
-      renameInputRef.current.focus();
-      renameInputRef.current.select();
-    }
-  }, [renamingPlanId]);
 
   // Close mobile sheet on navigation
   useEffect(() => {
     setSheetOpen(false);
   }, [location.pathname, location.search]);
-
-  const handleSavePlanRename = () => {
-    if (renamingPlanId && renamingPlanTitle.trim()) {
-      renamePlanFetcher.submit(
-        { title: renamingPlanTitle.trim() },
-        { method: "post", action: `/api/plans/${renamingPlanId}/rename` }
-      );
-    }
-    setRenamingPlanId(null);
-    setRenamingPlanTitle("");
-  };
-
-  const handleCancelPlanRename = () => {
-    setRenamingPlanId(null);
-    setRenamingPlanTitle("");
-  };
 
   const sidebarContent = (
     <>
@@ -256,106 +216,6 @@ export function AppSidebar({
           View All Videos
         </Link>
       </div>
-
-      {/* Plans Card */}
-      {showPlansSection && (
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Plans</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => setIsCreatePlanModalOpen(true)}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-          <div className="space-y-0.5">
-            {plans.map((plan) =>
-              renamingPlanId === plan.id ? (
-                <Input
-                  key={plan.id}
-                  ref={renameInputRef}
-                  value={renamingPlanTitle}
-                  onChange={(e) => setRenamingPlanTitle(e.target.value)}
-                  className="h-8 text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSavePlanRename();
-                    if (e.key === "Escape") handleCancelPlanRename();
-                  }}
-                  onBlur={handleSavePlanRename}
-                />
-              ) : (
-                <ContextMenu key={plan.id}>
-                  <ContextMenuTrigger asChild>
-                    <Link
-                      to={`/plans/${plan.id}`}
-                      preventScrollReset
-                      className="block w-full text-left text-sm px-2 py-1.5 rounded-md hover:bg-accent transition-colors"
-                    >
-                      {plan.title}
-                    </Link>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent>
-                    <ContextMenuItem
-                      onSelect={() => {
-                        setRenamingPlanId(plan.id);
-                        setRenamingPlanTitle(plan.title);
-                      }}
-                    >
-                      <PencilIcon className="w-4 h-4" />
-                      Rename
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onSelect={() => {
-                        archivePlanFetcher.submit(
-                          { archived: "true" },
-                          {
-                            method: "post",
-                            action: `/api/plans/${plan.id}/archive`,
-                          }
-                        );
-                      }}
-                    >
-                      <Archive className="w-4 h-4" />
-                      Archive
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      variant="destructive"
-                      onSelect={() => {
-                        deletePlanFetcher.submit(
-                          {},
-                          {
-                            method: "post",
-                            action: `/api/plans/${plan.id}/delete`,
-                          }
-                        );
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              )
-            )}
-            {plans.length === 0 && (
-              <p className="text-sm text-muted-foreground px-2">No plans yet</p>
-            )}
-          </div>
-          <Link
-            to="/archived-plans"
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mt-2 px-2 transition-colors"
-          >
-            <Archive className="w-3 h-3" />
-            Archived Plans
-          </Link>
-        </div>
-      )}
     </>
   );
 
@@ -411,10 +271,6 @@ export function AppSidebar({
           onOpenChange={setIsInternalAddVideoModalOpen}
         />
       )}
-      <CreatePlanModal
-        isOpen={isCreatePlanModalOpen}
-        onOpenChange={setIsCreatePlanModalOpen}
-      />
       {videoToRename && (
         <RenameVideoModal
           videoId={videoToRename.id}

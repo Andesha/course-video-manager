@@ -65,6 +65,12 @@ _Avoid_: Create on disk, Realize
 **Materialization Cascade**:
 The chain reaction when materializing a lesson inside a ghost course: assigns file path to course, materializes section, then materializes lesson — all in one flow.
 
+### Authoring lifecycle
+
+**Lesson Authoring Status**:
+A per-version marker on a real **Lesson** indicating where it sits in the authoring workflow. Two values: `todo` (default for newly created or materialized real lessons) and `done` (set by clicking the To-Do pill in the UI). Stored as `authoringStatus` on the lesson row and copied forward by `copyVersionStructure` at Publish, so a Published Version's lessons keep whatever status they had at publish time. Subject to a biconditional invariant with `fsStatus`: a real lesson always has a status, a **Ghost Lesson** never does. Distinct from `fsStatus` (filesystem presence) and from **Pitch Status** (which tracks pitches, not lessons).
+_Avoid_: TODO flag, Lesson status (ambiguous with `fsStatus`), Completion
+
 ### Video and clips
 
 **Video**:
@@ -127,17 +133,20 @@ _Avoid_: Cursor, Drop target
 The process of populating a clip's `text` field from its audio, tracked by `transcribedAt`.
 _Avoid_: Caption, Subtitle
 
-### Planning
+### Pitches
 
-**Plan**:
-An independent (non-file-backed) structured course outline, separate from the course hierarchy.
-_Avoid_: Outline, Syllabus
+**Pitch**:
+A reusable packaging artifact — the YouTube/newsletter/tweet copy and thumbnail concept for a video idea — authored _before_ the video itself is recorded. A Pitch is independent of the Course hierarchy; it relates only to **Standalone Videos**.
+_Avoid_: Idea, Concept, Draft (overloaded with Draft Version)
 
-**PlanSection**:
-A grouping within a plan.
+**Pitch Status**:
+A manual marker on a Pitch with three values:
 
-**PlanLesson**:
-A learning objective within a plan section.
+- `idle` (default) — drafting / mulling; not yet committed to making the video
+- `scheduled` — manually flagged when the Pitch has been queued in the external delivery calendar (Google Doc); not automated
+- `cancelled` — decided not to make this video; reversible by flipping back to `idle`
+
+A Pitch can have any status independent of how many Videos are linked to it.
 
 ### Ordering and lifecycle
 
@@ -161,12 +170,13 @@ A special section directory whose name ends in `ARCHIVE`, filtered out of the de
 - A **CourseVersion** contains ordered **Sections**
 - A **Section** contains ordered **Lessons**
 - A **Lesson** contains zero or more **Videos** (ghost lessons have none)
+- A real **Lesson** always has a **Lesson Authoring Status** (`todo` or `done`); a **Ghost Lesson** never does — converting between ghost and real sets or clears the status accordingly
 - A **Video** contains ordered **Clips** and **ClipSections**, interleaved in a shared ordering space
 - A **Video** with at least one **Clip** has an **Export Hash**; a video with no clips is not considered a real video
 - An **Exported Video** file is shared across **CourseVersions** via `{courseId}-{exportHash}.mp4` naming — if clips haven't changed, the hash matches and no re-export is needed
 - A **Standalone Video** belongs directly to a **Course** with no **Lesson** parent
 - A **Recording Session** produces multiple **Optimistic Clips** that become **Clips** on persistence
-- A **Plan** is independent of the **Course** hierarchy and contains **PlanSections** with **PlanLessons**
+- A **Pitch** is independent of the **Course** hierarchy; one **Pitch** can produce zero or more **Standalone Videos** via a `pitchId` FK on Video. Pitches never attach to lesson-bound Videos.
 - **Publishing** uploads to Dropbox, freezes the **Draft Version** into a **Published Version**, and creates a new **Draft Version** — all atomically (Dropbox upload must succeed first)
 
 ## Example dialogue
@@ -210,7 +220,7 @@ A special section directory whose name ends in `ARCHIVE`, filtered out of the de
 
 - **"Version"** — Used both for **CourseVersion** (structural snapshots) and implicitly for content history via `previousVersionLessonId`/`previousVersionSectionId` cross-references. These serve different purposes: one is a named milestone, the other is a migration link between versions. Now additionally distinguished as **Draft Version** vs **Published Version** by position (latest = draft).
 - **Clips and ClipSections share an ordering space** — Both use the same `order` field with fractional indexing. The UI must treat them as a single interleaved list, not two separate collections. This is a source of complexity when inserting or reordering.
-- **"Plan" vs course structure** — A **Plan** (`plans` table) is entirely disconnected from the **Course**/Section/Lesson hierarchy. There is no enforced link between a **PlanLesson** and an actual **Lesson**. The relationship is purely semantic.
 - **"Export Version Key" vs "CourseVersion"** — These are unrelated concepts that both use the word "version." The **Export Version Key** is a build-time constant for cache-busting video exports. A **CourseVersion** is a domain snapshot of course structure. Do not confuse them.
 - **"Clear" / "Delete from file system"** (resolved) — Previously used interchangeably for removing exported video files. Now canonicalized as **Purge**. "Clear" described the mechanism (clearing files), not the domain action. **Purge** captures the intent: deliberately removing a cached render artifact to transition a video back to Unexported status.
+- **`cancelled` (Pitch Status) vs `archived`** — Pitches use both, deliberately. `cancelled` is a _semantic_ state ("I decided not to make this video," reversible by un-cancelling). `archived` is a _presentation_ concern (hide from default views, applies regardless of status). They look similar but mean different things; deletion is a third, separate action. Easy to merge later if the distinction proves unused.
 - **"Delete" for lessons** — "Delete" means two different things depending on context: for a **Ghost Lesson**, it removes the DB row. For a real **Lesson**, it purges from disk AND removes from DB. This is distinct from "Convert to Ghost" which only removes from disk. The UI should make the distinction clear through labeling.

@@ -250,7 +250,7 @@ export default function Component(props: Route.ComponentProps) {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <AppSidebar courses={courses} standaloneVideos={[]} plans={[]} />
+      <AppSidebar courses={courses} standaloneVideos={[]} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-6">

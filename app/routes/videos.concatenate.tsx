@@ -60,12 +60,11 @@ const computeDuration = (
 export const loader = async () => {
   return Effect.gen(function* () {
     const db = yield* DBFunctionsService;
-    const [videos, courseList, sidebarVideos, plans] = yield* Effect.all(
+    const [videos, courseList, sidebarVideos] = yield* Effect.all(
       [
         db.getAllStandaloneVideos(),
         db.getCourses(),
         db.getStandaloneVideosSidebar(),
-        db.getPlans(),
       ],
       { concurrency: "unbounded" }
     );
@@ -118,7 +117,6 @@ export const loader = async () => {
       courseSources,
       courses: courseList,
       sidebarVideos,
-      plans,
     };
   }).pipe(
     Effect.tapErrorCause((e) => Console.dir(e, { depth: null })),
@@ -327,7 +325,7 @@ function CourseVideoList({
 }
 
 export default function Component({ loaderData }: Route.ComponentProps) {
-  const { videos, courses, courseSources, sidebarVideos, plans } = loaderData;
+  const { videos, courses, courseSources, sidebarVideos } = loaderData;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialVideoId = searchParams.get("initial");
@@ -421,11 +419,7 @@ export default function Component({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <AppSidebar
-        courses={courses}
-        standaloneVideos={sidebarVideos}
-        plans={plans}
-      />
+      <AppSidebar courses={courses} standaloneVideos={sidebarVideos} />
 
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className="border-b px-6 py-4">

@@ -100,5 +100,10 @@ export const CourseEditorEventSchema = Schema.Union(
     type: Schema.Literal("create-on-disk"),
     lessonId: nonEmptyString,
     repoPath: Schema.optional(nonEmptyString),
+  }),
+  Schema.Struct({
+    type: Schema.Literal("set-lesson-authoring-status"),
+    lessonId: nonEmptyString,
+    status: Schema.Literal("todo", "done"),
   })
 );

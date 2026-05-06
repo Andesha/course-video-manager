@@ -37,6 +37,7 @@ import {
   Code,
   Ghost,
   GripVertical,
+  ListTodo,
   MessageCircle,
   PencilIcon,
   Play,
@@ -438,6 +439,7 @@ export function SortableLessonItem({
                           })
                         }
                       >
+                        <ListTodo className="w-4 h-4" />
                         Mark as TODO
                       </ContextMenuItem>
                     )}

@@ -10,6 +10,10 @@ All files in `./app/routes` will be exposed publicly as routes. Do not include t
 
 ---
 
+Context menu items should always include a leading icon (from `lucide-react`), matching the style of the surrounding items. When adding a new menu item, pick an icon that conveys the action.
+
+---
+
 ## Testing
 
 ### Core Principle

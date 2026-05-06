@@ -15,6 +15,11 @@ export function courseEditorFetcherKey(
 }
 
 export const COURSE_EDITOR_KEY_PREFIX = "course-editor:";
+export const DELETE_VIDEO_KEY_PREFIX = "delete-video:";
+
+export function deleteVideoFetcherKey(videoId: string): string {
+  return `${DELETE_VIDEO_KEY_PREFIX}${videoId}`;
+}
 
 export function courseEditorFetcherKeyForEvent(
   event: CourseEditorEvent
@@ -63,6 +68,37 @@ export function applyOptimisticEvent(
     default:
       return loaderData;
   }
+}
+
+export function applyOptimisticDeleteVideo(
+  loaderData: LoaderData,
+  videoId: string
+): LoaderData {
+  const course = loaderData.selectedCourse;
+  if (!course) return loaderData;
+
+  let found = false;
+  const sections = course.sections.map((section) => {
+    if (found) return section;
+    let sectionChanged = false;
+    const lessons = section.lessons.map((lesson) => {
+      if (found) return lesson;
+      const idx = lesson.videos.findIndex((v) => v.id === videoId);
+      if (idx === -1) return lesson;
+      found = true;
+      sectionChanged = true;
+      const videos = lesson.videos.filter((v) => v.id !== videoId);
+      return { ...lesson, videos };
+    });
+    return sectionChanged ? { ...section, lessons } : section;
+  });
+
+  if (!found) return loaderData;
+
+  return {
+    ...loaderData,
+    selectedCourse: { ...course, sections },
+  };
 }
 
 function applyUpdateLessonIcon(

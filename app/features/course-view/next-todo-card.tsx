@@ -28,7 +28,7 @@ export function NextTodoCard({
   startExportUpload,
   revealVideoFetcher,
   deleteVideoFileFetcher,
-  deleteVideoFetcher,
+  submitDeleteVideo,
   allFlatLessons,
   dependencyMap,
   dismissed,
@@ -46,7 +46,7 @@ export function NextTodoCard({
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
-  deleteVideoFetcher: ReturnType<typeof useFetcher>;
+  submitDeleteVideo: (videoId: string) => void;
   allFlatLessons: DependencyLessonItem[];
   dependencyMap: Record<string, string[]>;
   dismissed: boolean;
@@ -107,7 +107,7 @@ export function NextTodoCard({
                 startExportUpload={startExportUpload}
                 revealVideoFetcher={revealVideoFetcher}
                 deleteVideoFileFetcher={deleteVideoFileFetcher}
-                deleteVideoFetcher={deleteVideoFetcher}
+                submitDeleteVideo={submitDeleteVideo}
                 allFlatLessons={allFlatLessons}
                 allSections={sections}
                 dependencyMap={dependencyMap}

@@ -31,7 +31,7 @@ function VideoThumbnailItem({
   startExportUpload,
   revealVideoFetcher,
   deleteVideoFileFetcher,
-  deleteVideoFetcher,
+  submitDeleteVideo,
 }: {
   video: Video;
   section: Section;
@@ -42,7 +42,7 @@ function VideoThumbnailItem({
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
-  deleteVideoFetcher: ReturnType<typeof useFetcher>;
+  submitDeleteVideo: (videoId: string) => void;
 }) {
   const hasExportedVideoMap = use(data.hasExportedVideoMap);
   const isReadOnly = !data.isLatestVersion;
@@ -175,13 +175,7 @@ function VideoThumbnailItem({
             <ContextMenuItem
               variant="destructive"
               onSelect={() => {
-                deleteVideoFetcher.submit(
-                  { videoId: video.id },
-                  {
-                    method: "post",
-                    action: "/api/videos/delete",
-                  }
-                );
+                submitDeleteVideo(video.id);
               }}
             >
               <Trash2 className="w-4 h-4" />
@@ -204,7 +198,7 @@ export function VideoThumbnailGrid({
   startExportUpload,
   revealVideoFetcher,
   deleteVideoFileFetcher,
-  deleteVideoFetcher,
+  submitDeleteVideo,
 }: {
   videos: Video[];
   section: Section;
@@ -215,7 +209,7 @@ export function VideoThumbnailGrid({
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
-  deleteVideoFetcher: ReturnType<typeof useFetcher>;
+  submitDeleteVideo: (videoId: string) => void;
 }) {
   if (videos.length === 0) return null;
 
@@ -233,7 +227,7 @@ export function VideoThumbnailGrid({
           startExportUpload={startExportUpload}
           revealVideoFetcher={revealVideoFetcher}
           deleteVideoFileFetcher={deleteVideoFileFetcher}
-          deleteVideoFetcher={deleteVideoFetcher}
+          submitDeleteVideo={submitDeleteVideo}
         />
       ))}
     </div>

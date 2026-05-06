@@ -122,7 +122,7 @@ export function SectionGrid({
   startExportUpload,
   revealVideoFetcher,
   deleteVideoFileFetcher,
-  deleteVideoFetcher,
+  submitDeleteVideo,
   isGhostCourse,
 }: {
   currentCourse: NonNullable<LoaderData["selectedCourse"]>;
@@ -169,7 +169,7 @@ export function SectionGrid({
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
-  deleteVideoFetcher: ReturnType<typeof useFetcher>;
+  submitDeleteVideo: (videoId: string) => void;
 }) {
   const COLLAPSED_SECTIONS_KEY = "collapsed-sections";
 
@@ -376,7 +376,7 @@ export function SectionGrid({
                                       deleteVideoFileFetcher={
                                         deleteVideoFileFetcher
                                       }
-                                      deleteVideoFetcher={deleteVideoFetcher}
+                                      submitDeleteVideo={submitDeleteVideo}
                                       allSections={currentCourse.sections}
                                       dependencyMap={dependencyMap}
                                       isGhostCourse={isGhostCourse}

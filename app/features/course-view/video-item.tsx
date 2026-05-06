@@ -32,7 +32,7 @@ export function VideoItem({
   startExportUpload,
   revealVideoFetcher,
   deleteVideoFileFetcher,
-  deleteVideoFetcher,
+  submitDeleteVideo,
 }: {
   video: Video;
   section: Section;
@@ -43,7 +43,7 @@ export function VideoItem({
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
-  deleteVideoFetcher: ReturnType<typeof useFetcher>;
+  submitDeleteVideo: (videoId: string) => void;
 }) {
   const hasExportedVideoMap = use(data.hasExportedVideoMap);
   const totalDuration = video.totalDuration;
@@ -162,13 +162,7 @@ export function VideoItem({
         <ContextMenuItem
           variant="destructive"
           onSelect={() => {
-            deleteVideoFetcher.submit(
-              { videoId: video.id },
-              {
-                method: "post",
-                action: "/api/videos/delete",
-              }
-            );
+            submitDeleteVideo(video.id);
           }}
         >
           <Trash2 className="w-4 h-4" />

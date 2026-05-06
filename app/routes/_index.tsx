@@ -57,7 +57,10 @@ import {
   computeFlatLessons,
   computeDependencyMap,
 } from "@/features/course-view/course-editor-helpers";
-import { courseEditorFetcherKeyForEvent } from "@/features/course-view/optimistic-applier";
+import {
+  courseEditorFetcherKeyForEvent,
+  deleteVideoFetcherKey,
+} from "@/features/course-view/optimistic-applier";
 import {
   useOptimisticCourse,
   useCourseEditorFailureToast,
@@ -309,8 +312,22 @@ function ComponentInner(props: Route.ComponentProps) {
 
   useFocusRevalidate({ enabled: !!selectedCourseId, intervalMs: 5000 });
 
+  const submitDeleteVideo = useCallback(
+    (videoId: string) => {
+      submit(
+        { videoId },
+        {
+          method: "post",
+          action: "/api/videos/delete",
+          navigate: false,
+          fetcherKey: deleteVideoFetcherKey(videoId),
+        }
+      );
+    },
+    [submit]
+  );
+
   // Fetchers still needed for video operations and non-entity mutations
-  const deleteVideoFetcher = useFetcher();
   const deleteVideoFileFetcher = useFetcher();
   const revealVideoFetcher = useFetcher();
   const archiveCourseFetcher = useFetcher();
@@ -437,7 +454,7 @@ function ComponentInner(props: Route.ComponentProps) {
                       startExportUpload={startExportUpload}
                       revealVideoFetcher={revealVideoFetcher}
                       deleteVideoFileFetcher={deleteVideoFileFetcher}
-                      deleteVideoFetcher={deleteVideoFetcher}
+                      submitDeleteVideo={submitDeleteVideo}
                       allFlatLessons={allFlatLessons}
                       dependencyMap={dependencyMap}
                       dismissed={nextUpDismissed}
@@ -485,7 +502,7 @@ function ComponentInner(props: Route.ComponentProps) {
                   startExportUpload={startExportUpload}
                   revealVideoFetcher={revealVideoFetcher}
                   deleteVideoFileFetcher={deleteVideoFileFetcher}
-                  deleteVideoFetcher={deleteVideoFetcher}
+                  submitDeleteVideo={submitDeleteVideo}
                 />
 
                 {loaderData.selectedVersion && loaderData.isLatestVersion && (

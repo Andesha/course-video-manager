@@ -1,11 +1,40 @@
 import { describe, it, expect } from "vitest";
 import {
   applyOptimisticEvent,
+  applyOptimisticDeleteVideo,
   courseEditorFetcherKey,
   courseEditorFetcherKeyForEvent,
+  deleteVideoFetcherKey,
+  DELETE_VIDEO_KEY_PREFIX,
 } from "./optimistic-applier";
 import type { LoaderData } from "./course-view-types";
 import type { CourseEditorEvent } from "@/services/course-editor-service";
+
+function makeVideo(
+  overrides: Partial<
+    LoaderData["selectedCourse"] extends infer C
+      ? C extends {
+          sections: Array<{ lessons: Array<{ videos: Array<infer V> }> }>;
+        }
+        ? V
+        : never
+      : never
+  > = {}
+) {
+  return {
+    id: "video-1",
+    path: "video-01.mp4",
+    totalDuration: 120,
+    firstClipId: null,
+    archived: false,
+    createdAt: new Date(),
+    lessonId: "lesson-1",
+    originalFootagePath: "/footage/video-01",
+    updatedAt: new Date(),
+    clipCount: 0,
+    ...overrides,
+  };
+}
 
 function makeLesson(
   overrides: Partial<
@@ -340,5 +369,99 @@ describe("courseEditorFetcherKeyForEvent", () => {
         lessonIds: ["L1", "L2"],
       })
     ).toBe("course-editor:reorder-lessons:S1");
+  });
+});
+
+describe("applyOptimisticDeleteVideo", () => {
+  it("removes the matching video from a lesson", () => {
+    const video1 = makeVideo({ id: "video-1" });
+    const video2 = makeVideo({ id: "video-2", path: "video-02.mp4" });
+    const lesson = makeLesson({ videos: [video1, video2] });
+    const loaderData = makeLoaderData([makeSection({}, [lesson])]);
+
+    const result = applyOptimisticDeleteVideo(loaderData, "video-1");
+
+    expect(result.selectedCourse!.sections[0]!.lessons[0]!.videos).toHaveLength(
+      1
+    );
+    expect(result.selectedCourse!.sections[0]!.lessons[0]!.videos[0]!.id).toBe(
+      "video-2"
+    );
+  });
+
+  it("returns loaderData unchanged when videoId is not found", () => {
+    const lesson = makeLesson({ videos: [makeVideo()] });
+    const loaderData = makeLoaderData([makeSection({}, [lesson])]);
+
+    const result = applyOptimisticDeleteVideo(loaderData, "nonexistent");
+
+    expect(result).toBe(loaderData);
+  });
+
+  it("returns loaderData unchanged when selectedCourse is undefined", () => {
+    const loaderData = makeLoaderData();
+    (loaderData as any).selectedCourse = undefined;
+
+    const result = applyOptimisticDeleteVideo(loaderData, "video-1");
+
+    expect(result).toBe(loaderData);
+  });
+
+  it("does not mutate the original loaderData", () => {
+    const video = makeVideo({ id: "video-1" });
+    const lesson = makeLesson({ videos: [video] });
+    const loaderData = makeLoaderData([makeSection({}, [lesson])]);
+
+    const result = applyOptimisticDeleteVideo(loaderData, "video-1");
+
+    expect(result).not.toBe(loaderData);
+    expect(result.selectedCourse).not.toBe(loaderData.selectedCourse);
+    expect(
+      loaderData.selectedCourse!.sections[0]!.lessons[0]!.videos
+    ).toHaveLength(1);
+  });
+
+  it("preserves reference equality for unchanged sections", () => {
+    const section1 = makeSection({ id: "section-1" }, [
+      makeLesson({ id: "lesson-1", videos: [] }),
+    ]);
+    const section2 = makeSection({ id: "section-2" }, [
+      makeLesson({ id: "lesson-2", videos: [makeVideo({ id: "video-1" })] }),
+    ]);
+    const loaderData = makeLoaderData([section1, section2]);
+
+    const result = applyOptimisticDeleteVideo(loaderData, "video-1");
+
+    expect(result.selectedCourse!.sections[0]).toBe(section1);
+    expect(result.selectedCourse!.sections[1]).not.toBe(section2);
+  });
+
+  it("finds the video across multiple sections and lessons", () => {
+    const lesson1 = makeLesson({ id: "lesson-1", videos: [] });
+    const lesson2 = makeLesson({
+      id: "lesson-2",
+      videos: [makeVideo({ id: "video-target" })],
+    });
+    const section1 = makeSection({ id: "section-1" }, [lesson1]);
+    const section2 = makeSection({ id: "section-2" }, [lesson2]);
+    const loaderData = makeLoaderData([section1, section2]);
+
+    const result = applyOptimisticDeleteVideo(loaderData, "video-target");
+
+    expect(result.selectedCourse!.sections[1]!.lessons[0]!.videos).toHaveLength(
+      0
+    );
+    expect(result.selectedCourse!.sections[0]).toBe(section1);
+  });
+});
+
+describe("deleteVideoFetcherKey", () => {
+  it("formats the key with the delete-video prefix", () => {
+    expect(deleteVideoFetcherKey("video-123")).toBe("delete-video:video-123");
+  });
+
+  it("key starts with DELETE_VIDEO_KEY_PREFIX", () => {
+    const key = deleteVideoFetcherKey("v1");
+    expect(key.startsWith(DELETE_VIDEO_KEY_PREFIX)).toBe(true);
   });
 });

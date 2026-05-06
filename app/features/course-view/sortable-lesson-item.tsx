@@ -63,7 +63,7 @@ export function SortableLessonItem({
   startExportUpload,
   revealVideoFetcher,
   deleteVideoFileFetcher,
-  deleteVideoFetcher,
+  submitDeleteVideo,
   allFlatLessons,
   dependencyMap,
   allSections,
@@ -84,7 +84,7 @@ export function SortableLessonItem({
   startExportUpload: (videoId: string, path: string) => void;
   revealVideoFetcher: ReturnType<typeof useFetcher>;
   deleteVideoFileFetcher: ReturnType<typeof useFetcher>;
-  deleteVideoFetcher: ReturnType<typeof useFetcher>;
+  submitDeleteVideo: (videoId: string) => void;
   allFlatLessons: DependencyLessonItem[];
   dependencyMap: Record<string, string[]>;
   allSections: { id: string; path: string }[];
@@ -592,7 +592,7 @@ export function SortableLessonItem({
             startExportUpload={startExportUpload}
             revealVideoFetcher={revealVideoFetcher}
             deleteVideoFileFetcher={deleteVideoFileFetcher}
-            deleteVideoFetcher={deleteVideoFetcher}
+            submitDeleteVideo={submitDeleteVideo}
           />
         </div>
         <CreateOnDiskModal

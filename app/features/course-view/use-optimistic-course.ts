@@ -5,7 +5,9 @@ import type { CourseEditorEvent } from "@/services/course-editor-service";
 import type { LoaderData } from "./course-view-types";
 import {
   applyOptimisticEvent,
+  applyOptimisticDeleteVideo,
   COURSE_EDITOR_KEY_PREFIX,
+  DELETE_VIDEO_KEY_PREFIX,
 } from "./optimistic-applier";
 
 function parseCourseEditorEvent(
@@ -23,13 +25,17 @@ export function useOptimisticCourse(loaderData: LoaderData): LoaderData {
   return useMemo(() => {
     let result = loaderData;
     for (const fetcher of fetchers) {
-      if (!fetcher.key.startsWith(COURSE_EDITOR_KEY_PREFIX)) continue;
       if (fetcher.state === "idle") continue;
 
-      const event = parseCourseEditorEvent(fetcher);
-      if (!event) continue;
-
-      result = applyOptimisticEvent(result, event);
+      if (fetcher.formAction === "/api/course-editor") {
+        const event = parseCourseEditorEvent(fetcher);
+        if (!event) continue;
+        result = applyOptimisticEvent(result, event);
+      } else if (fetcher.formAction === "/api/videos/delete") {
+        const videoId = fetcher.formData?.get("videoId");
+        if (typeof videoId !== "string") continue;
+        result = applyOptimisticDeleteVideo(result, videoId);
+      }
     }
     return result;
   }, [loaderData, fetchers]);
@@ -44,7 +50,10 @@ export function useCourseEditorFailureToast() {
     const nextStates = new Map<string, string>();
 
     for (const fetcher of fetchers) {
-      if (!fetcher.key.startsWith(COURSE_EDITOR_KEY_PREFIX)) continue;
+      const isOptimistic =
+        fetcher.key.startsWith(COURSE_EDITOR_KEY_PREFIX) ||
+        fetcher.key.startsWith(DELETE_VIDEO_KEY_PREFIX);
+      if (!isOptimistic) continue;
 
       nextStates.set(fetcher.key, fetcher.state);
 

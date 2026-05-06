@@ -43,6 +43,14 @@ describe("CourseEditorService — lessons", () => {
       });
     });
 
+    it("ghost lesson has null authoringStatus", async () => {
+      const { version } = await createCourseWithVersion();
+      const s = await svc().createSection(version.id, "Section A", 0);
+      const l = await svc().addGhostLesson(s.sectionId, "My Lesson");
+      const lesson = await getLessonById(l.lessonId);
+      expect(lesson!.authoringStatus).toBeNull();
+    });
+
     it("creates multiple ghost lessons with correct ordering", async () => {
       const { version } = await createCourseWithVersion();
       const s = await svc().createSection(version.id, "Section A", 0);
@@ -86,6 +94,25 @@ describe("CourseEditorService — lessons", () => {
       const lessons = await getLessons(section!.id);
       expect(lessons).toHaveLength(1);
       expect(lessons[0]!.fsStatus).toBe("real");
+    });
+
+    it("real lesson starts with authoringStatus 'todo'", async () => {
+      const { version } = await createCourseWithVersion("/tmp/test-repo");
+      const [section] = await db()
+        .insert(schema.sections)
+        .values({
+          repoVersionId: version.id,
+          path: "01-introduction",
+          order: 0,
+        })
+        .returning();
+
+      const result = await svc().createRealLesson(
+        section!.id,
+        "Getting Started"
+      );
+      const lesson = await getLessonById(result.lessonId);
+      expect(lesson!.authoringStatus).toBe("todo");
     });
 
     it("rejects creating a real lesson in a ghost course", async () => {
@@ -427,11 +454,122 @@ describe("CourseEditorService — lessons", () => {
       expect(realRemaining[0]!.path).toBe("01.01-another");
     });
 
+    it("clears authoringStatus to null", async () => {
+      const { version } = await createCourseWithVersion("/tmp/test-repo");
+      const { lessons } = await createSectionWithLessons(
+        version.id,
+        "01-intro",
+        0,
+        [
+          { path: "01.01-lesson", title: "Lesson", fsStatus: "real", order: 0 },
+          {
+            path: "01.02-another",
+            title: "Another",
+            fsStatus: "real",
+            order: 1,
+          },
+        ]
+      );
+
+      await svc().convertToGhost(lessons[0]!.id);
+      const lesson = await getLessonById(lessons[0]!.id);
+      expect(lesson!.authoringStatus).toBeNull();
+    });
+
     it("rejects converting an already-ghost lesson", async () => {
       const { version } = await createCourseWithVersion();
       const s = await svc().createSection(version.id, "Section A", 0);
       const l = await svc().addGhostLesson(s.sectionId, "Ghost Lesson");
       await expect(svc().convertToGhost(l.lessonId)).rejects.toThrow();
+    });
+  });
+
+  describe("set-lesson-authoring-status", () => {
+    it("marks a todo lesson as done", async () => {
+      const { version } = await createCourseWithVersion("/tmp/test-repo");
+      const [section] = await db()
+        .insert(schema.sections)
+        .values({
+          repoVersionId: version.id,
+          path: "01-introduction",
+          order: 0,
+        })
+        .returning();
+
+      const result = await svc().createRealLesson(
+        section!.id,
+        "Getting Started"
+      );
+      expect((await getLessonById(result.lessonId))!.authoringStatus).toBe(
+        "todo"
+      );
+
+      await svc().setLessonAuthoringStatus(result.lessonId, "done");
+      expect((await getLessonById(result.lessonId))!.authoringStatus).toBe(
+        "done"
+      );
+    });
+
+    it("marks a done lesson back to todo", async () => {
+      const { version } = await createCourseWithVersion("/tmp/test-repo");
+      const { lessons } = await createSectionWithLessons(
+        version.id,
+        "01-intro",
+        0,
+        [
+          {
+            path: "01.01-lesson",
+            title: "Lesson",
+            fsStatus: "real",
+            order: 0,
+          },
+        ]
+      );
+
+      expect((await getLessonById(lessons[0]!.id))!.authoringStatus).toBe(
+        "done"
+      );
+
+      await svc().setLessonAuthoringStatus(lessons[0]!.id, "todo");
+      expect((await getLessonById(lessons[0]!.id))!.authoringStatus).toBe(
+        "todo"
+      );
+    });
+
+    it("re-materialization after ghost roundtrip resets to 'todo'", async () => {
+      const { version } = await createCourseWithVersion("/tmp/test-repo");
+      const { lessons } = await createSectionWithLessons(
+        version.id,
+        "01-intro",
+        0,
+        [
+          {
+            path: "01.01-lesson",
+            title: "Lesson",
+            fsStatus: "real",
+            order: 0,
+          },
+          {
+            path: "01.02-other",
+            title: "Other",
+            fsStatus: "real",
+            order: 1,
+          },
+        ]
+      );
+
+      await svc().setLessonAuthoringStatus(lessons[0]!.id, "done");
+      expect((await getLessonById(lessons[0]!.id))!.authoringStatus).toBe(
+        "done"
+      );
+
+      await svc().convertToGhost(lessons[0]!.id);
+      expect((await getLessonById(lessons[0]!.id))!.authoringStatus).toBeNull();
+
+      await svc().createOnDisk(lessons[0]!.id);
+      expect((await getLessonById(lessons[0]!.id))!.authoringStatus).toBe(
+        "todo"
+      );
     });
   });
 
@@ -475,6 +613,23 @@ describe("CourseEditorService — lessons", () => {
 
       expect(result.sectionId).toBe(section!.id);
       expect(result.sectionPath).toMatch(/^\d+-introduction$/);
+    });
+
+    it("materializing a ghost lesson sets authoringStatus to 'todo'", async () => {
+      const { version } = await createCourseWithVersion("/tmp/test-repo");
+      const [section] = await db()
+        .insert(schema.sections)
+        .values({
+          repoVersionId: version.id,
+          path: "01-introduction",
+          order: 0,
+        })
+        .returning();
+
+      const l = await svc().addGhostLesson(section!.id, "My Lesson");
+      await svc().createOnDisk(l.lessonId);
+      const lesson = await getLessonById(l.lessonId);
+      expect(lesson!.authoringStatus).toBe("todo");
     });
 
     it("rejects materializing a non-ghost lesson", async () => {

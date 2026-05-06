@@ -11,6 +11,10 @@ import {
 import { parseSectionPath, buildSectionPath } from "./section-path-service";
 import { validateAndAssignRepoPath } from "./course-write-service.helpers";
 import { CourseWriteError } from "./course-write-service.types";
+import {
+  statusForCreateLesson,
+  statusForMaterialize,
+} from "./lesson-authoring-status";
 
 export function createMaterializeOps<E1>(
   db: DBFunctionsService,
@@ -148,7 +152,7 @@ export function createMaterializeOps<E1>(
 
     yield* db.updateLesson(newLesson!.id, {
       fsStatus: "real",
-      authoringStatus: "todo",
+      authoringStatus: statusForCreateLesson("real"),
     });
 
     // Renumber sections if we materialized one
@@ -278,7 +282,7 @@ export function createMaterializeOps<E1>(
       fsStatus: "real",
       path: plan.newLessonDirName,
       sectionId: lesson.sectionId,
-      authoringStatus: "todo",
+      authoringStatus: statusForMaterialize(),
     });
 
     if (sectionMaterialized) {

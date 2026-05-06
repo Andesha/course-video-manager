@@ -15,6 +15,7 @@ import { createMaterializeOps } from "./course-write-materialize-ops";
 import { CourseWriteError } from "./course-write-service.types";
 import { CourseRepoSyncValidationService } from "./course-repo-sync-validation";
 import { createValidationHelpers } from "./course-write-validation-helpers";
+import { statusForConvertToGhost } from "./lesson-authoring-status";
 
 export { CourseWriteError } from "./course-write-service.types";
 export { CourseRepoSyncError } from "./course-repo-sync-validation";
@@ -206,7 +207,7 @@ export class CourseWriteService extends Effect.Service<CourseWriteService>()(
         // Mark lesson as ghost in DB
         yield* db.updateLesson(lessonId, {
           fsStatus: "ghost",
-          authoringStatus: null,
+          authoringStatus: statusForConvertToGhost(),
         });
 
         // Renumber remaining real lessons to close the gap

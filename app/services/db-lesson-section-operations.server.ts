@@ -6,6 +6,7 @@ import {
 } from "@/services/db-service-errors";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Effect } from "effect";
+import { statusForCreateLesson } from "./lesson-authoring-status";
 
 const makeDbCall = <T>(fn: () => Promise<T>) => {
   return Effect.tryPromise({
@@ -145,7 +146,7 @@ export const createLessonSectionOperations = (db: DrizzleDB) => {
             sectionId,
             path: lesson.lessonPathWithNumber,
             order: lesson.lessonNumber,
-            authoringStatus: "todo",
+            authoringStatus: statusForCreateLesson("real"),
           }))
         )
         .returning()

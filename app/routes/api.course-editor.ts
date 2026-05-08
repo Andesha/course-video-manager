@@ -41,6 +41,9 @@ export const action = async (args: Route.ActionArgs) => {
     Effect.catchTag("CourseWriteError", (e) => {
       return Effect.die(data(e.message, { status: 400 }));
     }),
+    Effect.catchTag("CourseRepoWriteError", (e) => {
+      return Effect.die(data(e.message, { status: 400 }));
+    }),
     Effect.catchAll(() => {
       return Effect.die(data("Internal server error", { status: 500 }));
     }),

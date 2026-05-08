@@ -26,8 +26,8 @@ export function FeedbackModal(props: {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevState = useRef(fetcher.state);
   const [addMore, setAddMore] = useState(() => {
-    if (typeof localStorage !== "undefined") {
-      return localStorage.getItem(ADD_MORE_STORAGE_KEY) === "true";
+    if (typeof window !== "undefined") {
+      return window.localStorage.getItem(ADD_MORE_STORAGE_KEY) === "true";
     }
     return false;
   });
@@ -126,8 +126,11 @@ export function FeedbackModal(props: {
               onCheckedChange={(checked) => {
                 const value = checked === true;
                 setAddMore(value);
-                if (typeof localStorage !== "undefined") {
-                  localStorage.setItem(ADD_MORE_STORAGE_KEY, String(value));
+                if (typeof window !== "undefined") {
+                  window.localStorage.setItem(
+                    ADD_MORE_STORAGE_KEY,
+                    String(value)
+                  );
                 }
               }}
             />

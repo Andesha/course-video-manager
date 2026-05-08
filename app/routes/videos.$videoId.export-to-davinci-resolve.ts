@@ -42,6 +42,9 @@ export const action = async (args: Route.ActionArgs) => {
     Effect.catchTag("NotFoundError", () => {
       return Effect.die(data("Video not found", { status: 404 }));
     }),
+    Effect.catchTag("CouldNotRunDavinciResolveScriptError", (e) => {
+      return Effect.die(data(e.message, { status: 500 }));
+    }),
     Effect.catchAll(() => {
       return Effect.die(data("Internal server error", { status: 500 }));
     }),

@@ -27,11 +27,6 @@ export const action = async (args: Route.ActionArgs) => {
 
       program
         .pipe(
-          Effect.catchTag("NotFoundError", () =>
-            Effect.sync(() => {
-              sendEvent("error", { message: "Video not found" });
-            })
-          ),
           Effect.catchAll((e) =>
             Effect.sync(() => {
               sendEvent("error", {

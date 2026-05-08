@@ -73,7 +73,7 @@ local function split(pString, pPattern)
 end
 
 -- Parse input videos
-local videoPaths = split(inputVideos, ';')
+local videoPaths = split(inputVideos, ':::')
 
 -- Add all videos to media pool and create a mapping of video index to media pool item
 local videoIndexToClip = {}
@@ -81,6 +81,9 @@ local videoIndexToClip = {}
 for videoIndex, videoPath in ipairs(videoPaths) do
   -- Add video to media pool
   local clips = mediaStorage:AddItemListToMediaPool(videoPath)
+  if not clips or not clips[1] then
+    error('Failed to add video to media pool: ' .. tostring(videoPath))
+  end
   local mediaId = clips[1]:GetMediaId()
 
   -- Refresh folder clips after adding video

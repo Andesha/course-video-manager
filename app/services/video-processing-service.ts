@@ -4,6 +4,7 @@ import { Config, Data, Effect, Option, Schema, Stream } from "effect";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { homedir, tmpdir } from "os";
 import OpenAI from "openai";
 import { FFmpegCommandsService } from "./ffmpeg-commands";
@@ -15,8 +16,16 @@ export type BeatType = "none" | "long";
 const TRANSCRIPTION_PERMITS = 20;
 const AUTO_EDITED_VIDEO_FINAL_END_PADDING = 0.5;
 
-const FUSCRIPT_LOCATION =
-  "/mnt/d/Program Files/Blackmagic Design/DaVinci Resolve/fuscript.exe";
+const DEFAULT_WINDOWS_FUSCRIPT_LOCATIONS = [
+  "/mnt/d/Program Files/Blackmagic Design/DaVinci Resolve/fuscript.exe",
+  "/mnt/c/Program Files/Blackmagic Design/DaVinci Resolve/fuscript.exe",
+];
+const DEFAULT_LINUX_FUSCRIPT_LOCATIONS = [
+  "/opt/resolve/libs/Fusion/fuscript",
+  "/opt/resolve/fuscript",
+];
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const transcribeClipsSchema = Schema.Array(
   Schema.Struct({
@@ -52,7 +61,7 @@ class CouldNotExtractAudioError extends Data.TaggedError(
   message: string;
 }> {}
 
-class CouldNotRunDavinciResolveScriptError extends Data.TaggedError(
+export class CouldNotRunDavinciResolveScriptError extends Data.TaggedError(
   "CouldNotRunDavinciResolveScriptError"
 )<{
   cause: unknown;
@@ -402,8 +411,36 @@ export class VideoProcessingService extends Effect.Service<VideoProcessingServic
           .join(":::");
       };
 
+      const resolveFuscriptLocation = Effect.fn("resolveFuscriptLocation")(
+        function* () {
+          const configuredLocation = process.env.FUSCRIPT_LOCATION;
+          if (configuredLocation) {
+            return configuredLocation;
+          }
+
+          const candidates =
+            process.platform === "linux"
+              ? DEFAULT_LINUX_FUSCRIPT_LOCATIONS
+              : DEFAULT_WINDOWS_FUSCRIPT_LOCATIONS;
+
+          for (const candidate of candidates) {
+            if (yield* effectFs.exists(candidate)) {
+              return candidate;
+            }
+          }
+
+          return yield* Effect.fail(
+            new CouldNotRunDavinciResolveScriptError({
+              cause: null,
+              message:
+                "Could not find DaVinci Resolve fuscript binary. Set FUSCRIPT_LOCATION or install Resolve in a supported location.",
+            })
+          );
+        }
+      );
+
       /**
-       * Run a DaVinci Resolve Lua script via fuscript.exe.
+       * Run a DaVinci Resolve Lua script via fuscript.
        */
       const runDavinciResolveScript = Effect.fn("runDavinciResolveScript")(
         function* (script: string, env: Record<string, string>) {
@@ -420,11 +457,27 @@ export class VideoProcessingService extends Effect.Service<VideoProcessingServic
               `\\\\\\\\wsl.localhost\\\\Ubuntu-24.04\\\\home\\\\${user}`
           );
 
-          const command = Command.make(
-            FUSCRIPT_LOCATION,
-            "-q",
-            windowsScriptPath
-          ).pipe(Command.env(env));
+          const command =
+            process.platform === "linux"
+              ? Command.make("python3", scriptPath).pipe(
+                  Command.env({
+                    ...env,
+                    RESOLVE_SCRIPT_API: "/opt/resolve/Developer/Scripting",
+                    RESOLVE_SCRIPT_LIB:
+                      "/opt/resolve/libs/Fusion/fusionscript.so",
+                    PYTHONPATH: [
+                      process.env.PYTHONPATH,
+                      "/opt/resolve/Developer/Scripting/Modules",
+                    ]
+                      .filter(Boolean)
+                      .join(":"),
+                  })
+                )
+              : Command.make(
+                  yield* resolveFuscriptLocation(),
+                  "-q",
+                  windowsScriptPath
+                ).pipe(Command.env(env));
 
           return yield* Effect.scoped(
             Effect.gen(function* () {
@@ -438,14 +491,26 @@ export class VideoProcessingService extends Effect.Service<VideoProcessingServic
                 )
               );
 
-              const [stdout, stderr] = yield* Effect.all(
+              const [stdout, stderr, exitCode] = yield* Effect.all(
                 [
                   process.stdout.pipe(Stream.decodeText(), Stream.mkString),
                   process.stderr.pipe(Stream.decodeText(), Stream.mkString),
+                  process.exitCode,
                 ],
-                { concurrency: 2 }
+                { concurrency: 3 }
               );
-              yield* process.exitCode.pipe(Effect.ignore);
+
+              if (exitCode !== 0 || stderr.trim()) {
+                return yield* Effect.fail(
+                  new CouldNotRunDavinciResolveScriptError({
+                    cause: { exitCode, stdout, stderr },
+                    message:
+                      stderr.trim() ||
+                      stdout.trim() ||
+                      `DaVinci Resolve script failed with exit code ${exitCode}`,
+                  })
+                );
+              }
 
               return { stdout, stderr };
             })
@@ -498,12 +563,17 @@ export class VideoProcessingService extends Effect.Service<VideoProcessingServic
             })
           );
 
-          const result = yield* runDavinciResolveScript("clip-and-append.lua", {
-            NEW_TIMELINE_NAME: opts.timelineName,
-            INPUT_VIDEOS: uniqueInputVideos.join(":::"),
-            CLIPS_TO_APPEND: serializedClips,
-            WSLENV: "INPUT_VIDEOS/p:CLIPS_TO_APPEND:NEW_TIMELINE_NAME",
-          });
+          const result = yield* runDavinciResolveScript(
+            process.platform === "linux"
+              ? "clip-and-append.py"
+              : "clip-and-append.lua",
+            {
+              NEW_TIMELINE_NAME: opts.timelineName,
+              INPUT_VIDEOS: uniqueInputVideos.join(":::"),
+              CLIPS_TO_APPEND: serializedClips,
+              WSLENV: "INPUT_VIDEOS/p:CLIPS_TO_APPEND:NEW_TIMELINE_NAME",
+            }
+          );
 
           return result.stdout;
         }

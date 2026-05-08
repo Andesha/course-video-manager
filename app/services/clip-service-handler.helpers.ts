@@ -53,15 +53,20 @@ export const noopLogger: LoggerAdapter = { log: () => {} };
 // Helper: Windows to WSL path conversion
 // ============================================================================
 
-export function windowsToWSL(windowsPath: string): string {
-  // Convert C:\Users\... to /mnt/c/Users/...
-  const drive = windowsPath.charAt(0).toLowerCase();
-  const pathWithoutDrive = windowsPath.slice(3); // Remove "C:\"
+export function windowsToWSL(inputPath: string): string {
+  // OBS on Windows reports paths like C:\Users\...; when the app runs in WSL,
+  // convert those to /mnt/c/Users/... so ffmpeg can read them.
+  const windowsDrivePathMatch = inputPath.match(/^([a-zA-Z]):[\\/](.*)$/);
+  if (!windowsDrivePathMatch) {
+    // OBS on Linux/WSL may already report a POSIX path. Do not mangle it.
+    return inputPath;
+  }
 
-  // Convert backslashes to forward slashes
+  const driveLetter = windowsDrivePathMatch[1]!;
+  const pathWithoutDrive = windowsDrivePathMatch[2]!;
   const unixPath = pathWithoutDrive.replace(/\\/g, "/");
 
-  return `/mnt/${drive}/${unixPath}`;
+  return `/mnt/${driveLetter.toLowerCase()}/${unixPath}`;
 }
 
 // ============================================================================

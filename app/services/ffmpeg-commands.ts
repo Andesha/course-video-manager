@@ -147,7 +147,7 @@ export class FFmpegCommandsService extends Effect.Service<FFmpegCommandsService>
 
         const filterComplex = filterParts.join(";");
 
-        const args = [
+        const baseArgs = [
           "-y",
           "-hide_banner",
           ...inputArgs,
@@ -157,20 +157,9 @@ export class FFmpegCommandsService extends Effect.Service<FFmpegCommandsService>
           "[outv]",
           "-map",
           "[outa]",
-          "-c:v",
-          "h264_nvenc",
-          "-preset",
-          "slow",
-          "-rc:v",
-          "vbr",
-          "-cq:v",
-          "19",
-          "-b:v",
-          "15387k",
-          "-maxrate",
-          "20000k",
-          "-bufsize",
-          "30000k",
+        ];
+
+        const commonOutputArgs = [
           "-fps_mode",
           "cfr",
           "-r",
@@ -188,26 +177,67 @@ export class FFmpegCommandsService extends Effect.Service<FFmpegCommandsService>
           outputFile,
         ];
 
+        const nvencArgs = [
+          ...baseArgs,
+          "-c:v",
+          "h264_nvenc",
+          "-preset",
+          "slow",
+          "-rc:v",
+          "vbr",
+          "-cq:v",
+          "19",
+          "-b:v",
+          "15387k",
+          "-maxrate",
+          "20000k",
+          "-bufsize",
+          "30000k",
+          ...commonOutputArgs,
+        ];
+
+        const cpuArgs = [
+          ...baseArgs,
+          "-c:v",
+          "libx264",
+          "-preset",
+          "slow",
+          "-crf",
+          "19",
+          "-pix_fmt",
+          "yuv420p",
+          ...commonOutputArgs,
+        ];
+
+        const runFfmpeg = (args: string[]) =>
+          Command.exitCode(
+            Command.make("ffmpeg", ...args).pipe(
+              Command.stdout("inherit"),
+              Command.stderr("inherit")
+            )
+          ).pipe(
+            Effect.mapError(
+              (e) =>
+                new FFmpegError({
+                  cause: e,
+                  message: `Failed to create concatenated video: ${e.message}`,
+                })
+            )
+          );
+
         yield* gpuSemaphore.withPermits(1)(
           Effect.gen(function* () {
-            const code = yield* Command.exitCode(
-              Command.make("ffmpeg", ...args).pipe(
-                Command.stdout("inherit"),
-                Command.stderr("inherit")
-              )
-            ).pipe(
-              Effect.mapError(
-                (e) =>
-                  new FFmpegError({
-                    cause: e,
-                    message: `Failed to create concatenated video: ${e.message}`,
-                  })
-              )
-            );
-            if (code !== 0) {
+            const nvencCode = yield* runFfmpeg(nvencArgs);
+            if (nvencCode === 0) return;
+
+            // h264_nvenc can be present in ffmpeg but unusable when CUDA is not
+            // available (e.g. "Cannot load libcuda.so.1"). Fall back to CPU so
+            // exports still work on machines/containers without NVIDIA access.
+            const cpuCode = yield* runFfmpeg(cpuArgs);
+            if (cpuCode !== 0) {
               yield* new FFmpegError({
                 cause: null,
-                message: `Failed to create concatenated video, exit code: ${code}`,
+                message: `Failed to create concatenated video, nvenc exit code: ${nvencCode}, libx264 exit code: ${cpuCode}`,
               });
             }
           })

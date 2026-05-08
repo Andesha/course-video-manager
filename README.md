@@ -2,6 +2,25 @@
 
 A tool for managing course video publishing workflows — editing metadata, generating descriptions, creating thumbnails, and posting to social platforms.
 
+> This is [Andesha's fork](https://github.com/Andesha/course-video-manager) of [`mattpocock/course-video-manager`](https://github.com/mattpocock/course-video-manager), with the Linux/work-machine changes documented below.
+
+## Linux fork notes
+
+The upstream project assumes a Windows-or-WSL host with NVIDIA acceleration and DaVinci Resolve at a fixed Windows path. This fork makes it work on a plain Linux box. Rough list of what changed:
+
+- **ffmpeg fallback** — exports try `h264_nvenc` first and fall back to `libx264` when CUDA is unavailable, so ffmpeg builds with nvenc compiled in but no working `libcuda.so.1` no longer hard-fail.
+- **DaVinci Resolve via Python on Linux** — Resolve scripting on Linux uses `DaVinciResolveScript` (Python) instead of `fuscript.exe`. A `clip-and-append.py` port of the Lua script lives next to the original; the runtime is selected per-platform. `FUSCRIPT_LOCATION` overrides the fuscript binary path on WSL/Windows; default candidate locations are probed otherwise.
+- **`~/` paths** — the create-on-disk flow accepts `~/project` and expands it to the user's home directory before validating.
+- **Standalone-video publishing** — videos that aren't attached to a course can be exported. They get a `standalone-<videoId>` namespace in `FINISHED_VIDEOS_DIRECTORY` instead of failing on a missing course id.
+- **Real error messages on routes** — Resolve script and course-repo-write failures bubble up with their actual `stderr`/message instead of being collapsed into `Internal server error`.
+- **Misc** — `windowsToWSL` no longer mangles POSIX paths from Linux OBS; the lua input delimiter matches the TS layer's `:::`; the feedback modal reads `localStorage` via `window` so it doesn't blow up under SSR.
+
+## Setup
+
+1. **Install deps** — `npm install`. (This fork's lockfile is still `package-lock.json`; don't commit `pnpm-lock.yaml` if pnpm leaves one behind.)
+2. **Configure secrets** — copy `.env.example` to `.env` and fill in the values. Required at minimum: `DATABASE_URL`, `OPENAI_API_KEY`, and the `FINISHED_VIDEOS_DIRECTORY` / `DROPBOX_PATH` / `STANDALONE_VIDEO_FILES_DIR` paths. `FUSCRIPT_LOCATION` is optional and only needed when DaVinci Resolve isn't in a default location. Note: `.env.example` is the source of truth for the most-used vars but isn't exhaustive — `git grep 'process.env\.\|Config.string'` if something is missing at runtime.
+3. **Linux extras** — to use the DaVinci Resolve export, install Resolve and make sure `/opt/resolve/Developer/Scripting/Modules/DaVinciResolveScript.py` exists. The app launches `python3` against it; no `fuscript` binary is needed on Linux.
+
 ## Zapier Webhook Setup (Buffer Integration)
 
 The app uses a **Dropbox → Zapier → Buffer** pipeline to post videos to social media. When you click "Post to Buffer" in the app, it:

@@ -1,6 +1,7 @@
 import { AddVideoModal } from "@/components/add-video-modal";
 import { ConvertToGhostModal } from "@/components/convert-to-ghost-modal";
 import { CreateOnDiskModal } from "./create-on-disk-modal";
+import { LessonEmptyCTA } from "./lesson-empty-cta";
 import { DeleteLessonModal } from "@/components/delete-lesson-modal";
 import {
   DependencySelector,
@@ -579,6 +580,15 @@ export function SortableLessonItem({
                 lessonId: lesson.id,
               });
             }}
+          />
+        )}
+        {!isReadOnly && (
+          <LessonEmptyCTA
+            lesson={lesson}
+            isGhost={isGhost}
+            isGhostCourse={isGhostCourse}
+            dispatch={dispatch}
+            submitEvent={submitEvent}
           />
         )}
         <div className="ml-5 mt-3">

@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { FileSystem } from "@effect/platform";
 import { execFileSync } from "node:child_process";
+import os from "node:os";
 import type { DBFunctionsService } from "./db-service.server";
 import type { CourseRepoWriteService } from "./course-repo-write-service";
 import { parseLessonPath, buildLessonPath } from "./lesson-path-service";
@@ -22,12 +23,16 @@ export const validateAndAssignRepoPath = Effect.fn("validateAndAssignRepoPath")(
     repoId: string,
     filePath: string
   ) {
-    const stat = yield* fileSystem.stat(filePath).pipe(
+    const normalizedFilePath = filePath.startsWith("~/")
+      ? `${os.homedir()}/${filePath.slice(2)}`
+      : filePath;
+
+    const stat = yield* fileSystem.stat(normalizedFilePath).pipe(
       Effect.catchAll(() =>
         Effect.fail(
           new CourseWriteError({
             cause: null,
-            message: `File path does not exist: ${filePath}`,
+            message: `File path does not exist: ${normalizedFilePath}`,
           })
         )
       )
@@ -36,24 +41,24 @@ export const validateAndAssignRepoPath = Effect.fn("validateAndAssignRepoPath")(
     if (stat.type !== "Directory") {
       return yield* new CourseWriteError({
         cause: null,
-        message: `File path is not a directory: ${filePath}`,
+        message: `File path is not a directory: ${normalizedFilePath}`,
       });
     }
 
     yield* Effect.try({
       try: () =>
         execFileSync("git", ["rev-parse", "--is-inside-work-tree"], {
-          cwd: filePath,
+          cwd: normalizedFilePath,
           stdio: "pipe",
         }),
       catch: () =>
         new CourseWriteError({
           cause: null,
-          message: `Directory is not a git repository: ${filePath}`,
+          message: `Directory is not a git repository: ${normalizedFilePath}`,
         }),
     });
 
-    yield* db.updateCourseFilePath({ repoId, filePath });
+    yield* db.updateCourseFilePath({ repoId, filePath: normalizedFilePath });
   }
 );
 

@@ -52,14 +52,16 @@ export function CreateOnDiskModal({
             <Input
               id="create-on-disk-repo-path"
               name="repoPath"
-              placeholder="e.g. /path/to/existing/directory"
+              placeholder="e.g. /home/you/project or ~/project"
               value={repoPathInput}
               onChange={(e) => setRepoPathInput(e.target.value)}
               autoFocus
             />
             <p className="text-xs text-muted-foreground">
-              Must point to an existing git repository directory. This will
-              permanently assign a file path to the course.
+              Must point to an existing git repository directory. You can use an
+              absolute path like <code>/home/you/project</code> or a home
+              shortcut like <code>~/project</code>. This will permanently assign
+              a file path to the course.
             </p>
           </div>
           <div className="flex justify-end space-x-2">
